@@ -47,7 +47,7 @@ class RamanCameraModel:
                 print(f"Successfully cooled down to {TARGET_TEMP}C°")
                 break
 
-    def close(self):
+    def close_cam(self):
         if self.cam:
             self.cam.close()
     
@@ -108,6 +108,8 @@ class RamanCameraModel:
             "timestamp": timestamp,
         }
         (self.save_dir / f"meta_{timestamp}.json").write_text(json.dumps(meta, indent=2))
+
+        # ask what to save??
 
     # ==== DISPLAY DATA =====
 
