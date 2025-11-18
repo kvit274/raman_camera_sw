@@ -35,6 +35,7 @@ class RamanCameraController:
         # TOD0
 
         # numeric conversions:
+        # TOD0: validate for sanity
         params["temp"] = float(params["temp"])
         params["exposure_time"] = float(params["exposure_time"])
         params["hbin"] = int(params["hbin"])
@@ -45,6 +46,7 @@ class RamanCameraController:
         # TOD0 change to drop down menus!
 
         # check roi:
+        # TOD0: validate sanity
         if params["roi"]:
             params["roi"] = self.parse_roi()
         
@@ -97,6 +99,7 @@ class RamanCameraController:
             frame, spectrum = self.model.acquire_accumulate(params["accum_n"])
         elif acq_mode == "run_till_abort":
             frame, spectrum = self.model.acquire_rta()
+        return frame,spectrum
 
     # save data
     def save_results(self,params,frame,spectrum):
