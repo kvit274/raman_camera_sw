@@ -1,5 +1,5 @@
 import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QStackedWidget, QLineEdit, QPushButton, QFileDialog, QLabel
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QStackedWidget, QLineEdit, QPushButton, QFileDialog, QLabel, QComboBox, QMessageBox
 from PyQt5.QtGui import QIntValidator, QDoubleValidator
 from PyQt5.QtCore import pyqtSignal
 import os
@@ -19,12 +19,12 @@ class MainWindow(QWidget):
 
         # self.initUI()
     # def initUI(self):
-        self.dll_path_path = ""
-        self.save_path_path = ""
+        self.dlls_path = ""
+        self.save_path = ""
 
-        self.dll_path_label = QLabel("No directory selected")
-        self.dll_path_btn = QPushButton("Select dll folder")
-        self.dll_path_btn.clicked.connect(self.select_dll_path)
+        self.dlls_path_label = QLabel("No directory selected")
+        self.dlls_path_btn = QPushButton("Select dll folder")
+        self.dlls_path_btn.clicked.connect(self.select_dlls_path)
 
         self.save_path_label = QLabel("No directory selected")
         self.save_path_btn = QPushButton("Select where to save results")
@@ -42,23 +42,26 @@ class MainWindow(QWidget):
 
         self.hbin_input = QLineEdit()
         self.hbin_input.setPlaceholderText("hbin")
-        self.hbin_input.setValidator(QDoubleValidator())
+        self.hbin_input.setValidator(QIntValidator())
 
         self.vbin_input = QLineEdit()
         self.vbin_input.setPlaceholderText("vbin")
-        self.vbin_input.setValidator(QDoubleValidator())
+        self.vbin_input.setValidator(QIntValidator())
 
         self.read_mode_input = QLineEdit()
         self.read_mode_input.setPlaceholderText("read mode")
         # use drop down in future
 
-        self.acq_mode_input = QLineEdit()
-        self.acq_mode_input.setPlaceholderText("acquisition mode")
+        self.acq_mode_input = QComboBox()
+        self.acq_mode_input.addItems(["single","accumulate","run_till_abort","kinetic"])
+        self.acq_mode_input.currentTextChanged.connect(self.toggle_accum_input)
         # use drop down in future
 
         self.accum_n_input = QLineEdit()
         self.accum_n_input.setPlaceholderText("number of frame to accumulate, only for accumulate acquisition mode")
         self.accum_n_input.setValidator(QIntValidator())
+        self.accum_n_input.hide()
+
 
         self.roi_input = QLineEdit()
         self.roi_input.setPlaceholderText("ROI in format (x,y,w,h)")
@@ -71,9 +74,9 @@ class MainWindow(QWidget):
         # layout
         layout = QVBoxLayout()
         layout.addWidget(self.save_path_label)
-        layout.addWidget(self.dll_path_label)
+        layout.addWidget(self.dlls_path_label)
         layout.addWidget(self.save_path_btn)
-        layout.addWidget(self.dll_path_btn)
+        layout.addWidget(self.dlls_path_btn)
         layout.addWidget(self.temp_input)
         layout.addWidget(self.exposure_input)
         layout.addWidget(self.hbin_input)
@@ -87,27 +90,33 @@ class MainWindow(QWidget):
         self.setLayout(layout)
 
         # attach controller
-        self.controller = RamanCameraController()
+        self.controller = RamanCameraController(view=self)
+
+    def toggle_accum_input(self, mode):
+        if mode == "accumulate":
+            self.accum_n_input.show()
+        else:
+            self.accum_n_input.hide()
 
 
-    def select_dll_path(self):
-        directory = QFileDialog.getExistingDirectory(self, "Select dll directory")
-        if directory:
-            self.dll_path = directory
-            self.dll_path_label.setText(f"DLL folder: {os.path.dirname(directory)}")
-            # self.dll_path_label.setText(os.path.dirname(directory))
+    def select_dlls_path(self):
+        file = QFileDialog.getExistingDirectory(self, "Select dll file")
+        if file:
+            self.dlls_path = file
+            # self.dlls_path_label.setText(f"DLL file: {file}")
+            self.dlls_path_label.setText(os.path.basename(file))
 
     def select_save_path(self):
         directory = QFileDialog.getExistingDirectory(self, "Select saving directory")
         if directory:
             self.save_path = directory
-            self.save_path_label.setText(f"Save folder: {os.path.dirname(directory)}")
+            self.save_path_label.setText(f"Save folder: {directory}")
             # self.save_path.setText(os.path.dirname(directory))
 
     def run_exp(self):
         params = {
             "save_path": self.save_path,
-            "dll_path": self.dll_path,
+            "dlls_path": self.dlls_path,
             "temp": self.temp_input.text(),
             "exposure_time": self.exposure_input.text(),
             "hbin": self.hbin_input.text(),

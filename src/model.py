@@ -4,7 +4,7 @@ import numpy as np
 import pylablib as pll
 from pylablib.devices import Andor
 from pathlib import Path
-import matplotlib as plt
+import matplotlib.pyplot as plt
 
 
 class RamanCameraModel:
@@ -40,11 +40,11 @@ class RamanCameraModel:
     
     def cool_cam(self,temp):
         self.cam.set_cooling(True, temperature=temp)
-        print(f"Cooling {self.cam.get_model()} to {TARGET_TEMP}C°")
+        print(f"Cooling {self.cam.get_model()} to {temp}C°")
         while True:
             t = self.cam.get_temperature()
             if t == temp:
-                print(f"Successfully cooled down to {TARGET_TEMP}C°")
+                print(f"Successfully cooled down to {temp}C°")
                 break
 
     def close_cam(self):
@@ -55,7 +55,7 @@ class RamanCameraModel:
 
     def acquire_single(self):
         self.cam.start_acquisition()
-        print(f"Camera acquiring: {self.cam.get_attribute_value("CameraAcquiring")}") # check if the camera is acquiring
+        print(f"Camera acquiring: {self.cam.get_attribute_value('CameraAcquiring')}") # check if the camera is acquiring
         frame = self.cam.wait_for_frame()
         spectrum = frame.sum(axis=0).astype(np.int32)   # turn raw 2D into 1D spectrum by summing the column pixels (more score -> brighter -> higher score)
 
@@ -69,7 +69,7 @@ class RamanCameraModel:
         return frame, spectrum
     
     def acquire_rta(self):
-        self.cam.start_acquisition()
+        self.cam.start_acquisition()    
         try:
             while True:
                 frame = self.cam.wait_for_frame(timeout=5.0)
@@ -89,8 +89,8 @@ class RamanCameraModel:
     def set_save_path(self,save_path):
         self.save_path = save_path
     
-    def set_dll_path(self,dll_path):
-        pll.par["devices/dll/andor_sdk2"] = dll_path
+    def set_dlls_path(self,dlls_path):
+        pll.par["devices/dll/andor_sdk2"] = dlls_path
     
     def save_data(self, frame, spectrum, timestamp):
         np.savetxt(self.save_path / f"{timestamp}_frame.csv", frame, delimiter=",", fmt="%d")   # save image
@@ -107,7 +107,7 @@ class RamanCameraModel:
             "frame_shape": frame.shape,
             "timestamp": timestamp,
         }
-        (self.save_dir / f"meta_{timestamp}.json").write_text(json.dumps(meta, indent=2))
+        (self.save_path / f"meta_{timestamp}.json").write_text(json.dumps(meta, indent=2))
 
         # ask what to save??
 

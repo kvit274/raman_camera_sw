@@ -1,13 +1,24 @@
-from model import RamanCameraModel
+# from model import RamanCameraModel
+from unittest.mock import MagicMock
 import time
 
 class RamanCameraController:
     def __init__(self,view):
         self.view = view
-        self.model = RamanCameraModel()
+        # self.model = RamanCameraModel()
+        self.model = MagicMock()    # use temporally for testing
 
         # connect signals from view
-        self.view.run_clicked.connect(self.run_exp)
+        # self.view.run_clicked.connect(self.run_exp)
+        self.view.run_clicked.connect(self.test)
+
+    def test(self,raw_params):
+        try:
+            params = self.validate_inputs(raw_params)
+            for param,val in params.items():
+                print(f"{param}: {val}\n")
+        except:
+            print("Wrong input")
         
     def run_exp(self,raw_params):
         try:
@@ -16,10 +27,11 @@ class RamanCameraController:
             frame, spectrum = self.acquire_data(params)
             self.save_results(params, frame, spectrum)
 
-            self.view.show_info("Experiment completed successfully!")
+            # self.view.show_info("Experiment completed successfully!") # TOD0
 
         except Exception as e:
-            self.view.show_error(f"Error: {str(e)}")
+            print("Could not run experiment")
+            # self.view.show_error(f"Error: {str(e)}") # TOD0
 
         print("Experiment completed.")
         self.model.close_cam()
@@ -28,7 +40,7 @@ class RamanCameraController:
     def validate_inputs(self,params):
         """
         params contains:
-        temp, exposure_time, read_mode, acq_mode, hbin, vbin, accum_n, roi, save_path, dll_path
+        temp, exposure_time, read_mode, acq_mode, hbin, vbin, accum_n, roi, save_path, dlls_path
         """
 
         # validate paths here:
@@ -48,7 +60,7 @@ class RamanCameraController:
         # check roi:
         # TOD0: validate sanity
         if params["roi"]:
-            params["roi"] = self.parse_roi()
+            params["roi"] = self.parse_roi(params["roi"])
         
         return params
     
@@ -65,10 +77,10 @@ class RamanCameraController:
         """Set DLL, Connect camera, cool down, set modes, roi"""
 
         # update paths if given
-        if params["dll_path"]:
-            self.model.set_dll_path(params["dll_path"])
-        if params["dll_path"]:
-            self.model.set_dll_path(params["dll_path"])
+        if params["dlls_path"]:
+            self.model.set_dlls_path(params["dlls_path"])
+        if params["save_path"]:
+            self.model.set_save_path(params["save_path"])
         
         # connect camera
         self.model.connect_cam()
