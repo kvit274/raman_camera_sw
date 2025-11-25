@@ -29,6 +29,13 @@ class RamanCameraModel:
         When connecting all the parameters are usually set in the slowest mode (amplifier,vertical/horizontal scan speed, etc.)
         Default shutter is ("closed")
         """
+
+        available = Andor.get_cameras_number_SDK2()
+        # while not available:
+        #     print("No available cameras found")
+        #     time.sleep(1)
+        print(f"Found {available} camera")
+
         try:
             self.cam = Andor.AndorSDK2Camera()
 
@@ -40,7 +47,7 @@ class RamanCameraModel:
         except:
             raise ConnectionError("Could not connect to device")
     
-    def get_cam_params(self,save_path):
+    def get_cam_params(self,save_path=Path("./cam_params.txt")):
         """
         Collect and save camera parameters in readable format.
         """
@@ -199,10 +206,10 @@ class RamanCameraModel:
                 break
 
             temp = self.cam.get_temperature()
-            print(f"Cooling: {temp}, Status: {self.cam.get_temperature_status}")
+            print(f"Cooling: {temp}, Status: {self.cam.get_temperature_status()}")
 
             if temp <= target_temp:
-                print(f"Temperature stabilized, Status: {self.cam.get_temperature_status}")
+                print(f"Temperature stabilized, Status: {self.cam.get_temperature_status()}")
                 break
             # if time.time() - t0 > time_out:
             #     raise RuntimeError("Cooling timeout")
@@ -212,7 +219,7 @@ class RamanCameraModel:
 
     def warm_cam(self,safe_temp=-20):
         self.busy = True
-        self.cancel = False
+        self.cancel = True
 
         self.cam.set_cooler(on=False)
         print("Warming (cooler OFF)")
@@ -255,6 +262,11 @@ class RamanCameraModel:
             self.cam.close()
             self.cam = None
     
+    def get_temp(self):
+        if not self.cam:
+            return "--",""
+        
+        return self.cam.get_temperature(), self.cam.get_temperature_status()
 
 
 
@@ -264,7 +276,7 @@ class RamanCameraModel:
         """
         Start capturing what camera sees until stop live is clicked.
         """
-        if self.is_live():
+        if self.is_live or not self.cam:
             return
     
         self.cam.set_exposure(0.03)     # update fast
@@ -273,7 +285,7 @@ class RamanCameraModel:
         return
 
     def end_live(self):
-        if not self.is_live():
+        if not self.cam or not self.is_live:
             return
         self.cam.stop_acquisition()
         self.is_live=False
@@ -405,7 +417,7 @@ class RamanCameraModel:
 
 
     # ==== MATH =====
-    def adjust_frame(frame):
-        frame8 = (frame / frame.max() * 255).astype(np.uint8)
+    def adjust_frame(self,frame):
+        frame8 = (frame / frame.max() * 255).astype(np.uint8)   # 8bit grayscale
         h, w = frame8.shape
         return (frame8,h,w)

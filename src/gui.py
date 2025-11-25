@@ -17,12 +17,13 @@ class MainWindow(QWidget):
         self.controller = RamanCameraController(view=self)
 
         self.preview = QLabel("Preview")
-        self.preview.setFixedSize(640,480)
-        self.btn_connect = QPushButton("Connect")
+        self.preview.setFixedSize(640,480)  # change to camera max width/height
+        self.btn_connect_cam = QPushButton("Connect Camera")
         self.btn_live = QPushButton("Start Live")
         self.btn_stop = QPushButton("Stop Live")
         self.btn_acquire = QPushButton("Acquire")
-        self.btn_disconnect = QPushButton("Disconnect")
+        self.btn_disconnect_cam = QPushButton("Disconnect Camera")
+        self.temp = QLabel("Temp: -- °C")
 
         # self.dlls_path = ""
         # self.save_path = ""
@@ -64,12 +65,13 @@ class MainWindow(QWidget):
         # layout
         layout = QVBoxLayout()
         layout.addWidget(self.preview)
+        layout.addWidget(self.temp)
         hl = QHBoxLayout()
-        hl.addWidget(self.btn_connect)
+        hl.addWidget(self.btn_connect_cam)
         hl.addWidget(self.btn_live)
         hl.addWidget(self.btn_stop)
         hl.addWidget(self.btn_acquire)
-        hl.addWidget(self.btn_disconnect)
+        hl.addWidget(self.btn_disconnect_cam)
         layout.addLayout(hl)
 
         # layout.addWidget(self.save_path_label)
@@ -89,27 +91,32 @@ class MainWindow(QWidget):
         self.setLayout(layout)
 
         # Connect buttons to controller
-        self.btn_connect.clicked.connect(self.connect)
+        self.btn_connect_cam.clicked.connect(self.connect_cam)
         self.btn_live.clicked.connect(self.start_live)
         self.btn_stop.clicked.connect(self.stop_live)
         self.btn_acquire.clicked.connect(self.acquire_frame)
-        self.btn_disconnect.clicked.connect(self.disconnect)
+        self.btn_disconnect_cam.clicked.connect(self.disconnect_cam)
 
         # Live preview updates
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_preview)
 
+        # Display temperature
+        self.timer_temp = QTimer()
+        self.timer_temp.timeout.connect(self.display_temp)
+        self.timer_temp.start(1000)
+
 
     # ===== Functions ======
 
-    def connect(self):
-        self.controller.connect()
+    def connect_cam(self):
+        self.controller.connect_cam()
         self.disable_buttons()
         self.worker = CoolingWorker(self.controller,target_temp=-80)
         self.worker.finished.connect(self.enable_buttons)
         self.worker.start()
 
-    def disconnect(self):
+    def disconnect_cam(self):
         self.disable_buttons()
         self.worker = WarmUpCloseWorker(self.controller)
         self.worker.finished.connect(self.enable_buttons)
@@ -123,17 +130,21 @@ class MainWindow(QWidget):
         for b in [self.btn_connect, self.btn_live, self.btn_stop, self.btn_acquire]:
             b.setEnabled(True)
 
+    def display_temp(self):
+        temp,status = self.controller.get_temp()
+        self.temp.setText(f"Temp: {temp} °C | {status}")
+
     def start_live(self):
         self.controller.start_live()
         self.timer.start(30)    # 30 is FPS, we might change it
 
     def stop_live(self):
-        self.time.stop()
+        self.timer.stop()
         self.controller.stop_live()
 
     def update_preview(self):
         frame = self.controller.get_live_frame()
-        if not frame:
+        if frame is None:
             return
         self.display_image(frame)
 
@@ -151,7 +162,7 @@ class MainWindow(QWidget):
     
     def acquire_frame(self):
         frame = self.controller.acquire_single()
-        if not frame:
+        if frame is None:
             return
         self.display_image(frame)
 
@@ -208,6 +219,7 @@ class CoolingWorker(QThread):
 
     def run(self):
         self.controller.cool_cam(self.target_temp)
+        self.temp
         self.finished.emit()    # unlock buttons
 
 class WarmUpCloseWorker(QThread):
@@ -219,7 +231,7 @@ class WarmUpCloseWorker(QThread):
 
     def run(self):
         self.controller.warm_cam()
-        self.controller.disconnect()
+        self.controller.disconnect_cam()
         self.finished.emit()
 
 

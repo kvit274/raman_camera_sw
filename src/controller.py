@@ -1,4 +1,5 @@
-from model import RamanCameraModel
+from camera import RamanCameraModel
+from spectrometer import SpectrometerModel
 from unittest.mock import MagicMock
 import time
 
@@ -6,46 +7,50 @@ class RamanCameraController:
 
     def __init__(self,view):
         self.view = view
-        self.model = RamanCameraModel()
-        # self.model = MagicMock()    # use temporally for testing
+        self.camera = RamanCameraModel()
+        self.spec = SpectrometerModel()
+        # self.camera = MagicMock()    # use temporally for testing
 
 
-    def connect(self):
-        self.model.connect_cam()
-        self.model.get_cam_params()     # save cam defaults for later
-        self.model.set_default_settings()
+    def connect_cam(self):
+        self.camera.connect_cam()
+        self.camera.get_cam_params()     # save cam defaults for later
+        self.camera.set_default_settings()
         # self.cool_cam(target_temp=-80)
         return
     
-    def isBusy(self):
-        return self.model.busy
+    def isBusy_cam(self):
+        return self.camera.busy
 
     def cool_cam(self,target_temp):
-        self.model.cool_cam(target_temp)
+        self.camera.cool_cam(target_temp)
 
     def warm_cam(self):
-        self.model.warm_cam()
+        self.camera.warm_cam()
 
-    def disconnect(self):
-        self.model.safe_close()
+    def disconnect_cam(self):
+        self.camera.safe_close()
         return
 
     def start_live(self):
-        self.model.start_live()
+        self.camera.start_live()
         return
     
     def stop_live(self):
-        self.model.end_live()
+        self.camera.end_live()
         return
     
+    def get_temp(self):
+        return self.camera.get_temp()
+    
     def get_live_frame(self):
-        return self.model.get_live_frame()
+        return self.camera.get_live_frame()
     
     def acquire_single(self):
-        return self.model.simple_acq()
+        return self.camera.simple_acq()
     
     def adjust_frame(self,frame):
-        return self.model.adjust_frame(frame)
+        return self.camera.adjust_frame(frame)
 
 
     # def test(self,raw_params):
@@ -56,9 +61,9 @@ class RamanCameraController:
     #     except:
     #         print("Wrong input")
     #     params = self.validate_inputs(raw_params)
-    #     self.model.connect_cam()
+    #     self.camera.connect_cam()
     #     time.sleep(5.0)
-    #     self.model.close_cam()
+    #     self.camera.close_cam()
         
     # def run_exp(self,raw_params):
     #     try:
@@ -74,7 +79,7 @@ class RamanCameraController:
     #         # self.view.show_error(f"Error: {str(e)}") # TOD0
 
     #     print("Experiment completed.")
-    #     self.model.close_cam()
+    #     self.camera.close_cam()
     
     # # validate data formats
     # def validate_inputs(self,params):
@@ -118,18 +123,18 @@ class RamanCameraController:
 
     #     # update paths if given
     #     if params["dlls_path"]:
-    #         self.model.set_dlls_path(params["dlls_path"])
+    #         self.camera.set_dlls_path(params["dlls_path"])
     #     if params["save_path"]:
-    #         self.model.set_save_path(params["save_path"])
+    #         self.camera.set_save_path(params["save_path"])
         
     #     # connect camera
-    #     self.model.connect_cam()
+    #     self.camera.connect_cam()
 
     #     # cool cam
-    #     self.model.cool_cam(params["temp"])
+    #     self.camera.cool_cam(params["temp"])
 
     #     # set acquisition:
-    #     self.model.set_cam_settings(
+    #     self.camera.set_cam_settings(
     #         exposure=params["exposure_time"],
     #         hbin=params["hbin"],
     #         vbin=params["vbin"],
@@ -139,26 +144,26 @@ class RamanCameraController:
 
     #     # set roi if given
     #     if params["roi"]:
-    #         self.model.set_roi(params["roi"],params["hbin"],params["vbin"])
+    #         self.camera.set_roi(params["roi"],params["hbin"],params["vbin"])
 
     # acquisition
     def acquire_data(self,params):
         # run acquisition
         acq_mode = params["acq_mode"]
         if acq_mode == "single":
-            frame, spectrum = self.model.acquire_single()
+            frame, spectrum = self.camera.acquire_single()
         elif acq_mode == "accumulate":
-            frame, spectrum = self.model.acquire_accumulate(params["accum_n"])
+            frame, spectrum = self.camera.acquire_accumulate(params["accum_n"])
         elif acq_mode == "run_till_abort":
-            frame, spectrum = self.model.acquire_rta()
+            frame, spectrum = self.camera.acquire_rta()
         return frame,spectrum
 
     # save data
     def save_results(self,params,frame,spectrum):
 
         ts = int(time.time())
-        self.model.save_data(frame, spectrum, ts)
-        self.model.save_meta(
+        self.camera.save_data(frame, spectrum, ts)
+        self.camera.save_meta(
             frame=frame,
             exposure=params["exposure"],
             hbin=params["hbin"],
