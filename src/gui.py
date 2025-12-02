@@ -1,9 +1,48 @@
+import atexit
 import sys
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QStackedWidget, QLineEdit, QPushButton, QFileDialog, QLabel, QComboBox, QMessageBox
 from PyQt5.QtGui import QIntValidator, QDoubleValidator, QImage, QPixmap
 from PyQt5.QtCore import pyqtSignal, QTimer, QThread
 import os
 from controller import RamanCameraController
+
+def _safe_exit_close():
+    """Extra safety: runs even if an exception kills the app."""
+    try:
+        app = QApplication.instance()
+        if not app:
+            return
+        window = app.activeWindow()
+        if not window:
+            return
+
+        ctrl = window.controller
+
+        print("[EXIT] Python exiting — running safe camera shutdown")
+
+        # Try warm cam
+        try:
+            ctrl.warm_cam()
+        except:
+            pass
+
+        # Try disconnect cam
+        try:
+            ctrl.disconnect_cam()
+        except:
+            pass
+
+        # Spectrometer safe disconnect
+        try:
+            ctrl.disconnect_spec()
+        except:
+            pass
+
+    except Exception as e:
+        print("[EXIT] Error in atexit shutdown:", e)
+
+# Register handler
+atexit.register(_safe_exit_close)
 
 class MainWindow(QWidget):
     # run_clicked = pyqtSignal(dict)
@@ -136,6 +175,48 @@ class MainWindow(QWidget):
         self.timer_temp.timeout.connect(self.display_temp)
         self.timer_temp.start(1000)
 
+    def closeEvent(self, event):
+        """
+        Runs automatically when the user closes the GUI.
+        Ensures the camera is warmed and disconnected safely.
+        """
+        print("[GUI] Application closing... running safe shutdown")
+
+        try:
+            # Stop live preview if running
+            try:
+                self.timer.stop()
+            except:
+                pass
+            try:
+                self.controller.stop_live()
+            except:
+                pass
+
+            # Warm up the camera
+            try:
+                self.controller.warm_cam()
+                print("Camera warmed up due to forced shutdown.")
+            except Exception as e:
+                print("Warm-up failed:", e)
+
+            # Disconnect camera
+            try:
+                self.controller.disconnect_cam()
+                print("Camera disconnected safely due to shutdown.")
+            except Exception as e:
+                print("Camera disconnect failed:", e)
+
+            # Disconnect spectrometer safely
+            try:
+                self.controller.disconnect_spec()
+            except Exception as e:
+                print("Spectrometer disconnect failed:", e)
+
+        except Exception as e:
+            print("[GUI] Unexpected error during closeEvent:", e)
+
+        event.accept()
 
 
     # ===== Functions ======
