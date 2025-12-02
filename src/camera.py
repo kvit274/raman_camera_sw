@@ -205,7 +205,7 @@ class RamanCameraModel:
                 print("Cooling canceled")
                 break
 
-            temp = self.cam.get_temperature()
+            temp = round(self.cam.get_temperature(),2)
             print(f"Cooling: {temp}, Status: {self.cam.get_temperature_status()}")
 
             if temp <= target_temp:
@@ -226,7 +226,7 @@ class RamanCameraModel:
 
         while True:
 
-            t = self.cam.get_temperature()
+            t = round(self.cam.get_temperature(),2)
             print(f"Warming T = {t:.1f}")
 
             if t >= safe_temp:
@@ -255,12 +255,14 @@ class RamanCameraModel:
         # self.warm_cam()
         
         self.close_cam()
+        
         return
 
     def close_cam(self):
         if self.cam:
             self.cam.close()
             self.cam = None
+            print("Camera disconnected safely")
     
     def get_temp(self):
         if not self.cam:
@@ -282,6 +284,7 @@ class RamanCameraModel:
         self.cam.set_exposure(0.03)     # update fast
         self.cam.start_acquisition(mode="cont")     # sets acquisition mode to "run till abort"
         self.is_live = True  
+        print("Live mode started")
         return
 
     def end_live(self):
@@ -315,7 +318,7 @@ class RamanCameraModel:
             print("Single frame acquired")
             return frame
         else:
-            frames = self.cam.grab(10)  # grab 10 frames
+            frames = self.cam.grab(num_frames)  # grab 10 frames
             print("Multiple frames acquired")
             return frames
 

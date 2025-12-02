@@ -1,40 +1,32 @@
 from pylablib.devices import Andor
-import pylablib as pll
 import time
 from pathlib import Path
 from pprint import pformat
 
-class SpectrometerModel:
+
+class TestSpectrometerModel:
     def __init__(self):
         self.spec = None
-        pll.par["devices/dlls/andor_shamrock"] = r"C:/Program Files/Andor SDK/Shamrock64"
 
 
     def connect(self):
 
-        available = Andor.list_shamrock_spectrographs()
-        if not available:
+        available = ["Test Spectrometer"]
+        while not available:
             print("No spectrometers found")
             time.sleep(1)
-        else:
-            print(f"Found {available} spectrometer")
+        print(f"Found {available} spectrometer")
 
-        try:
-            self.spec = Andor.ShamrockSpectrograph()
-            device = self.spec.get_device_info()
-            print(f"Spectrometer {device} is connected")
-        except Exception as e:
-            print(f"Failed to connect spectrometer {e}")
+        self.spec = available[0]
+        print(f"Spectrometer {available[0]} is connected")
         
     def disconnect(self):
         if self.spec is None:
             return
-        try:
-            self.spec.close()
-            print("Spectrometer disconnected")
-            self.spec = None
-        except Exception:
-            print("Failed to disconnect spectrometer")
+
+        self.spec = None
+        print("Spectrometer disconnected")
+        return
 
     def set_wavelength(self,wavelength):
         """
@@ -43,7 +35,7 @@ class SpectrometerModel:
         if not self.spec:
             return
         
-        self.spec.set_wavelength(wavelength)
+        print(f"Set wavelength to {wavelength} m")
         return
     
     def set_grating(self,grating,force=False):
@@ -55,7 +47,7 @@ class SpectrometerModel:
         if not self.spec:
             return
         
-        self.spec.set_grating(grating,force)
+        print(f"Set grating to {grating}, force={force}")
         return
     
     def set_slit_width(self,slit,width):
@@ -67,7 +59,7 @@ class SpectrometerModel:
         if not self.spec:
             return
         
-        self.spec.set_slit_width(slit,width)
+        print(f"Set slit {slit} width to {width} m")
         return
     
     def get_default_settings(self,save_path=Path("./spec_params.txt")):
@@ -77,7 +69,7 @@ class SpectrometerModel:
         
         info = {}
 
-        info["wavelength limits"] = self.spec.get_wavelength_limits
+        info["wavelength limits"] = (200e-9, 1200e-9)
 
         readable_text="=== Andor Shamrock Spectrometer Parameters ===\n"
         readable_text+=pformat(info, indent=2, width=120)

@@ -1,6 +1,8 @@
 from camera import RamanCameraModel
 from spectrometer import SpectrometerModel
 from unittest.mock import MagicMock
+from test_cam import TestCameraModel
+from test_spec import TestSpectrometerModel
 import time
 
 class RamanCameraController:
@@ -8,8 +10,13 @@ class RamanCameraController:
     def __init__(self,view):
         self.view = view
         self.camera = RamanCameraModel()
+        # self.camera = TestCameraModel()
         self.spec = SpectrometerModel()
+        # self.spec = TestSpectrometerModel()
         # self.camera = MagicMock()    # use temporally for testing
+
+
+    # ==== Camera methods =====
 
 
     def connect_cam(self):
@@ -173,4 +180,47 @@ class RamanCameraController:
             timestamp=ts
         )
 
+
+
+    # ==== Spectrometer methods =====
+
+    def connect_spec(self):
+        self.spec.connect()
+        self.spec.get_default_settings()
+        return
+        
+    def disconnect_spec(self):
+        self.spec.disconnect()
+
+    def set_wavelength_spec(self,wavelength):
+        try:
+            wavelength = float(wavelength)
+        except:
+            print("Wavelength must be a number (in meters)")
+            return
+        self.spec.set_wavelength(wavelength)
+        return
+    
+    def set_grating_spec(self,grating,force=False):
+        try:
+            grating = int(grating)
+        except:
+            print("Grating must be an integer (counting from 1)")
+            return
+        self.spec.set_grating(grating,force)
+        return
+    
+    def set_slit_width_spec(self,slit,width):
+        try:
+            width = float(width)
+        except:
+            print("Slit width must be a number (in meters)")
+            return
+        self.spec.set_slit_width(slit,width)
+        return
+    
+    def get_default_settings_spec(self):
+
+        self.spec.get_default_settings()
+        return
         

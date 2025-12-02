@@ -16,6 +16,7 @@ class MainWindow(QWidget):
         # attach controller
         self.controller = RamanCameraController(view=self)
 
+        # Camera preview and controls
         self.preview = QLabel("Preview")
         self.preview.setFixedSize(640,480)  # change to camera max width/height
         self.btn_connect_cam = QPushButton("Connect Camera")
@@ -24,6 +25,22 @@ class MainWindow(QWidget):
         self.btn_acquire = QPushButton("Acquire")
         self.btn_disconnect_cam = QPushButton("Disconnect Camera")
         self.temp = QLabel("Temp: -- °C")
+
+        # Spectrometer controls
+        self.btn_connect_spec = QPushButton("Connect Spectrometer")
+        self.btn_disconnect_spec = QPushButton("Disconnect Spectrometer")
+        self.wavelength_input = QLineEdit()
+        self.wavelength_input.setPlaceholderText("Wavelength (m)")
+        self.wavelength_input.setValidator(QDoubleValidator())
+        self.grating_input = QLineEdit()
+        self.grating_input.setPlaceholderText("Grating (#)")
+        self.grating_input.setValidator(QIntValidator())
+        self.slit_width_input = QLineEdit()
+        self.slit_width_input.setPlaceholderText("Slit Width (m)")
+        self.slit_width_input.setValidator(QDoubleValidator())
+        self.btn_update_spec = QPushButton("Update Spec Settings")
+
+
 
         # self.dlls_path = ""
         # self.save_path = ""
@@ -73,6 +90,14 @@ class MainWindow(QWidget):
         hl.addWidget(self.btn_acquire)
         hl.addWidget(self.btn_disconnect_cam)
         layout.addLayout(hl)
+        hl_spec = QHBoxLayout()
+        hl_spec.addWidget(self.btn_connect_spec)
+        hl_spec.addWidget(self.btn_disconnect_spec)
+        hl_spec.addWidget(self.wavelength_input)
+        hl_spec.addWidget(self.grating_input)
+        hl_spec.addWidget(self.slit_width_input)
+        hl_spec.addWidget(self.btn_update_spec)
+        layout.addLayout(hl_spec)
 
         # layout.addWidget(self.save_path_label)
         # layout.addWidget(self.dlls_path_label)
@@ -90,12 +115,17 @@ class MainWindow(QWidget):
 
         self.setLayout(layout)
 
-        # Connect buttons to controller
+        # Connect buttons to controller cam
         self.btn_connect_cam.clicked.connect(self.connect_cam)
         self.btn_live.clicked.connect(self.start_live)
         self.btn_stop.clicked.connect(self.stop_live)
         self.btn_acquire.clicked.connect(self.acquire_frame)
         self.btn_disconnect_cam.clicked.connect(self.disconnect_cam)
+
+        # Connect buttons to controller spec
+        self.btn_connect_spec.clicked.connect(self.connect_spec)
+        self.btn_disconnect_spec.clicked.connect(self.disconnect_spec)
+        self.btn_update_spec.clicked.connect(self.update_spec_settings)
 
         # Live preview updates
         self.timer = QTimer()
@@ -107,7 +137,10 @@ class MainWindow(QWidget):
         self.timer_temp.start(1000)
 
 
+
     # ===== Functions ======
+
+    # ==== Camera methods =====
 
     def connect_cam(self):
         self.controller.connect_cam()
@@ -123,11 +156,11 @@ class MainWindow(QWidget):
         self.worker.start()
 
     def disable_buttons(self):
-        for b in [self.btn_connect, self.btn_live, self.btn_stop, self.btn_acquire]:
+        for b in [self.btn_connect_cam, self.btn_live, self.btn_stop, self.btn_acquire]:
             b.setEnabled(False)
     
     def enable_buttons(self):
-        for b in [self.btn_connect, self.btn_live, self.btn_stop, self.btn_acquire]:
+        for b in [self.btn_connect_cam, self.btn_live, self.btn_stop, self.btn_acquire]:
             b.setEnabled(True)
 
     def display_temp(self):
@@ -209,6 +242,41 @@ class MainWindow(QWidget):
     def show_error(self, message: str):
         QMessageBox.critical(self, "Error", message)
 
+    # ==== Spectrometer methods =====
+
+    def connect_spec(self):
+        self.controller.connect_spec()
+    
+    def disconnect_spec(self):
+        self.controller.disconnect_spec()
+    
+    def update_spec_settings(self):
+        wavelength_text = self.wavelength_input.text()
+        grating_text = self.grating_input.text()
+        slit_width_text = self.slit_width_input.text()
+
+        if wavelength_text:
+            try:
+                wavelength = float(wavelength_text)
+                self.controller.set_wavelength_spec(wavelength)
+            except ValueError:
+                self.show_error("Invalid wavelength value")
+
+        if grating_text:
+            try:
+                grating = int(grating_text)
+                self.controller.set_grating_spec(grating)
+            except ValueError:
+                self.show_error("Invalid grating value")
+
+        if slit_width_text:
+            try:
+                slit_width = float(slit_width_text)
+                self.controller.set_slit_width_spec("input_side", slit_width)  # Example for input_side
+            except ValueError:
+                self.show_error("Invalid slit width value")
+        
+
 class CoolingWorker(QThread):
     finished = pyqtSignal()
 
@@ -219,7 +287,6 @@ class CoolingWorker(QThread):
 
     def run(self):
         self.controller.cool_cam(self.target_temp)
-        self.temp
         self.finished.emit()    # unlock buttons
 
 class WarmUpCloseWorker(QThread):
