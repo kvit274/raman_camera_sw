@@ -203,20 +203,17 @@ class MainWindow(QMainWindow):
     def display_used_params(self, roi, shutter):
         """Display used parameters in the GUI fields."""
 
-        hstart, hend, vstart, vend, hbin, vbin = roi
-        self.roi_hstart_input.setText(hstart)
-        self.roi_hend_input.setText(hend)
-        self.roi_vstart_input.setText(vstart)
-        self.roi_vend_input.setText(vend)
-        self.roi_hbin_input.setText(hbin)
-        self.roi_vbin_input.setText(vbin)
+        self.roi_hstart_input.setText(roi["hstart"])
+        self.roi_hend_input.setText(roi["hend"])
+        self.roi_vstart_input.setText(roi["vstart"])
+        self.roi_vend_input.setText(roi["vend"])
+        self.roi_hbin_input.setText(roi["hbin"])
+        self.roi_vbin_input.setText(roi["vbin"])
 
-        mode, tll_mode, open_time, close_time = shutter
-        self.shutter_mode_input.setCurrentText(mode)
-        self.tll_mode_input.setCurrentText(tll_mode)
-        self.shutter_open_time_input.setText(open_time)
-        self.shutter_close_time_input.setText(close_time)
-
+        self.shutter_mode_input.setCurrentText(shutter["mode"])
+        self.tll_mode_input.setCurrentText(shutter["tll_mode"])
+        self.shutter_open_time_input.setText(shutter["open_time"])
+        self.shutter_close_time_input.setText(shutter["close_time"])
 
 
     def display_msg(self, message):
@@ -306,13 +303,12 @@ class MainWindow(QMainWindow):
         hbin = self.roi_hbin_input.text()
         vbin = self.roi_vbin_input.text()
 
-        self.controller.set_roi(hstart=hstart, hend=hend, vstart=vstart, vend=vend, hbin=hbin, vbin=vbin)
-
         mode = self.shutter_mode_input.currentText()
         tll_mode = self.tll_mode_input.currentText()
         open_time = self.shutter_open_time_input.text()
         close_time = self.shutter_close_time_input.text()
 
+        self.controller.set_roi(hstart=hstart, hend=hend, vstart=vstart, vend=vend, hbin=hbin, vbin=vbin)
         self.controller.setup_shutter(mode=mode, tll_mode=tll_mode, open_time=open_time, close_time=close_time)
 
     def start_live(self):

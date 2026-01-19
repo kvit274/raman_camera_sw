@@ -242,7 +242,7 @@ class RamanCameraModel:
 
 
 
-    # ==== EXPOSURE SETUP ====
+    # ==== SHUTTER SETUP ====
 
     @requires_cam_connected
     def get_shutter_parameters(self):
@@ -497,6 +497,10 @@ class RamanCameraModel:
         """
         if hstart < 0 or vstart < 0:
             raise ValueError("ROI start positions must be non-negative integers.")
+        if hend is None:
+            hend = self.cam.get_detector_size()[0]
+        if vend is None:
+            vend = self.cam.get_detector_size()[1]
         if hend <= hstart or vend <= vstart:
             raise ValueError("ROI end positions must be greater than start positions.")
         if hbin <= 0 or vbin <= 0:

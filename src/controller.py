@@ -34,8 +34,23 @@ class RamanCameraController:
     @handle_errors
     def display_used_params(self):
         roi = self.camera.get_roi()
+        roi_dict = {
+            'hstart': str(roi[0]),
+            'hend': "" if roi[1] is None else str(roi[1]),
+            'vstart': str(roi[2]),
+            'vend': "" if roi[3] is None else str(roi[3]),
+            'hbin': str(roi[4]),
+            'vbin': str(roi[5])
+        }
+
         shutter = self.camera.get_shutter_parameters()
-        self.view.display_used_params(roi=roi, shutter=shutter)
+        shutter_dict = {
+            'mode': str(shutter[0]),
+            'tll_mode': str(shutter[1]),
+            'open_time': str(shutter[2]),
+            'close_time': str(shutter[3])
+        }
+        self.view.display_used_params(roi=roi_dict, shutter=shutter_dict)
         return
 
     def display_msg(self,msg):
@@ -109,11 +124,12 @@ class RamanCameraController:
 
     @handle_errors
     def setup_shutter(self,mode,tll_mode,open_time,close_time):
+        print(f"controller: {mode}")
         mode = str(mode).lower()
         tll_mode = int(tll_mode)
-        open_time = float(open_time)
-        close_time = float(close_time)
-        self.camera.set_shutter(mode,tll_mode,open_time,close_time)
+        open_time = "" if open_time == "" else float(open_time)
+        close_time = "" if close_time == "" else float(close_time)
+        self.camera.setup_shutter(mode,tll_mode,open_time,close_time)
         self.display_used_params()
         self.display_shutter_state()
         return
@@ -130,9 +146,9 @@ class RamanCameraController:
         """
 
         hstart = int(hstart)
-        hend = int(hend)
+        hend = "" if hend == "" else int(hend)
         vstart = int(vstart)
-        vend = int(vend)
+        vend = "" if vend == "" else int(vend)
         hbin = int(hbin)
         vbin = int(vbin)
 

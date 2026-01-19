@@ -56,7 +56,7 @@ class TestCameraModel:
         hend, vend = self.detect_cam_size()
         self.set_roi(hstart=0, hend=hend, vstart=0, vend=vend, hbin=1, vbin=1)
 
-    
+    @requires_cam_connected
     def get_cam_params(self,save_path=Path("./cam_params.txt")):
         """
         Collect and save camera parameters in readable format.
@@ -74,6 +74,7 @@ class TestCameraModel:
             f.write(readable_text)
         return
     
+    @requires_cam_connected
     def detect_cam_size(self):
         """
         Return tuple (width, height) pixels of the camera
@@ -81,6 +82,7 @@ class TestCameraModel:
         """
         return (128,256)
     
+    @requires_cam_connected
     def get_data_dim(self):
         """
         Returns the dimensions of the data (width,height) after binning and ROI
@@ -90,38 +92,17 @@ class TestCameraModel:
     
     # ==== ROI and Binning =====
 
+    @requires_cam_connected
     def get_max_binning(self):
         return (4,4)
 
+    @requires_cam_connected
     def get_roi(self):
         return (self.hstart, self.hend, self.vstart, self.vend, self.hbin, self.vbin)
 
+    @requires_cam_connected
     def set_roi(self,hstart=0, hend=None, vstart=0, vend=None, hbin=1, vbin=1):
-
-        if hstart < 0 or hstart >= self.detect_cam_size()[0]:
-            raise ValueError("Invalid horizontal start value")
-        
-        if vstart < 0 or vstart >= self.detect_cam_size()[1]:
-            raise ValueError("Invalid vertical start value")
-
-        if hend is not None:
-            if hend <= hstart or hend > self.detect_cam_size()[0]:
-                raise ValueError("Invalid horizontal end value")
-        
-        if vend is not None:
-            if vend <= vstart or vend > self.detect_cam_size()[1]:
-                raise ValueError("Invalid vertical end value")
-
-        if hbin < 1 or hbin > self.get_max_binning()[0]:
-            raise ValueError("Invalid horizontal binning value")
-
-        if vbin < 1 or vbin > self.get_max_binning()[1]:
-            raise ValueError("Invalid vertical binning value")
-            
-        # except ValueError as ve:
-        #     print(f"Error setting ROI: {ve}")
-        #     return
-    
+        self.validate_roi_settings(hstart, hend, vstart, vend, hbin, vbin)
         self.hstart = hstart
         self.hend = hend
         self.vstart = vstart
@@ -130,11 +111,13 @@ class TestCameraModel:
         self.vbin = vbin
         print(f"ROI set to: x={hstart}->{hend} | y={vstart}->{vend} | hbin: {hbin}, vbin: {vbin}")
 
+    @requires_cam_connected
     def get_roi_limits(self):
+        # TOD0
         return
 
 
-    # ==== EXPOSURE SETUP ====
+    # ==== SHUTTER SETUP ====
 
     @requires_cam_connected
     def get_shutter_parameters(self):
@@ -153,6 +136,7 @@ class TestCameraModel:
         """
         self.validate_shutter_settings(mode, tll_mode, open_time, close_time)
         self.shutter_mode = mode
+        print(f"model: {mode}")
         self.ttl_mode = tll_mode
         self.open_time = open_time
         self.close_time = close_time
@@ -381,7 +365,48 @@ class TestCameraModel:
             return frames
 
 
-    
+    # ==== VALIDATION ====
+
+    def validate_shutter_settings(self, mode, tll_mode, open_time, close_time):
+        valid_modes = ["auto", "open", "close"]
+        if mode not in valid_modes:
+            raise ValueError(f"Invalid shutter mode: {mode}. Valid modes are: {valid_modes}")
+
+        if tll_mode not in [0, 1]:
+            raise ValueError("TTL mode must be 0 (low is open) or 1 (high is open)")
+
+        min_open_time, min_close_time = self.get_min_shutter_times()
+
+        if open_time is not None and open_time < min_open_time:
+            raise ValueError(f"Open time must be at least {min_open_time} ms")
+
+        if close_time is not None and close_time < min_close_time:
+            raise ValueError(f"Close time must be at least {min_close_time} ms")
+
+    def validate_roi_settings(self, hstart, hend, vstart, vend, hbin, vbin):
+        if hstart < 0 or hstart >= self.detect_cam_size()[0]:
+            raise ValueError("Invalid horizontal start value")
+        
+        if vstart < 0 or vstart >= self.detect_cam_size()[1]:
+            raise ValueError("Invalid vertical start value")
+
+        if hend is not None:
+            if hend <= hstart or hend > self.detect_cam_size()[0]:
+                raise ValueError("Invalid horizontal end value")
+        
+        if vend is not None:
+            if vend <= vstart or vend > self.detect_cam_size()[1]:
+                raise ValueError("Invalid vertical end value")
+
+        if hbin < 1 or hbin > self.get_max_binning()[0]:
+            raise ValueError("Invalid horizontal binning value")
+
+        if vbin < 1 or vbin > self.get_max_binning()[1]:
+            raise ValueError("Invalid vertical binning value")
+            
+        # except ValueError as ve:
+        #     print(f"Error setting ROI: {ve}")
+        #     return
         
 
 
