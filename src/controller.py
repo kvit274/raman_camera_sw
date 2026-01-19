@@ -23,6 +23,7 @@ class RamanCameraController:
         self.camera.connect_cam()
         self.camera.get_cam_params()     # save cam defaults for later
         self.camera.set_default_settings()
+        self.display_used_params()
         # self.cool_cam(target_temp=-80)
         return
     
@@ -70,9 +71,26 @@ class RamanCameraController:
         Set ROI with given parameters
         Start is inclusive, end is exclusive
         """
+        try:
+            hstart = int(hstart)
+            hend = int(hend)
+            vstart = int(vstart)
+            vend = int(vend)
+            hbin = int(hbin)
+            vbin = int(vbin)
+        except Exception as e:
+            print(f"ROI parameters must be integers: {str(e)}")
+            return
+
+        self.view.stop_live()  # stop live before changing roi
         self.camera.set_roi(hstart, hend, vstart, vend, hbin, vbin)
+        self.display_used_params()
         return
 
+    def display_used_params(self):
+        roi = self.camera.get_roi()
+        self.view.display_used_params(roi=roi)
+        return
 
     # def test(self,raw_params):
     #     try:

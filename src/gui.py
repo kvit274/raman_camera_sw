@@ -66,7 +66,29 @@ class MainWindow(QWidget):
         self.temp = QLabel("Temp: -- °C")
 
         # Camera settings
-        
+
+        # ROI
+        self.roi_hstart_input = QLineEdit()
+        self.roi_hstart_input.setPlaceholderText("ROI H Start")
+        self.roi_hstart_input.setValidator(QIntValidator())
+        self.roi_hend_input = QLineEdit()
+        self.roi_hend_input.setPlaceholderText("ROI H End")
+        self.roi_hend_input.setValidator(QIntValidator())
+        self.roi_vstart_input = QLineEdit()
+        self.roi_vstart_input.setPlaceholderText("ROI V Start")
+        self.roi_vstart_input.setValidator(QIntValidator())
+        self.roi_vend_input = QLineEdit()
+        self.roi_vend_input.setPlaceholderText("ROI V End")
+        self.roi_vend_input.setValidator(QIntValidator())
+        self.roi_hbin_input = QLineEdit()
+        self.roi_hbin_input.setPlaceholderText("ROI H Bin")
+        self.roi_hbin_input.setValidator(QIntValidator())
+        self.roi_vbin_input = QLineEdit()
+        self.roi_vbin_input.setPlaceholderText("ROI V Bin")
+        self.roi_vbin_input.setValidator(QIntValidator())
+        self.btn_set_roi = QPushButton("Set ROI")
+
+
 
         # Spectrometer controls
         self.btn_connect_spec = QPushButton("Connect Spectrometer")
@@ -121,10 +143,12 @@ class MainWindow(QWidget):
         # self.run_btn = QPushButton("Run")
         # self.run_btn.clicked.connect(self.run_exp)
 
+
         # layout
         layout = QVBoxLayout()
         layout.addWidget(self.preview)
         layout.addWidget(self.temp)
+
         hl = QHBoxLayout()
         hl.addWidget(self.btn_connect_cam)
         hl.addWidget(self.btn_live)
@@ -132,6 +156,7 @@ class MainWindow(QWidget):
         hl.addWidget(self.btn_acquire)
         hl.addWidget(self.btn_disconnect_cam)
         layout.addLayout(hl)
+
         hl_spec = QHBoxLayout()
         hl_spec.addWidget(self.btn_connect_spec)
         hl_spec.addWidget(self.btn_disconnect_spec)
@@ -140,6 +165,17 @@ class MainWindow(QWidget):
         hl_spec.addWidget(self.slit_width_input)
         hl_spec.addWidget(self.btn_update_spec)
         layout.addLayout(hl_spec)
+
+        hl_roi = QHBoxLayout()
+        hl_roi.addWidget(self.roi_hstart_input)
+        hl_roi.addWidget(self.roi_hend_input)
+        hl_roi.addWidget(self.roi_vstart_input)
+        hl_roi.addWidget(self.roi_vend_input)
+        hl_roi.addWidget(self.roi_hbin_input)
+        hl_roi.addWidget(self.roi_vbin_input)
+        hl_roi.addWidget(self.btn_set_roi)
+        layout.addLayout(hl_roi)
+
 
         # layout.addWidget(self.save_path_label)
         # layout.addWidget(self.dlls_path_label)
@@ -163,6 +199,8 @@ class MainWindow(QWidget):
         self.btn_stop.clicked.connect(self.stop_live)
         self.btn_acquire.clicked.connect(self.acquire_frame)
         self.btn_disconnect_cam.clicked.connect(self.disconnect_cam)
+        self.btn_set_roi.clicked.connect(self.set_roi)
+
 
         # Connect buttons to controller spec
         self.btn_connect_spec.clicked.connect(self.connect_spec)
@@ -170,13 +208,21 @@ class MainWindow(QWidget):
         self.btn_update_spec.clicked.connect(self.update_spec_settings)
 
         # Live preview updates
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.update_preview)
+        self.timer_live = QTimer()
+        self.timer_live.timeout.connect(self.update_preview)
 
         # Display temperature
         self.timer_temp = QTimer()
         self.timer_temp.timeout.connect(self.display_temp)
         self.timer_temp.start(1000)
+
+    def display_used_params(self, roi):
+        self.roi_hstart_input.setText(str(roi[0]))
+        self.roi_hend_input.setText(str(roi[1]))
+        self.roi_vstart_input.setText(str(roi[2]))
+        self.roi_vend_input.setText(str(roi[3]))
+        self.roi_hbin_input.setText(str(roi[4]))
+        self.roi_vbin_input.setText(str(roi[5]))
 
     def closeEvent(self, event):
         """
@@ -251,12 +297,22 @@ class MainWindow(QWidget):
         temp,status = self.controller.get_temp()
         self.temp.setText(f"Temp: {temp} °C | {status}")
 
+    def set_roi(self):
+        hstart = self.roi_hstart_input.text()
+        hend = self.roi_hend_input.text()
+        vstart = self.roi_vstart_input.text()
+        vend = self.roi_vend_input.text()
+        hbin = self.roi_hbin_input.text()
+        vbin = self.roi_vbin_input.text()
+
+        self.controller.set_roi(hstart=hstart, hend=hend, vstart=vstart, vend=vend, hbin=hbin, vbin=vbin)
+
     def start_live(self):
         self.controller.start_live()
-        self.timer.start(30)    # 30 is FPS, we might change it
+        self.timer_live.start(30)    # 30 is FPS, we might change it
 
     def stop_live(self):
-        self.timer.stop()
+        self.timer_live.stop()
         self.controller.stop_live()
 
     def update_preview(self):

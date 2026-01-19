@@ -73,7 +73,39 @@ class TestCameraModel:
         """
         return (64,128)
 
+    def get_max_binning(self):
+        return (4,4)
+
+    def get_roi(self):
+        return (self.hstart, self.hend, self.vstart, self.vend, self.hbin, self.vbin)
+
     def set_roi(self,hstart=0, hend=None, vstart=0, vend=None, hbin=1, vbin=1):
+        try:
+
+            if hstart < 0 or hstart >= self.detect_cam_size()[0]:
+                raise ValueError("Invalid horizontal start value")
+            
+            if vstart < 0 or vstart >= self.detect_cam_size()[1]:
+                raise ValueError("Invalid vertical start value")
+
+            if hend is not None:
+                if hend <= hstart or hend > self.detect_cam_size()[0]:
+                    raise ValueError("Invalid horizontal end value")
+            
+            if vend is not None:
+                if vend <= vstart or vend > self.detect_cam_size()[1]:
+                    raise ValueError("Invalid vertical end value")
+
+            if hbin < 1 or hbin > self.get_max_binning()[0]:
+                raise ValueError("Invalid horizontal binning value")
+
+            if vbin < 1 or vbin > self.get_max_binning()[1]:
+                raise ValueError("Invalid vertical binning value")
+            
+        except ValueError as ve:
+            print(f"Error setting ROI: {ve}")
+            return
+    
         self.hstart = hstart
         self.hend = hend
         self.vstart = vstart
@@ -183,10 +215,12 @@ class TestCameraModel:
             # if time.time() - t0 > time_out:
             #     raise RuntimeError("Cooling timeout")
 
-            time.sleep(1)
+            time.sleep(0.1)
         self.busy = False
 
     def warm_cam(self,safe_temp=-20):
+        if not self.cam:
+            return
         self.busy = True
         self.cancel = True
 
@@ -199,7 +233,7 @@ class TestCameraModel:
             if self.temp >= safe_temp:
                 break
             self.temp += 20
-            time.sleep(1)
+            time.sleep(0.1)
 
         self.busy = False
 

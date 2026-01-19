@@ -205,7 +205,8 @@ class RamanCameraModel:
         return self.cam.get_roi()
 
     def set_roi(self,hstart=0, hend=None, vstart=0, vend=None, hbin=1, vbin=1):
-
+        #if hstart < 0 or vstart < 0:
+            #raise ValueError("ROI start positions must be non-negative integers.")
         self.cam.set_roi(hstart, hend, vstart, vend, hbin, vbin)
     
     def cool_cam(self,target_temp=-75.0):
