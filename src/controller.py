@@ -16,9 +16,34 @@ class RamanCameraController:
         # self.camera = MagicMock()    # use temporally for testing
 
 
-    # ==== Camera methods =====
+    # ==== Decorators =====
+
+    def handle_errors(func):
+        def wrapper(self, *args, **kwargs):
+            try:
+                return func(self, *args, **kwargs)
+            except Exception as e:
+                print(f"Error in {func.__name__}: {str(e)}")
+                self.view.display_msg(f"Error: {str(e)}")
+        return wrapper
 
 
+    # ==== View methods =====
+
+    @handle_errors
+    def display_used_params(self):
+        roi = self.camera.get_roi()
+        self.view.display_used_params(roi=roi)
+        return
+
+    def display_msg(self,msg):
+        self.view.display_msg(msg)
+        return
+
+
+    # ==== Model methods =====
+
+    @handle_errors
     def connect_cam(self):
         self.camera.connect_cam()
         self.camera.get_cam_params()     # save cam defaults for later
@@ -27,78 +52,78 @@ class RamanCameraController:
         # self.cool_cam(target_temp=-80)
         return
     
+
     def isBusy_cam(self):
         return self.camera.busy
 
+    @handle_errors
     def cool_cam(self,target_temp):
         self.camera.cool_cam(target_temp)
 
+    @handle_errors
     def warm_cam(self):
         self.camera.warm_cam()
 
+    @handle_errors
     def disconnect_cam(self):
         self.camera.safe_close()
         return
 
+    @handle_errors
     def start_live(self):
-        try:
-            self.camera.start_live()
-            self.view.start_live_timer()
-        except RuntimeError as e:
-            print(f"Error starting live mode: {e}")
+        self.camera.start_live()
+        self.view.start_live_timer()
         return
     
+    @handle_errors
     def stop_live(self):
-        try:
-            self.camera.end_live()
-            self.view.stop_live_timer()
-        except RuntimeError as e:
-            print(f"Error stopping live mode: {e}")
+        self.camera.end_live()
+        self.view.stop_live_timer()
         return
     
     def get_temp(self):
         return self.camera.get_temp()
     
+    @handle_errors
     def get_live_frame(self):
         return self.camera.get_live_frame()
     
+    @handle_errors
     def acquire_single(self):
         return self.camera.simple_acq()
     
+    @handle_errors
     def adjust_frame(self,frame):
         return self.camera.adjust_frame(frame)
 
 
     # Setttings methods
 
+    @handle_errors
     def get_roi(self):
         return self.camera.get_roi()
 
+    @handle_errors
     def set_roi(self,hstart=0, hend=None, vstart=0, vend=None, hbin=1, vbin=1):
         """
         Set ROI with given parameters
         Start is inclusive, end is exclusive
         """
-        try:
-            hstart = int(hstart)
-            hend = int(hend)
-            vstart = int(vstart)
-            vend = int(vend)
-            hbin = int(hbin)
-            vbin = int(vbin)
-        except Exception as e:
-            print(f"ROI parameters must be integers: {str(e)}")
-            return
+
+        hstart = int(hstart)
+        hend = int(hend)
+        vstart = int(vstart)
+        vend = int(vend)
+        hbin = int(hbin)
+        vbin = int(vbin)
+
 
         self.view.stop_live()  # stop live before changing roi
         self.camera.set_roi(hstart, hend, vstart, vend, hbin, vbin)
+
         self.display_used_params()
         return
 
-    def display_used_params(self):
-        roi = self.camera.get_roi()
-        self.view.display_used_params(roi=roi)
-        return
 
     # def test(self,raw_params):
     #     try:
@@ -193,7 +218,10 @@ class RamanCameraController:
     #     if params["roi"]:
     #         self.camera.set_roi(params["roi"],params["hbin"],params["vbin"])
 
+
     # acquisition
+
+    @handle_errors
     def acquire_data(self,params):
         # run acquisition
         acq_mode = params["acq_mode"]
@@ -205,24 +233,26 @@ class RamanCameraController:
             frame, spectrum = self.camera.acquire_rta()
         return frame,spectrum
 
-    # save data
-    def save_results(self,params,frame,spectrum):
+    # # save data
+    # def save_results(self,params,frame,spectrum):
 
-        ts = int(time.time())
-        self.camera.save_data(frame, spectrum, ts)
-        self.camera.save_meta(
-            frame=frame,
-            exposure=params["exposure"],
-            hbin=params["hbin"],
-            vbin=params["vbin"],
-            roi=params["roi"],
-            temp=params["temp"],
-            timestamp=ts
-        )
+    #     ts = int(time.time())
+    #     self.camera.save_data(frame, spectrum, ts)
+    #     self.camera.save_meta(
+    #         frame=frame,
+    #         exposure=params["exposure"],
+    #         hbin=params["hbin"],
+    #         vbin=params["vbin"],
+    #         roi=params["roi"],
+    #         temp=params["temp"],
+    #         timestamp=ts
+    #     )
 
 
 
-    # ==== Spectrometer methods =====
+
+
+    # ==== Spectrometer methods (unused) =====
 
     def connect_spec(self):
         self.spec.connect()

@@ -226,11 +226,8 @@ class RamanCameraModel:
     @requires_cam_connected
     def set_roi(self,hstart, hend, vstart, vend, hbin, vbin):
         """Set ROI with given parameters."""
-        try:
-            self.validate_roi(hstart, hend, vstart, vend, hbin, vbin)
-        except Exception as e:
-            print(f"Error setting ROI: {e}")
 
+        self.validate_roi(hstart, hend, vstart, vend, hbin, vbin)
         self.cam.set_roi(hstart, hend, vstart, vend, hbin, vbin)
         return
 

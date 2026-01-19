@@ -86,31 +86,30 @@ class TestCameraModel:
         return (self.hstart, self.hend, self.vstart, self.vend, self.hbin, self.vbin)
 
     def set_roi(self,hstart=0, hend=None, vstart=0, vend=None, hbin=1, vbin=1):
-        try:
+        
+        if hstart < 0 or hstart >= self.detect_cam_size()[0]:
+            raise ValueError("Invalid horizontal start value")
+        
+        if vstart < 0 or vstart >= self.detect_cam_size()[1]:
+            raise ValueError("Invalid vertical start value")
 
-            if hstart < 0 or hstart >= self.detect_cam_size()[0]:
-                raise ValueError("Invalid horizontal start value")
+        if hend is not None:
+            if hend <= hstart or hend > self.detect_cam_size()[0]:
+                raise ValueError("Invalid horizontal end value")
+        
+        if vend is not None:
+            if vend <= vstart or vend > self.detect_cam_size()[1]:
+                raise ValueError("Invalid vertical end value")
+
+        if hbin < 1 or hbin > self.get_max_binning()[0]:
+            raise ValueError("Invalid horizontal binning value")
+
+        if vbin < 1 or vbin > self.get_max_binning()[1]:
+            raise ValueError("Invalid vertical binning value")
             
-            if vstart < 0 or vstart >= self.detect_cam_size()[1]:
-                raise ValueError("Invalid vertical start value")
-
-            if hend is not None:
-                if hend <= hstart or hend > self.detect_cam_size()[0]:
-                    raise ValueError("Invalid horizontal end value")
-            
-            if vend is not None:
-                if vend <= vstart or vend > self.detect_cam_size()[1]:
-                    raise ValueError("Invalid vertical end value")
-
-            if hbin < 1 or hbin > self.get_max_binning()[0]:
-                raise ValueError("Invalid horizontal binning value")
-
-            if vbin < 1 or vbin > self.get_max_binning()[1]:
-                raise ValueError("Invalid vertical binning value")
-            
-        except ValueError as ve:
-            print(f"Error setting ROI: {ve}")
-            return
+        # except ValueError as ve:
+        #     print(f"Error setting ROI: {ve}")
+        #     return
     
         self.hstart = hstart
         self.hend = hend
@@ -278,6 +277,7 @@ class TestCameraModel:
 
 
     # ===== LIVE VIDEO =====
+
     @requires_cam_connected
     def start_live(self):
         """
@@ -290,6 +290,7 @@ class TestCameraModel:
         print("Live mode started")
         return
 
+    @requires_cam_connected
     def end_live(self):
         if not self.cam or not self.is_live:
             return
@@ -297,6 +298,7 @@ class TestCameraModel:
         print("Live mode stopped")
         return
 
+    @requires_cam_connected
     def get_live_frame(self):
         if self.cam is None or not self.is_live:
             print(f"Could not obtain the frame for the preview. Cam: {self.cam} | live state: {self.is_live}")
@@ -305,13 +307,11 @@ class TestCameraModel:
         frame = self.generate_fake_frame()
         return frame
 
+
     # ===== ACQUISITION =====
 
+    @requires_cam_connected
     def simple_acq(self,num_frames=0):
-        if not self.cam:
-            print("No camera detected for a snap")
-            return None
-        
         if self.is_live:
             self.end_live()
 
@@ -413,7 +413,6 @@ class TestCameraModel:
     # ==== DISPLAY DATA =====
 
     def plot_spec(self,spectrum,exp_time):
-
         self.save_path.mkdir(parents=True, exist_ok=True)
         plt.figure()
         plt.plot(spectrum)

@@ -51,6 +51,7 @@ class MainWindow(QWidget):
 
         super().__init__()
         self.setWindowTitle("Raman Camera GUI")
+        #self.status = self.statusBar()
 
         # attach controller
         self.controller = RamanCameraController(view=self)
@@ -224,6 +225,9 @@ class MainWindow(QWidget):
         self.roi_hbin_input.setText(str(roi[4]))
         self.roi_vbin_input.setText(str(roi[5]))
 
+    def display_msg(self, message):
+        #self.status.showMessage(message, 5000)  # display for 5 seconds
+
     def closeEvent(self, event):
         """
         Runs automatically when the user closes the GUI.
@@ -386,7 +390,8 @@ class MainWindow(QWidget):
     def show_error(self, message: str):
         QMessageBox.critical(self, "Error", message)
 
-    # ==== Spectrometer methods =====
+
+    # ==== Spectrometer methods (unused) =====
 
     def connect_spec(self):
         self.controller.connect_spec()
