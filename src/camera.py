@@ -121,6 +121,7 @@ class RamanCameraModel:
         return
 
 
+    # TOD0!!
     def set_cam_settings(self, exposure, hbin,vbin,read_mode,acq_mode,accum_n=None,roi=None):
         # self.cam.set_acquisition(
         #     exposure=exposure,
@@ -190,11 +191,24 @@ class RamanCameraModel:
         # acq_mode="accumulate" # might use for accumulate feature
     
 
-    def set_roi(self,roi,hbin,vbin):
-        x,y,w,h = roi
-        self.cam.set_roi(x,y,w,h,hbin=hbin,vbin=vbin)
+    # ROI and Binning
+
+    def get_roi_limits(self,hbin=1,vbin=1):
+        """
+        Each element is a limit 5-tuple:
+        (min, max, pstep, sstep, maxbin) minimal and maximal size, position and size step, and the maximal binning.
+        """
+        return self.cam.get_roi_limits(hbin=hbin,vbin=vbin)
+
+    def get_roi(self):
+        """Return tuple (hstart, hend, vstart, vend, hbin, vbin)."""
+        return self.cam.get_roi()
+
+    def set_roi(self,hstart=0, hend=None, vstart=0, vend=None, hbin=1, vbin=1):
+
+        self.cam.set_roi(hstart, hend, vstart, vend, hbin, vbin)
     
-    def cool_cam(self,target_temp=-80.0):
+    def cool_cam(self,target_temp=-75.0):
         self.busy = True
         self.cancel = False
         self.cam.set_temperature(target_temp, enable_cooler=True)
@@ -208,7 +222,7 @@ class RamanCameraModel:
             temp = round(self.cam.get_temperature(),2)
             print(f"Cooling: {temp}, Status: {self.cam.get_temperature_status()}")
 
-            if temp <= target_temp:
+            if temp <= -65.0:
                 print(f"Temperature stabilized, Status: {self.cam.get_temperature_status()}")
                 break
             # if time.time() - t0 > time_out:
@@ -268,7 +282,7 @@ class RamanCameraModel:
         if not self.cam:
             return "--",""
         
-        return self.cam.get_temperature(), self.cam.get_temperature_status()
+        return round(self.cam.get_temperature(),3), self.cam.get_temperature_status()
 
 
 

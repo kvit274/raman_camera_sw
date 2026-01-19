@@ -16,6 +16,14 @@ class TestCameraModel:
         self.busy = False
         self.temp = 20.0  # current temperature
 
+        # roi params
+        self.hstart = 0
+        self.hend = None
+        self.vstart = 0
+        self.vend = None
+        self.hbin = 1
+        self.vbin = 1
+
         # default paths:
         self.save_path = Path("./data")
         self.save_path.mkdir(exist_ok=True)
@@ -31,6 +39,9 @@ class TestCameraModel:
         Default shutter is ("closed")
         """
         self.cam = "Andor Newton"
+        hend, vend = self.detect_cam_size()
+        self.set_roi(hstart=0, hend=hend, vstart=0, vend=vend, hbin=1, vbin=1)
+
     
     def get_cam_params(self,save_path=Path("./cam_params.txt")):
         """
@@ -61,6 +72,18 @@ class TestCameraModel:
         Returns the dimensions of the data (width,height) after binning and ROI
         """
         return (64,128)
+
+    def set_roi(self,hstart=0, hend=None, vstart=0, vend=None, hbin=1, vbin=1):
+        self.hstart = hstart
+        self.hend = hend
+        self.vstart = vstart
+        self.vend = vend
+        self.hbin = hbin
+        self.vbin = vbin
+        print(f"ROI set to: x={hstart}->{hend} | y={vstart}->{vend} | hbin: {hbin}, vbin: {vbin}")
+
+    def get_roi_limits(self):
+        return
     
     def set_default_settings(self):
         """
@@ -139,9 +162,6 @@ class TestCameraModel:
     #     # acq_mode = "run_till_abort" # run until stopped
     #     # acq_mode="accumulate" # might use for accumulate feature
     
-
-    def set_roi(self,roi,hbin,vbin):
-        print(f"ROI set to: {roi} with hbin: {hbin}, vbin: {vbin}")
     
     def cool_cam(self,target_temp=-80.0):
         self.busy = True

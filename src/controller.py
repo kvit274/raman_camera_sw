@@ -9,10 +9,10 @@ class RamanCameraController:
 
     def __init__(self,view):
         self.view = view
-        self.camera = RamanCameraModel()
-        # self.camera = TestCameraModel()
-        self.spec = SpectrometerModel()
-        # self.spec = TestSpectrometerModel()
+        #self.camera = RamanCameraModel()
+        self.camera = TestCameraModel()
+        #self.spec = SpectrometerModel()
+        self.spec = TestSpectrometerModel()
         # self.camera = MagicMock()    # use temporally for testing
 
 
@@ -58,6 +58,20 @@ class RamanCameraController:
     
     def adjust_frame(self,frame):
         return self.camera.adjust_frame(frame)
+
+
+    # Setttings methods
+
+    def get_roi(self):
+        return self.camera.get_roi()
+
+    def set_roi(self,hstart=0, hend=None, vstart=0, vend=None, hbin=1, vbin=1):
+        """
+        Set ROI with given parameters
+        Start is inclusive, end is exclusive
+        """
+        self.camera.set_roi(hstart, hend, vstart, vend, hbin, vbin)
+        return
 
 
     # def test(self,raw_params):

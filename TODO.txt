@@ -1,0 +1,2 @@
+1) ROI binning
+2) save/load settings

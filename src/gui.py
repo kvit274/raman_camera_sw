@@ -65,6 +65,9 @@ class MainWindow(QWidget):
         self.btn_disconnect_cam = QPushButton("Disconnect Camera")
         self.temp = QLabel("Temp: -- °C")
 
+        # Camera settings
+        
+
         # Spectrometer controls
         self.btn_connect_spec = QPushButton("Connect Spectrometer")
         self.btn_disconnect_spec = QPushButton("Disconnect Spectrometer")
