@@ -20,6 +20,14 @@ class RamanCameraModel:
         self.save_path.mkdir(exist_ok=True)
 
 
+    # ==== DECORATORS =====
+    def requires_cam_connected(func):
+        def wrapper(self, *args, **kwargs):
+            if not self.cam:
+                raise RuntimeError("Camera not connected")
+                return None
+            return func(self, *args, **kwargs)
+        return wrapper
 
 
     # ===== CAMERA SETTINGS =====
@@ -29,6 +37,9 @@ class RamanCameraModel:
         When connecting all the parameters are usually set in the slowest mode (amplifier,vertical/horizontal scan speed, etc.)
         Default shutter is ("closed")
         """
+        if self.cam:
+            print("Camera already connected")
+            return
 
         available = Andor.get_cameras_number_SDK2()
         # while not available:
@@ -47,6 +58,7 @@ class RamanCameraModel:
         except:
             raise ConnectionError("Could not connect to device")
     
+    @requires_cam_connected
     def get_cam_params(self,save_path=Path("./cam_params.txt")):
         """
         Collect and save camera parameters in readable format.
@@ -90,6 +102,7 @@ class RamanCameraModel:
             f.write(readable_text)
         return
     
+    @requires_cam_connected
     def detect_cam_size(self):
         """
         Return tuple (width, height) pixels of the camera
@@ -97,12 +110,14 @@ class RamanCameraModel:
         """
         return self.cam.get_detector_size()
     
+    @requires_cam_connected
     def get_data_dim(self):
         """
         Returns the dimensions of the data (width,height) after binning and ROI
         """
         return self.cam.get_data_dimensions()
     
+    @requires_cam_connected
     def set_default_settings(self):
         """
         Initializes default (safe) parameters for the camera
@@ -122,6 +137,7 @@ class RamanCameraModel:
 
 
     # TOD0!!
+    @requires_cam_connected
     def set_cam_settings(self, exposure, hbin,vbin,read_mode,acq_mode,accum_n=None,roi=None):
         # self.cam.set_acquisition(
         #     exposure=exposure,
@@ -193,6 +209,7 @@ class RamanCameraModel:
 
     # ROI and Binning
 
+    @requires_cam_connected
     def get_roi_limits(self,hbin=1,vbin=1):
         """
         Each element is a limit 5-tuple:
@@ -200,15 +217,18 @@ class RamanCameraModel:
         """
         return self.cam.get_roi_limits(hbin=hbin,vbin=vbin)
 
+    @requires_cam_connected
     def get_roi(self):
         """Return tuple (hstart, hend, vstart, vend, hbin, vbin)."""
         return self.cam.get_roi()
 
+    @requires_cam_connected
     def set_roi(self,hstart=0, hend=None, vstart=0, vend=None, hbin=1, vbin=1):
         #if hstart < 0 or vstart < 0:
             #raise ValueError("ROI start positions must be non-negative integers.")
         self.cam.set_roi(hstart, hend, vstart, vend, hbin, vbin)
     
+    @requires_cam_connected
     def cool_cam(self,target_temp=-75.0):
         self.busy = True
         self.cancel = False
@@ -232,6 +252,7 @@ class RamanCameraModel:
             time.sleep(1)
         self.busy = False
 
+    @requires_cam_connected
     def warm_cam(self,safe_temp=-20):
         self.busy = True
         self.cancel = True
@@ -270,7 +291,6 @@ class RamanCameraModel:
         # self.warm_cam()
         
         self.close_cam()
-        
         return
 
     def close_cam(self):
@@ -289,11 +309,12 @@ class RamanCameraModel:
 
     # ===== LIVE VIDEO =====
 
+    @requires_cam_connected
     def start_live(self):
         """
         Start capturing what camera sees until stop live is clicked.
         """
-        if self.is_live or not self.cam:
+        if self.is_live:
             return
     
         self.cam.set_exposure(0.03)     # update fast
@@ -302,16 +323,18 @@ class RamanCameraModel:
         print("Live mode started")
         return
 
+    @requires_cam_connected
     def end_live(self):
-        if not self.cam or not self.is_live:
+        if not self.is_live:
             return
         self.cam.stop_acquisition()
         self.is_live=False
         print("Live mode stopped")
         return
 
+    @requires_cam_connected
     def get_live_frame(self):
-        if self.cam is None or not self.is_live:
+        if not self.is_live:
             print(f"Could not obtain the frame for the preview. Cam: {self.cam} | live state: {self.is_live}")
             return None
         
@@ -320,10 +343,8 @@ class RamanCameraModel:
 
     # ===== ACQUISITION =====
 
+    @requires_cam_connected
     def simple_acq(self,num_frames=0):
-        if not self.cam:
-            print("No camera detected for a snap")
-            return None
         
         if self.is_live:
             self.end_live()
