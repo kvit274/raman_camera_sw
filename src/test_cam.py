@@ -29,7 +29,13 @@ class TestCameraModel:
         self.save_path.mkdir(exist_ok=True)
 
 
-
+    # ==== DECORATORS =====
+    def requires_cam_connected(func):
+        def wrapper(self, *args, **kwargs):
+            if not self.cam:
+                raise RuntimeError("Camera not connected")
+            return func(self, *args, **kwargs)
+        return wrapper
 
     # ===== CAMERA SETTINGS =====
 
@@ -272,12 +278,12 @@ class TestCameraModel:
 
 
     # ===== LIVE VIDEO =====
-
+    @requires_cam_connected
     def start_live(self):
         """
         Start capturing what camera sees until stop live is clicked.
         """
-        if self.is_live or not self.cam:
+        if self.is_live:
             return
         self.is_live = True
     

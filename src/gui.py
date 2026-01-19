@@ -309,11 +309,15 @@ class MainWindow(QWidget):
 
     def start_live(self):
         self.controller.start_live()
+    
+    def start_live_timer(self):
         self.timer_live.start(30)    # 30 is FPS, we might change it
 
     def stop_live(self):
-        self.timer_live.stop()
         self.controller.stop_live()
+
+    def stop_live_timer(self):
+        self.timer_live.stop()
 
     def update_preview(self):
         frame = self.controller.get_live_frame()

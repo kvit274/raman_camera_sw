@@ -41,11 +41,19 @@ class RamanCameraController:
         return
 
     def start_live(self):
-        self.camera.start_live()
+        try:
+            self.camera.start_live()
+            self.view.start_live_timer()
+        except RuntimeError as e:
+            print(f"Error starting live mode: {e}")
         return
     
     def stop_live(self):
-        self.camera.end_live()
+        try:
+            self.camera.end_live()
+            self.view.stop_live_timer()
+        except RuntimeError as e:
+            print(f"Error stopping live mode: {e}")
         return
     
     def get_temp(self):
