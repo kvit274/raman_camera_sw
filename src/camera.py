@@ -212,6 +212,7 @@ class RamanCameraModel:
     @requires_cam_connected
     def get_roi_limits(self,hbin=1,vbin=1):
         """
+        Returns two elements list: [horizontal_limits, vertical_limits]
         Each element is a limit 5-tuple:
         (min, max, pstep, sstep, maxbin) minimal and maximal size, position and size step, and the maximal binning.
         """
@@ -223,11 +224,16 @@ class RamanCameraModel:
         return self.cam.get_roi()
 
     @requires_cam_connected
-    def set_roi(self,hstart=0, hend=None, vstart=0, vend=None, hbin=1, vbin=1):
-        #if hstart < 0 or vstart < 0:
-            #raise ValueError("ROI start positions must be non-negative integers.")
+    def set_roi(self,hstart, hend, vstart, vend, hbin, vbin):
+        """Set ROI with given parameters."""
+        try:
+            self.validate_roi(hstart, hend, vstart, vend, hbin, vbin)
+        except Exception as e:
+            print(f"Error setting ROI: {e}")
+
         self.cam.set_roi(hstart, hend, vstart, vend, hbin, vbin)
-    
+        return
+
     @requires_cam_connected
     def cool_cam(self,target_temp=-75.0):
         self.busy = True
@@ -412,6 +418,39 @@ class RamanCameraModel:
     #     # To do
     #     pass
 
+    # ==== VALIDAION =====
+    def validate_roi(self,hstart, hend, vstart, vend, hbin, vbin):
+        """
+        Check if the given ROI parameters are valid.
+        Raises ValueError if any parameter is invalid.
+        """
+        if hstart < 0 or vstart < 0:
+            raise ValueError("ROI start positions must be non-negative integers.")
+        if hend <= hstart or vend <= vstart:
+            raise ValueError("ROI end positions must be greater than start positions.")
+        if hbin <= 0 or vbin <= 0:
+            raise ValueError("Binning factors must be positive integers.")
+        
+        h_limits, v_limits = self.get_roi_limits(hbin=hbin,vbin=vbin)   # get limits for current binning
+        hmin,hmax,hpstep,hsstep,hmaxbin = h_limits
+        vmin,vmax,vpstep,vsstep,vmaxbin = v_limits
+
+        if hbin > hmaxbin or vbin > vmaxbin:
+            raise ValueError(f"Binning factors exceed maximum allowed: hbin <= {hmaxbin}, vbin <= {vmaxbin}.") 
+        
+        if hstart < hmin or hend > hmax:
+            raise ValueError(f"Horizontal ROI out of bounds: {hmin} <= hstart < hend <= {hmax}.")
+        if vstart < vmin or vend > vmax:
+            raise ValueError(f"Vertical ROI out of bounds: {vmin} <= vstart < vend <= {vmax}.")
+        
+        if hstart % hpstep != 0 or (hend - hstart) % hsstep != 0:
+            raise ValueError(f"Horizontal ROI positions must align with steps: hstart step {hpstep}, width step {hsstep}.")
+        if vstart % vpstep != 0 or (vend - vstart) % vsstep != 0:
+            raise ValueError(f"Vertical ROI positions must align with steps: vstart step {vpstep}, height step {vsstep}.")
+        
+        if width % hbin != 0 or height % vbin != 0:
+            raise ValueError("ROI width and height must be divisible by binning factors.")
+        return True
 
 
 
