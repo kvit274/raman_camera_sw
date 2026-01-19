@@ -1,3 +1,8 @@
 1) ROI binning
 2) save/load settings
 3) output errors into the gui bottom right corner
+
+
+
+ask if they want 1 button for applying all settings or button for each type of settings
+ask what is open high, open low in exposure thingy

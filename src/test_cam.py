@@ -24,18 +24,26 @@ class TestCameraModel:
         self.hbin = 1
         self.vbin = 1
 
+        # shutter params
+        self.shutter_mode = "auto"
+        self.ttl_mode = 0
+        self.open_time = 5
+        self.close_time = 5
+
         # default paths:
         self.save_path = Path("./data")
         self.save_path.mkdir(exist_ok=True)
 
 
     # ==== DECORATORS =====
+
     def requires_cam_connected(func):
         def wrapper(self, *args, **kwargs):
             if not self.cam:
                 raise RuntimeError("Camera not connected")
             return func(self, *args, **kwargs)
         return wrapper
+
 
     # ===== CAMERA SETTINGS =====
 
@@ -79,6 +87,9 @@ class TestCameraModel:
         """
         return (64,128)
 
+    
+    # ==== ROI and Binning =====
+
     def get_max_binning(self):
         return (4,4)
 
@@ -86,7 +97,7 @@ class TestCameraModel:
         return (self.hstart, self.hend, self.vstart, self.vend, self.hbin, self.vbin)
 
     def set_roi(self,hstart=0, hend=None, vstart=0, vend=None, hbin=1, vbin=1):
-        
+
         if hstart < 0 or hstart >= self.detect_cam_size()[0]:
             raise ValueError("Invalid horizontal start value")
         
@@ -121,7 +132,48 @@ class TestCameraModel:
 
     def get_roi_limits(self):
         return
+
+
+    # ==== EXPOSURE SETUP ====
+
+    @requires_cam_connected
+    def get_shutter_parameters(self):
+        """
+        Returns shutter parameters as a tuple (mode, ttl_mode, open_time, close_time)
+        """
+        return (self.shutter_mode, self.ttl_mode, self.open_time, self.close_time)
+
+    @requires_cam_connected
+    def setup_shutter(self, mode, tll_mode=0, open_time=None, close_time=None):
+        """
+        Set shutter parameters.
+        tll_mode: 0 - low is open, 1 - high is open
+        mode: "auto", "open", "close"
+        open_time, close_time: in ms???????
+        """
+        self.validate_shutter_settings(mode, tll_mode, open_time, close_time)
+        self.shutter_mode = mode
+        self.ttl_mode = tll_mode
+        self.open_time = open_time
+        self.close_time = close_time
+        return
+
+    @requires_cam_connected
+    def get_min_shutter_times(self):
+        """
+        Returns minimal opening and closing times in ms????
+        """
+        return (5, 5)
+
+    @requires_cam_connected
+    def get_shutter(self):
+        """
+        Returns current shutter state: "auto", "open", "close"
+        """
+        return self.shutter_mode
     
+
+    @requires_cam_connected
     def set_default_settings(self):
         """
         Initializes default (safe) parameters for the camera
@@ -200,6 +252,15 @@ class TestCameraModel:
     #     # acq_mode="accumulate" # might use for accumulate feature
     
     
+    # ===== COOLING =====
+
+    def get_temp(self):
+        if not self.cam:
+            return "--",""
+        
+        return self.temp, "Some status"
+
+    @requires_cam_connected
     def cool_cam(self,target_temp=-80.0):
         self.busy = True
         self.cancel = False
@@ -223,9 +284,8 @@ class TestCameraModel:
             time.sleep(0.1)
         self.busy = False
 
+    @requires_cam_connected
     def warm_cam(self,safe_temp=-20):
-        if not self.cam:
-            return
         self.busy = True
         self.cancel = True
 
@@ -241,6 +301,9 @@ class TestCameraModel:
             time.sleep(0.1)
 
         self.busy = False
+
+
+    # ===== DISCONNECT =====
 
     def safe_close(self):
         """
@@ -268,13 +331,6 @@ class TestCameraModel:
             print("Camera disconnected")
             self.cam = None
     
-    def get_temp(self):
-        if not self.cam:
-            return "--",""
-        
-        return self.temp, "Some status"
-
-
 
     # ===== LIVE VIDEO =====
 

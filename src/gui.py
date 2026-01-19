@@ -44,14 +44,15 @@ def _safe_exit_close():
 # Register handler
 atexit.register(_safe_exit_close)
 
-class MainWindow(QWidget):
+class MainWindow(QMainWindow):
     # run_clicked = pyqtSignal(dict)
 
     def __init__(self):
 
         super().__init__()
         self.setWindowTitle("Raman Camera GUI")
-        #self.status = self.statusBar()
+        self.status = self.statusBar()
+        self.status.setSizeGripEnabled(False)
 
         # attach controller
         self.controller = RamanCameraController(view=self)
@@ -87,9 +88,23 @@ class MainWindow(QWidget):
         self.roi_vbin_input = QLineEdit()
         self.roi_vbin_input.setPlaceholderText("ROI V Bin")
         self.roi_vbin_input.setValidator(QIntValidator())
-        self.btn_set_roi = QPushButton("Set ROI")
+        # self.btn_set_roi = QPushButton("Set ROI")
 
+        # Shutter controls
+        self.shutter_mode_input = QComboBox()
+        self.shutter_mode_input.addItems(["auto", "open", "close"])
+        self.tll_mode_input = QComboBox()
+        self.tll_mode_input.addItems(["0", "1"]) # ask about these
+        self.shutter_open_time_input = QLineEdit()
+        self.shutter_open_time_input.setPlaceholderText("Shutter Open Time (ms)")
+        self.shutter_open_time_input.setValidator(QDoubleValidator())
+        self.shutter_close_time_input = QLineEdit()
+        self.shutter_close_time_input.setPlaceholderText("Shutter Close Time (ms)")
+        self.shutter_close_time_input.setValidator(QDoubleValidator())
+        # self.btn_set_shutter = QPushButton("Set Shutter")
+        self.shutter_current_state = QLabel("Shutter State: --")
 
+        self.set_settings_button = QPushButton("Apply Settings")
 
         # Spectrometer controls
         self.btn_connect_spec = QPushButton("Connect Spectrometer")
@@ -106,50 +121,14 @@ class MainWindow(QWidget):
         self.btn_update_spec = QPushButton("Update Spec Settings")
 
 
-
-        # self.dlls_path = ""
-        # self.save_path = ""
-        # self.dlls_path_label = QLabel("No directory selected")
-        # self.dlls_path_btn = QPushButton("Select dll folder")
-        # self.dlls_path_btn.clicked.connect(self.select_dlls_path)
-        # self.save_path_label = QLabel("No directory selected")
-        # self.save_path_btn = QPushButton("Select where to save results")
-        # self.save_path_btn.clicked.connect(self.select_save_path)
-        # self.temp_input = QLineEdit()
-        # self.temp_input.setPlaceholderText("temperature")
-        # self.temp_input.setValidator(QDoubleValidator())
-        # self.exposure_input = QLineEdit()
-        # self.exposure_input.setPlaceholderText("exposure time")
-        # self.exposure_input.setValidator(QDoubleValidator())
-        # self.hbin_input = QLineEdit()
-        # self.hbin_input.setPlaceholderText("hbin")
-        # self.hbin_input.setValidator(QIntValidator())
-        # self.vbin_input = QLineEdit()
-        # self.vbin_input.setPlaceholderText("vbin")
-        # self.vbin_input.setValidator(QIntValidator())
-        # self.read_mode_input = QLineEdit()
-        # self.read_mode_input.setPlaceholderText("read mode")
-        # # self.acq_mode_input = QComboBox()
-        # self.acq_mode_input = QLineEdit()
-        # self.acq_mode_input.setPlaceholderText("read mode")
-        # # self.acq_mode_input.addItems(["single","accumulate","run_till_abort","kinetic"])
-        # # self.acq_mode_input.currentTextChanged.connect(self.toggle_accum_input)
-        # # use drop down in future
-        # self.accum_n_input = QLineEdit()
-        # self.accum_n_input.setPlaceholderText("number of frame to accumulate, only for accumulate acquisition mode")
-        # self.accum_n_input.setValidator(QIntValidator())
-        # self.accum_n_input.hide()
-        # self.roi_input = QLineEdit()
-        # self.roi_input.setPlaceholderText("ROI in format (x,y,w,h)")
-        # self.run_btn = QPushButton("Run")
-        # self.run_btn.clicked.connect(self.run_exp)
-
-
         # layout
         layout = QVBoxLayout()
         layout.addWidget(self.preview)
         layout.addWidget(self.temp)
+        layout.addWidget(self.shutter_current_state)
+        layout.addWidget(self.set_settings_button)
 
+        # Camera control buttons
         hl = QHBoxLayout()
         hl.addWidget(self.btn_connect_cam)
         hl.addWidget(self.btn_live)
@@ -158,6 +137,7 @@ class MainWindow(QWidget):
         hl.addWidget(self.btn_disconnect_cam)
         layout.addLayout(hl)
 
+        # Spectrometer controls
         hl_spec = QHBoxLayout()
         hl_spec.addWidget(self.btn_connect_spec)
         hl_spec.addWidget(self.btn_disconnect_spec)
@@ -167,6 +147,7 @@ class MainWindow(QWidget):
         hl_spec.addWidget(self.btn_update_spec)
         layout.addLayout(hl_spec)
 
+        # ROI controls
         hl_roi = QHBoxLayout()
         hl_roi.addWidget(self.roi_hstart_input)
         hl_roi.addWidget(self.roi_hend_input)
@@ -174,25 +155,24 @@ class MainWindow(QWidget):
         hl_roi.addWidget(self.roi_vend_input)
         hl_roi.addWidget(self.roi_hbin_input)
         hl_roi.addWidget(self.roi_vbin_input)
-        hl_roi.addWidget(self.btn_set_roi)
+        # hl_roi.addWidget(self.btn_set_roi)
         layout.addLayout(hl_roi)
 
+        # Shutter controls
+        hl_shutter = QHBoxLayout()
+        hl_shutter.addWidget(self.shutter_mode_input)
+        hl_shutter.addWidget(self.tll_mode_input)
+        hl_shutter.addWidget(self.shutter_open_time_input)
+        hl_shutter.addWidget(self.shutter_close_time_input)
+        # hl_shutter.addWidget(self.btn_set_shutter)
+        layout.addLayout(hl_shutter)
 
-        # layout.addWidget(self.save_path_label)
-        # layout.addWidget(self.dlls_path_label)
-        # layout.addWidget(self.save_path_btn)
-        # layout.addWidget(self.dlls_path_btn)
-        # layout.addWidget(self.temp_input)
-        # layout.addWidget(self.exposure_input)
-        # layout.addWidget(self.hbin_input)
-        # layout.addWidget(self.vbin_input)
-        # layout.addWidget(self.read_mode_input)
-        # layout.addWidget(self.acq_mode_input)
-        # layout.addWidget(self.accum_n_input)
-        # layout.addWidget(self.roi_input)
-        # layout.addWidget(self.run_btn)
 
-        self.setLayout(layout)
+        # set central widget
+        central = QWidget()
+        central.setLayout(layout)
+        self.setCentralWidget(central)
+
 
         # Connect buttons to controller cam
         self.btn_connect_cam.clicked.connect(self.connect_cam)
@@ -200,7 +180,10 @@ class MainWindow(QWidget):
         self.btn_stop.clicked.connect(self.stop_live)
         self.btn_acquire.clicked.connect(self.acquire_frame)
         self.btn_disconnect_cam.clicked.connect(self.disconnect_cam)
-        self.btn_set_roi.clicked.connect(self.set_roi)
+        # might join these below later
+        # self.btn_set_roi.clicked.connect(self.set_roi)
+        # self.btn_set_shutter.clicked.connect(self.set_shutter)
+        self.set_settings_button.clicked.connect(self.set_settings)
 
 
         # Connect buttons to controller spec
@@ -217,16 +200,34 @@ class MainWindow(QWidget):
         self.timer_temp.timeout.connect(self.display_temp)
         self.timer_temp.start(1000)
 
-    def display_used_params(self, roi):
-        self.roi_hstart_input.setText(str(roi[0]))
-        self.roi_hend_input.setText(str(roi[1]))
-        self.roi_vstart_input.setText(str(roi[2]))
-        self.roi_vend_input.setText(str(roi[3]))
-        self.roi_hbin_input.setText(str(roi[4]))
-        self.roi_vbin_input.setText(str(roi[5]))
+    def display_used_params(self, roi, shutter):
+        """Display used parameters in the GUI fields."""
+
+        hstart, hend, vstart, vend, hbin, vbin = roi
+        self.roi_hstart_input.setText(hstart)
+        self.roi_hend_input.setText(hend)
+        self.roi_vstart_input.setText(vstart)
+        self.roi_vend_input.setText(vend)
+        self.roi_hbin_input.setText(hbin)
+        self.roi_vbin_input.setText(vbin)
+
+        mode, tll_mode, open_time, close_time = shutter
+        self.shutter_mode_input.setCurrentText(mode)
+        self.tll_mode_input.setCurrentText(tll_mode)
+        self.shutter_open_time_input.setText(open_time)
+        self.shutter_close_time_input.setText(close_time)
+
+
 
     def display_msg(self, message):
-        #self.status.showMessage(message, 5000)  # display for 5 seconds
+        self.status.showMessage(message, 5000)  # display for 5 seconds
+
+    def display_temp(self):
+        temp,status = self.controller.get_temp()
+        self.temp.setText(f"Temp: {temp} °C | {status}")
+
+    def display_shutter_state(self, state):
+        self.shutter_current_state.setText(f"Shutter State: {state}")
 
     def closeEvent(self, event):
         """
@@ -297,11 +298,7 @@ class MainWindow(QWidget):
         for b in [self.btn_connect_cam, self.btn_live, self.btn_stop, self.btn_acquire]:
             b.setEnabled(True)
 
-    def display_temp(self):
-        temp,status = self.controller.get_temp()
-        self.temp.setText(f"Temp: {temp} °C | {status}")
-
-    def set_roi(self):
+    def set_settings(self):
         hstart = self.roi_hstart_input.text()
         hend = self.roi_hend_input.text()
         vstart = self.roi_vstart_input.text()
@@ -310,6 +307,13 @@ class MainWindow(QWidget):
         vbin = self.roi_vbin_input.text()
 
         self.controller.set_roi(hstart=hstart, hend=hend, vstart=vstart, vend=vend, hbin=hbin, vbin=vbin)
+
+        mode = self.shutter_mode_input.currentText()
+        tll_mode = self.tll_mode_input.currentText()
+        open_time = self.shutter_open_time_input.text()
+        close_time = self.shutter_close_time_input.text()
+
+        self.controller.setup_shutter(mode=mode, tll_mode=tll_mode, open_time=open_time, close_time=close_time)
 
     def start_live(self):
         self.controller.start_live()
@@ -384,11 +388,12 @@ class MainWindow(QWidget):
 
     #     self.run_clicked.emit(params)
 
-    def show_info(self, message: str):
-        QMessageBox.information(self, "Info", message)
 
-    def show_error(self, message: str):
-        QMessageBox.critical(self, "Error", message)
+    # def show_info(self, message: str):
+    #     QMessageBox.information(self, "Info", message)
+
+    # def show_error(self, message: str):
+    #     QMessageBox.critical(self, "Error", message)
 
 
     # ==== Spectrometer methods (unused) =====

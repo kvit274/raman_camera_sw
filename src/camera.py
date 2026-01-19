@@ -207,7 +207,7 @@ class RamanCameraModel:
         # acq_mode="accumulate" # might use for accumulate feature
     
 
-    # ROI and Binning
+    # ===== ROI MANAGEMENT =====
 
     @requires_cam_connected
     def get_roi_limits(self,hbin=1,vbin=1):
@@ -230,6 +230,55 @@ class RamanCameraModel:
         self.validate_roi(hstart, hend, vstart, vend, hbin, vbin)
         self.cam.set_roi(hstart, hend, vstart, vend, hbin, vbin)
         return
+
+
+
+    # ==== READOUT MODE ==== ???
+
+
+
+
+    # ==== ADC SETTINGS ==== ???
+
+
+
+    # ==== EXPOSURE SETUP ====
+
+    @requires_cam_connected
+    def get_shutter_parameters(self):
+        """
+        Returns shutter parameters as a tuple (mode, ttl_mode, open_time, close_time)
+        """
+        return self.cam.get_shutter_parameters()
+
+    @requires_cam_connected
+    def setup_shutter(self, mode, tll_mode=0, open_time=None, close_time=None):
+        """
+        Set shutter parameters.
+        tll_mode: 0 - low is open, 1 - high is open
+        mode: "auto", "open", "close"
+        open_time, close_time: in ms???????
+        """
+        self.validate_shutter_settings(mode, tll_mode, open_time, close_time)
+        self.cam.set_shutter(mode, tll_mode, open_time, close_time)
+        return
+
+    @requires_cam_connected
+    def get_min_shutter_times(self):
+        """
+        Returns minimal opening and closing times in ms????
+        """
+        return self.cam.get_min_shutter_times()
+
+    @requires_cam_connected
+    def get_shutter(self):
+        """
+        Returns current shutter state: "auto", "open", "close"
+        """
+        return self.cam.get_shutter()
+
+
+    # ===== TEMPERATURE CONTROL =====
 
     @requires_cam_connected
     def cool_cam(self,target_temp=-75.0):
@@ -272,8 +321,15 @@ class RamanCameraModel:
                 break
 
             time.sleep(1)
-
         self.busy = False
+        
+    def get_temp(self):
+        if not self.cam:
+            return "--",""
+        return round(self.cam.get_temperature(),3), self.cam.get_temperature_status()
+
+    
+    # ==== DISCONNECT CAMERA =====
 
     def safe_close(self):
         """
@@ -302,13 +358,6 @@ class RamanCameraModel:
             self.cam = None
             print("Camera disconnected safely")
     
-    def get_temp(self):
-        if not self.cam:
-            return "--",""
-        
-        return round(self.cam.get_temperature(),3), self.cam.get_temperature_status()
-
-
 
     # ===== LIVE VIDEO =====
 
@@ -343,6 +392,7 @@ class RamanCameraModel:
         
         frame = self.cam.read_newest_image(peek=False)  # reads last unread image available in the buffer, peak=False marks it as read
         return frame
+
 
     # ===== ACQUISITION =====
 
@@ -415,7 +465,31 @@ class RamanCameraModel:
     #     # To do
     #     pass
 
+
     # ==== VALIDAION =====
+
+    def validate_shutter_settings(self, mode, tll_mode, open_time, close_time):
+        """
+        Validate shutter settings before applying them.
+        Raises ValueError if any parameter is invalid.
+        """
+        valid_modes = ["auto", "open", "close"]
+        if mode not in valid_modes:
+            raise ValueError(f"Invalid shutter mode: {mode}. Valid modes are: {valid_modes}.")
+        
+        if tll_mode not in [0, 1]:
+            raise ValueError("TTL mode must be 0 (low is open) or 1 (high is open).")
+        
+        min_open, min_close = self.get_min_shutter_times()
+        
+        if open_time is not None and open_time < min_open:
+            raise ValueError(f"Open time {open_time} ms is less than minimum allowed {min_open} ms.")
+        
+        if close_time is not None and close_time < min_close:
+            raise ValueError(f"Close time {close_time} ms is less than minimum allowed {min_close} ms.")
+        
+        return True
+
     def validate_roi(self,hstart, hend, vstart, vend, hbin, vbin):
         """
         Check if the given ROI parameters are valid.
@@ -479,7 +553,6 @@ class RamanCameraModel:
         # ask what to save??
 
 
-
     # ==== DISPLAY DATA =====
 
     def plot_spec(self,spectrum,exp_time):
@@ -492,6 +565,7 @@ class RamanCameraModel:
 
 
     # ==== MATH =====
+
     def adjust_frame(self,frame):
         frame8 = (frame / frame.max() * 255).astype(np.uint8)   # 8bit grayscale
         h, w = frame8.shape

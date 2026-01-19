@@ -30,14 +30,22 @@ class RamanCameraController:
 
     # ==== View methods =====
 
+    # might join those below later
     @handle_errors
     def display_used_params(self):
         roi = self.camera.get_roi()
-        self.view.display_used_params(roi=roi)
+        shutter = self.camera.get_shutter_parameters()
+        self.view.display_used_params(roi=roi, shutter=shutter)
         return
 
     def display_msg(self,msg):
         self.view.display_msg(msg)
+        return
+
+    @handle_errors
+    def display_shutter_state(self):
+        state = self.camera.get_shutter()
+        self.view.display_shutter_state(state)
         return
 
 
@@ -49,10 +57,10 @@ class RamanCameraController:
         self.camera.get_cam_params()     # save cam defaults for later
         self.camera.set_default_settings()
         self.display_used_params()
+        self.display_shutter_state()
         # self.cool_cam(target_temp=-80)
         return
     
-
     def isBusy_cam(self):
         return self.camera.busy
 
@@ -97,7 +105,18 @@ class RamanCameraController:
         return self.camera.adjust_frame(frame)
 
 
-    # Setttings methods
+    # ==== SETTINGS METHODS =====
+
+    @handle_errors
+    def setup_shutter(self,mode,tll_mode,open_time,close_time):
+        mode = str(mode).lower()
+        tll_mode = int(tll_mode)
+        open_time = float(open_time)
+        close_time = float(close_time)
+        self.camera.set_shutter(mode,tll_mode,open_time,close_time)
+        self.display_used_params()
+        self.display_shutter_state()
+        return
 
     @handle_errors
     def get_roi(self):
@@ -117,139 +136,11 @@ class RamanCameraController:
         hbin = int(hbin)
         vbin = int(vbin)
 
-
         self.view.stop_live()  # stop live before changing roi
         self.camera.set_roi(hstart, hend, vstart, vend, hbin, vbin)
 
         self.display_used_params()
         return
-
-
-    # def test(self,raw_params):
-    #     try:
-    #         params = self.validate_inputs(raw_params)
-    #         for param,val in params.items():
-    #             print(f"{param}: {val}\n")
-    #     except:
-    #         print("Wrong input")
-    #     params = self.validate_inputs(raw_params)
-    #     self.camera.connect_cam()
-    #     time.sleep(5.0)
-    #     self.camera.close_cam()
-        
-    # def run_exp(self,raw_params):
-    #     try:
-    #         params = self.validate_inputs(raw_params)
-    #         self.prep_cam(params)
-    #         frame, spectrum = self.acquire_data(params)
-    #         self.save_results(params, frame, spectrum)
-
-    #         # self.view.show_info("Experiment completed successfully!") # TOD0
-
-    #     except Exception as e:
-    #         print("Could not run experiment")
-    #         # self.view.show_error(f"Error: {str(e)}") # TOD0
-
-    #     print("Experiment completed.")
-    #     self.camera.close_cam()
-    
-    # # validate data formats
-    # def validate_inputs(self,params):
-    #     """
-    #     params contains:
-    #     temp, exposure_time, read_mode, acq_mode, hbin, vbin, accum_n, roi, save_path, dlls_path
-    #     """
-
-    #     # validate paths here:
-    #     # TOD0
-
-    #     # numeric conversions:
-    #     # TOD0: validate for sanity
-    #     params["temp"] = float(params["temp"])
-    #     params["exposure_time"] = float(params["exposure_time"])
-    #     params["hbin"] = int(params["hbin"])
-    #     params["vbin"] = int(params["vbin"])
-    #     params["accum_n"] = int(params["accum_n"]) if params["accum_n"] else None
-
-    #     # modes:
-    #     # TOD0 change to drop down menus!
-
-    #     # check roi:
-    #     # TOD0: validate sanity
-    #     if params["roi"]:
-    #         params["roi"] = self.parse_roi(params["roi"])
-        
-    #     return params
-    
-    # # parse roi
-    # def parse_roi(self,roi):
-    #     try:
-    #         x,y,w,h = map(int,roi.split(","))
-    #         return (x,y,w,h)
-    #     except:
-    #         raise ValueError("ROI must be in format: x,y,w,h (integers).")
-        
-    # # prepare the camera
-    # def prep_cam(self,params):
-    #     """Set DLL, Connect camera, cool down, set modes, roi"""
-
-    #     # update paths if given
-    #     if params["dlls_path"]:
-    #         self.camera.set_dlls_path(params["dlls_path"])
-    #     if params["save_path"]:
-    #         self.camera.set_save_path(params["save_path"])
-        
-    #     # connect camera
-    #     self.camera.connect_cam()
-
-    #     # cool cam
-    #     self.camera.cool_cam(params["temp"])
-
-    #     # set acquisition:
-    #     self.camera.set_cam_settings(
-    #         exposure=params["exposure_time"],
-    #         hbin=params["hbin"],
-    #         vbin=params["vbin"],
-    #         read_mode=params["read_mode"],
-    #         acq_mode=params["acq_mode"],
-    #     )
-
-    #     # set roi if given
-    #     if params["roi"]:
-    #         self.camera.set_roi(params["roi"],params["hbin"],params["vbin"])
-
-
-    # acquisition
-
-    @handle_errors
-    def acquire_data(self,params):
-        # run acquisition
-        acq_mode = params["acq_mode"]
-        if acq_mode == "single":
-            frame, spectrum = self.camera.acquire_single()
-        elif acq_mode == "accumulate":
-            frame, spectrum = self.camera.acquire_accumulate(params["accum_n"])
-        elif acq_mode == "run_till_abort":
-            frame, spectrum = self.camera.acquire_rta()
-        return frame,spectrum
-
-    # # save data
-    # def save_results(self,params,frame,spectrum):
-
-    #     ts = int(time.time())
-    #     self.camera.save_data(frame, spectrum, ts)
-    #     self.camera.save_meta(
-    #         frame=frame,
-    #         exposure=params["exposure"],
-    #         hbin=params["hbin"],
-    #         vbin=params["vbin"],
-    #         roi=params["roi"],
-    #         temp=params["temp"],
-    #         timestamp=ts
-    #     )
-
-
-
 
 
     # ==== Spectrometer methods (unused) =====
