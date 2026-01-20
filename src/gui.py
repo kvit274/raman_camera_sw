@@ -5,6 +5,7 @@ from PyQt5.QtGui import QIntValidator, QDoubleValidator, QImage, QPixmap
 from PyQt5.QtCore import pyqtSignal, QTimer, QThread
 import os
 from controller import RamanCameraController
+from typing import Dict
 
 def _safe_exit_close():
     """Extra safety: runs even if an exception kills the app."""
@@ -200,7 +201,7 @@ class MainWindow(QMainWindow):
         self.timer_temp.timeout.connect(self.display_temp)
         self.timer_temp.start(1000)
 
-    def display_used_params(self, roi, shutter):
+    def display_used_params(self, roi:Dict[str,str], shutter:Dict[str,str]):
         """Display used parameters in the GUI fields."""
 
         self.roi_hstart_input.setText(roi["hstart"])
@@ -216,14 +217,14 @@ class MainWindow(QMainWindow):
         self.shutter_close_time_input.setText(shutter["close_time"])
 
 
-    def display_msg(self, message):
+    def display_msg(self, message:str):
         self.status.showMessage(message, 5000)  # display for 5 seconds
 
     def display_temp(self):
         temp,status = self.controller.get_temp()
         self.temp.setText(f"Temp: {temp} °C | {status}")
 
-    def display_shutter_state(self, state):
+    def display_shutter_state(self, state:str):
         self.shutter_current_state.setText(f"Shutter State: {state}")
 
     def closeEvent(self, event):
@@ -276,16 +277,13 @@ class MainWindow(QMainWindow):
 
     def connect_cam(self):
         self.controller.connect_cam()
-        self.disable_buttons()
-        self.worker = CoolingWorker(self.controller,target_temp=-80)
-        self.worker.finished.connect(self.enable_buttons)
-        self.worker.start()
+        # self.disable_buttons()
+        # self.worker = CoolingWorker(self.controller,target_temp=-80)
+        # self.worker.finished.connect(self.enable_buttons)
+        # self.worker.start()
 
     def disconnect_cam(self):
-        self.disable_buttons()
-        self.worker = WarmUpCloseWorker(self.controller)
-        self.worker.finished.connect(self.enable_buttons)
-        self.worker.start()
+        self.controller.disconnect_cam()
 
     def disable_buttons(self):
         for b in [self.btn_connect_cam, self.btn_live, self.btn_stop, self.btn_acquire]:
@@ -427,29 +425,7 @@ class MainWindow(QMainWindow):
                 self.show_error("Invalid slit width value")
         
 
-class CoolingWorker(QThread):
-    finished = pyqtSignal()
 
-    def __init__(self, controller, target_temp):
-        super().__init__()
-        self.controller = controller
-        self.target_temp = target_temp
-
-    def run(self):
-        self.controller.cool_cam(self.target_temp)
-        self.finished.emit()    # unlock buttons
-
-class WarmUpCloseWorker(QThread):
-    finished = pyqtSignal()
-
-    def __init__(self, controller):
-        super().__init__()
-        self.controller = controller
-
-    def run(self):
-        self.controller.warm_cam()
-        self.controller.disconnect_cam()
-        self.finished.emit()
 
 
 def main():

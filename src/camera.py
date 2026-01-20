@@ -6,6 +6,7 @@ from pylablib.devices import Andor
 from pathlib import Path
 import matplotlib.pyplot as plt
 from pprint import pformat
+from typing import Optional
 
 
 class RamanCameraModel:
@@ -210,7 +211,7 @@ class RamanCameraModel:
     # ===== ROI MANAGEMENT =====
 
     @requires_cam_connected
-    def get_roi_limits(self,hbin=1,vbin=1):
+    def get_roi_limits(self,hbin:int=1,vbin:int=1):
         """
         Returns two elements list: [horizontal_limits, vertical_limits]
         Each element is a limit 5-tuple:
@@ -224,7 +225,7 @@ class RamanCameraModel:
         return self.cam.get_roi()
 
     @requires_cam_connected
-    def set_roi(self,hstart, hend, vstart, vend, hbin, vbin):
+    def set_roi(self,hstart:int, hend:Optional[int], vstart:int, vend:Optional[int], hbin:int, vbin:int):
         """Set ROI with given parameters."""
 
         self.validate_roi(hstart, hend, vstart, vend, hbin, vbin)
@@ -252,7 +253,7 @@ class RamanCameraModel:
         return self.cam.get_shutter_parameters()
 
     @requires_cam_connected
-    def setup_shutter(self, mode, tll_mode=0, open_time=None, close_time=None):
+    def setup_shutter(self, mode:str, tll_mode:int=0, open_time:Optional[float]=None, close_time:Optional[float]=None):
         """
         Set shutter parameters.
         tll_mode: 0 - low is open, 1 - high is open
@@ -281,7 +282,7 @@ class RamanCameraModel:
     # ===== TEMPERATURE CONTROL =====
 
     @requires_cam_connected
-    def cool_cam(self,target_temp=-75.0):
+    def cool_cam(self,target_temp:float=-70.0):
         self.busy = True
         self.cancel = False
         self.cam.set_temperature(target_temp, enable_cooler=True)
@@ -305,7 +306,7 @@ class RamanCameraModel:
         self.busy = False
 
     @requires_cam_connected
-    def warm_cam(self,safe_temp=-20):
+    def warm_cam(self,safe_temp:float=-20):
         self.busy = True
         self.cancel = True
 
@@ -397,7 +398,7 @@ class RamanCameraModel:
     # ===== ACQUISITION =====
 
     @requires_cam_connected
-    def simple_acq(self,num_frames=0):
+    def simple_acq(self,num_frames:int=0):
         
         if self.is_live:
             self.end_live()
@@ -468,7 +469,7 @@ class RamanCameraModel:
 
     # ==== VALIDAION =====
 
-    def validate_shutter_settings(self, mode, tll_mode, open_time, close_time):
+    def validate_shutter_settings(self, mode:str, tll_mode:int, open_time:Optional[float], close_time:Optional[float]):
         """
         Validate shutter settings before applying them.
         Raises ValueError if any parameter is invalid.
@@ -490,7 +491,7 @@ class RamanCameraModel:
         
         return True
 
-    def validate_roi(self,hstart, hend, vstart, vend, hbin, vbin):
+    def validate_roi(self,hstart:int, hend:Optional[int], vstart:int, vend:Optional[int], hbin:int, vbin:int):
         """
         Check if the given ROI parameters are valid.
         Raises ValueError if any parameter is invalid.

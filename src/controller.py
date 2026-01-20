@@ -4,6 +4,7 @@ from unittest.mock import MagicMock
 from test_cam import TestCameraModel
 from test_spec import TestSpectrometerModel
 import time
+from threads import CoolingWorker, WarmUpCloseWorker
 
 class RamanCameraController:
 
@@ -53,7 +54,7 @@ class RamanCameraController:
         self.view.display_used_params(roi=roi_dict, shutter=shutter_dict)
         return
 
-    def display_msg(self,msg):
+    def display_msg(self,msg:str):
         self.view.display_msg(msg)
         return
 
@@ -69,11 +70,11 @@ class RamanCameraController:
     @handle_errors
     def connect_cam(self):
         self.camera.connect_cam()
-        self.camera.get_cam_params()     # save cam defaults for later
+        # self.camera.get_cam_params()     # save cam defaults for later
         self.camera.set_default_settings()
         self.display_used_params()
         self.display_shutter_state()
-        # self.cool_cam(target_temp=-80)
+        self.cool_cam(target_temp=-80)
         return
     
     def isBusy_cam(self):
@@ -81,7 +82,12 @@ class RamanCameraController:
 
     @handle_errors
     def cool_cam(self,target_temp):
-        self.camera.cool_cam(target_temp)
+        # self.camera.cool_cam(target_temp)
+        self.view.disable_buttons()
+        self.cooling_worker = CoolingWorker(self.camera, target_temp)
+        self.cooling_worker.finished.connect(self.view.enable_buttons)
+        self.cooling_worker.start()
+        return
 
     @handle_errors
     def warm_cam(self):
@@ -89,7 +95,15 @@ class RamanCameraController:
 
     @handle_errors
     def disconnect_cam(self):
-        self.camera.safe_close()
+        self.camera.close_cam()
+        return
+
+    @handle_errors
+    def safe_disconnect_cam(self):
+        self.view.disable_buttons()
+        self.warmup_close_worker = WarmUpCloseWorker(self.camera, target_temp=20.0)
+        self.warmup_close_worker.finished.connect(self.view.enable_buttons)
+        self.warmup_close_worker.start()
         return
 
     @handle_errors

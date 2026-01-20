@@ -6,3 +6,9 @@
 
 ask if they want 1 button for applying all settings or button for each type of settings
 ask what is open high, open low in exposure thingy
+why spe file?
+
+should cooling working thread be started from the controller or view?
+pop up menu of choosing between safe close(were we warm up the cam) and just close
+when closing camera if it was doing acquisition we need to think about handling 
+fix closeEvent in gui -> order should be handled in controller

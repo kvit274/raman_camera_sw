@@ -6,7 +6,7 @@ from pylablib.devices import Andor
 from pathlib import Path
 import matplotlib.pyplot as plt
 from pprint import pformat
-
+from typing import Optional
 
 class TestCameraModel:
     def __init__(self):
@@ -52,9 +52,13 @@ class TestCameraModel:
         When connecting all the parameters are usually set in the slowest mode (amplifier,vertical/horizontal scan speed, etc.)
         Default shutter is ("closed")
         """
+        if self.cam:
+            raise RuntimeError("Camera already connected")
         self.cam = "Andor Newton"
-        hend, vend = self.detect_cam_size()
-        self.set_roi(hstart=0, hend=hend, vstart=0, vend=vend, hbin=1, vbin=1)
+        self.cool_cam()
+
+        # hend, vend = self.detect_cam_size()
+        # self.set_roi(hstart=0, hend=hend, vstart=0, vend=vend, hbin=1, vbin=1)
 
     @requires_cam_connected
     def get_cam_params(self,save_path=Path("./cam_params.txt")):
@@ -101,7 +105,7 @@ class TestCameraModel:
         return (self.hstart, self.hend, self.vstart, self.vend, self.hbin, self.vbin)
 
     @requires_cam_connected
-    def set_roi(self,hstart=0, hend=None, vstart=0, vend=None, hbin=1, vbin=1):
+    def set_roi(self,hstart:int=0, hend:Optional[int]=None, vstart:int=0, vend:Optional[int]=None, hbin:int=1, vbin:int=1):
         self.validate_roi_settings(hstart, hend, vstart, vend, hbin, vbin)
         self.hstart = hstart
         self.hend = hend
@@ -127,7 +131,7 @@ class TestCameraModel:
         return (self.shutter_mode, self.ttl_mode, self.open_time, self.close_time)
 
     @requires_cam_connected
-    def setup_shutter(self, mode, tll_mode=0, open_time=None, close_time=None):
+    def setup_shutter(self, mode:str, tll_mode:int=0, open_time:Optional[float]=None, close_time:Optional[float]=None):
         """
         Set shutter parameters.
         tll_mode: 0 - low is open, 1 - high is open
@@ -245,7 +249,7 @@ class TestCameraModel:
         return self.temp, "Some status"
 
     @requires_cam_connected
-    def cool_cam(self,target_temp=-80.0):
+    def cool_cam(self,target_temp:float=-80.0):
         self.busy = True
         self.cancel = False
         print(f"Cooling to {target_temp} C")
@@ -269,7 +273,7 @@ class TestCameraModel:
         self.busy = False
 
     @requires_cam_connected
-    def warm_cam(self,safe_temp=-20):
+    def warm_cam(self,safe_temp:float=-20):
         self.busy = True
         self.cancel = True
 
@@ -351,7 +355,7 @@ class TestCameraModel:
     # ===== ACQUISITION =====
 
     @requires_cam_connected
-    def simple_acq(self,num_frames=0):
+    def simple_acq(self,num_frames:int=0):
         if self.is_live:
             self.end_live()
 
@@ -367,7 +371,7 @@ class TestCameraModel:
 
     # ==== VALIDATION ====
 
-    def validate_shutter_settings(self, mode, tll_mode, open_time, close_time):
+    def validate_shutter_settings(self, mode:str, tll_mode:int, open_time:Optional[float], close_time:Optional[float]):
         valid_modes = ["auto", "open", "close"]
         if mode not in valid_modes:
             raise ValueError(f"Invalid shutter mode: {mode}. Valid modes are: {valid_modes}")
@@ -383,7 +387,7 @@ class TestCameraModel:
         if close_time is not None and close_time < min_close_time:
             raise ValueError(f"Close time must be at least {min_close_time} ms")
 
-    def validate_roi_settings(self, hstart, hend, vstart, vend, hbin, vbin):
+    def validate_roi_settings(self, hstart:int, hend:Optional[int], vstart:int, vend:Optional[int], hbin:int, vbin:int):
         if hstart < 0 or hstart >= self.detect_cam_size()[0]:
             raise ValueError("Invalid horizontal start value")
         
