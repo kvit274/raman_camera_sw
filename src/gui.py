@@ -1,49 +1,13 @@
 import atexit
+import traceback
 import sys
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QStackedWidget, QLineEdit, QPushButton, QFileDialog, QLabel, QComboBox, QMessageBox
 from PyQt5.QtGui import QIntValidator, QDoubleValidator, QImage, QPixmap
 from PyQt5.QtCore import pyqtSignal, QTimer, QThread
 import os
 from controller import RamanCameraController
+from widgets import MultiTrackWidget, SingleTrackWidget, FVBWidget, ImageWidget, RandomTrackWidget
 from typing import Dict
-
-def _safe_exit_close():
-    """Extra safety: runs even if an exception kills the app."""
-    try:
-        app = QApplication.instance()
-        if not app:
-            return
-        window = app.activeWindow()
-        if not window:
-            return
-
-        ctrl = window.controller
-
-        print("[EXIT] Python exiting — running safe camera shutdown")
-
-        # Try warm cam
-        try:
-            ctrl.warm_cam()
-        except:
-            pass
-
-        # Try disconnect cam
-        try:
-            ctrl.disconnect_cam()
-        except:
-            pass
-
-        # Spectrometer safe disconnect
-        try:
-            ctrl.disconnect_spec()
-        except:
-            pass
-
-    except Exception as e:
-        print("[EXIT] Error in atexit shutdown:", e)
-
-# Register handler
-atexit.register(_safe_exit_close)
 
 class MainWindow(QMainWindow):
     # run_clicked = pyqtSignal(dict)
@@ -108,6 +72,17 @@ class MainWindow(QMainWindow):
         # Read mode
         self.read_mode_input = QComboBox()
         self.read_mode_input.addItems(["fvb", "image", "single_track", "multi_track", "random_track"])
+        self.read_mode_stack = QStackedWidget()
+        self.read_mode_widgets = {
+            "fvb": FVBWidget(),
+            "image": ImageWidget(),
+            "single_track": SingleTrackWidget(),
+            "multi_track": MultiTrackWidget(),
+            "random_track": RandomTrackWidget()
+        }
+
+        for w in self.read_mode_widgets.values():
+            self.read_mode_stack.addWidget(w)
 
         self.set_settings_button = QPushButton("Apply Settings")
 
@@ -178,6 +153,8 @@ class MainWindow(QMainWindow):
         hl_readmode.addWidget(self.read_mode_input)
         layout.addLayout(hl_readmode)
 
+        layout.addWidget(self.read_mode_stack)
+
 
         # set central widget
         central = QWidget()
@@ -195,6 +172,9 @@ class MainWindow(QMainWindow):
         # self.btn_set_roi.clicked.connect(self.set_roi)
         # self.btn_set_shutter.clicked.connect(self.set_shutter)
         self.set_settings_button.clicked.connect(self.set_settings)
+        self.read_mode_input.currentTextChanged.connect(
+            self.on_read_mode_changed
+        )
 
 
         # Connect buttons to controller spec
@@ -210,6 +190,11 @@ class MainWindow(QMainWindow):
         self.timer_temp = QTimer()
         self.timer_temp.timeout.connect(self.display_temp)
         self.timer_temp.start(1000)
+
+
+    def on_read_mode_changed(self, mode):
+        widget = self.read_mode_widgets[mode]
+        self.read_mode_stack.setCurrentWidget(widget)
 
     def display_used_params(self, roi:Dict[str,str], shutter:Dict[str,str], read_mode:str):
         """Display used parameters in the GUI fields."""
@@ -279,9 +264,10 @@ class MainWindow(QMainWindow):
             "close_time": self.shutter_close_time_input.text()
         }
 
-        read_mode = self.read_mode_input.currentText()
+        active_widget = self.read_mode_stack.currentWidget()
+        read_mode_params = active_widget.get_params()
 
-        self.controller.apply_cam_settings(roi, shutter, read_mode)
+        self.controller.apply_cam_settings(roi, shutter, read_mode_params)
 
     def start_live(self):
         self.controller.start_live()
@@ -445,6 +431,49 @@ class MainWindow(QMainWindow):
         event.accept()
 
 
+def _safe_exit_close():
+    """Extra safety: runs even if an exception kills the app."""
+    try:
+        app = QApplication.instance()
+        if not app:
+            return
+        window = app.activeWindow()
+        if not window:
+            return
+
+        ctrl = window.controller
+
+        print("[EXIT] Python exiting — running safe camera shutdown")
+
+        # Try warm cam
+        try:
+            ctrl.warm_cam()
+        except:
+            pass
+
+        # Try disconnect cam
+        try:
+            ctrl.disconnect_cam()
+        except:
+            pass
+
+        # Spectrometer safe disconnect
+        try:
+            ctrl.disconnect_spec()
+        except:
+            pass
+
+    except Exception as e:
+        print("[EXIT] Error in atexit shutdown:", e)
+
+# Register handler
+atexit.register(_safe_exit_close)
+
+def excepthook(exc_type, exc_value, exc_traceback):
+    traceback.print_exception(exc_type, exc_value, exc_traceback)
+    _safe_exit_close()
+
+sys.excepthook = excepthook
 
 def main():
     app = QApplication(sys.argv)

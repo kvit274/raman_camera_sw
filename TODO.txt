@@ -5,11 +5,16 @@
 5) pop up menu of choosing between safe close(were we warm up the cam) and just close
 6) fix closeEvent in gui -> order should be handled in controller
 7) when closing camera if it was doing acquisition we need to think about handling/managing states
+8) when selecting setup_image_mode its not clear if parameters are different from roi?
+9) setup_multi_track_mode(number=1, height=1, offset=0) should return smth???
+10) Deal with displaying input values back for read mode
 
 ask if they want 1 button for applying all settings or button for each type of settings
 ask what is open high, open low in exposure thingy
 why spe file?
 ask how we should display items in dropdown menus (easier for me if we display them in the same way sdk2 uses it)
+ask about types (int/float?)
+Do they need random track?
+implement fvb
 
-
-
+handle the read mode params being sent to controller

@@ -54,6 +54,7 @@ class RamanCameraController:
         }
 
         read_mode = self.camera.get_read_mode()
+        # read_mode_params = self.get_read_mode_params(read_mode)
         self.view.display_used_params(roi=roi_dict, shutter=shutter_dict, read_mode=read_mode)
         return
 
@@ -148,9 +149,73 @@ class RamanCameraController:
         return
 
     @handle_errors
+    def get_read_mode_params(self, read_mode):
+        
+        dispatch = {
+            "multi_track": self.camera.get_multi_track_mode_params,
+            "single_track": self.camera.get_single_track_mode_params,
+            "random_track": self.camera.get_random_track_mode_params,
+            "image": self.camera.get_image_mode_params
+        }
+
+        handler = dispatch.get(read_mode)
+        return handler()
+
+    @handle_errors
     def set_read_mode(self,read_mode):
-        read_mode = str(read_mode).lower().strip()
-        self.camera.set_read_mode(read_mode)
+        mode = read_mode["mode"]
+        
+        dispatch = {
+            "multi_track": self.setup_multi_track_mode,
+            "single_track": self.setup_single_track_mode,
+            "random_track": self.setup_random_track_mode,
+            "image": self.setup_image_mode
+        }
+
+        handler = dispatch.get(mode)
+        if not handler:
+            raise ValueError(f"Invalid read mode: {mode}")
+
+        handler(read_mode)
+        # self.camera.set_read_mode(read_mode)
+        return
+
+    @handle_errors
+    def setup_single_track_mode(self,params):
+        del params["mode"]
+
+        if "center" in params:
+            params["center"] = int(params["center"])
+        if "width" in params:
+            params["width"] = int(params["width"])
+
+        self.camera.setup_single_track_mode(**params)
+        return
+
+    @handle_errors
+    def setup_multi_track_mode(self,params):
+        del params["mode"]
+
+        if "number" in params:
+            params["number"] = int(params["number"])
+        if "height" in params:
+            params["height"] = int(params["height"])
+        if "offset" in params:
+            params["offset"] = int(params["offset"])
+
+        self.camera.setup_multi_track_mode(**params)
+        return
+
+    @handle_errors
+    def setup_random_track_mode(self,params):
+        del params["mode"]
+        # this one is not clear yet
+
+        return
+
+    @handle_errors
+    def setup_image_mode(self,params):
+
         return
 
     @handle_errors

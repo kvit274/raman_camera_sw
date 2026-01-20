@@ -247,6 +247,65 @@ class RamanCameraModel:
         """Return current read mode."""
         return self.cam.get_read_mode()
 
+    @requires_cam_connected
+    def setup_single_track_mode(self, center:int=0, width:int=1):
+        self.validate_single_track_mode(center, width)
+        # do smth with center and width
+        self.cam.setup_single_track_mode(center,width)
+        return
+
+    @requires_cam_connected
+    def get_single_track_mode_params(self):
+        """
+        Returns a tuple (center, width) specifying the selection of rows to be averaged together
+        """
+        return self.cam.get_single_track_mode_parameters()
+
+    @requires_cam_connected
+    def setup_multi_track_mode(self, number:int=1, height:int=1, offset:int=0):
+        self.validate_multi_track_mode(number, height, offset)
+        # do smth with number, height, offset
+        self.cam.setup_multi_track_mode(number,height,offset)
+        return
+
+    @requires_cam_connected
+    def get_multi_track_mode_params(self):
+        """
+        Returns a tuple (number, height, offset) specifying the multi-track read mode parameters
+        """
+        return self.cam.get_multi_track_mode_parameters()
+
+    @requires_cam_connected
+    def setup_random_track_mode(self, tracks=None):
+        """
+        tracks is a list of tuples (start, stop) specifying track span (start are inclusive, stop are exclusive, starting from 0). 
+        Note that it does not affect the current read mode, which should be set using set_read_mode()
+        """
+        # do smth with tracks
+        self.cam.setup_random_track_mode(tracks)
+        return
+
+    @requires_cam_connected
+    def get_random_track_mode_params(self):
+        """
+        Returns a list of tuples (start, stop) specifying the random track mode parameters
+        """
+        return self.cam.get_random_track_mode_parameters()
+    
+    @requires_cam_connected
+    def setup_image_mode(self,hstart:int=0, hend:Optional[int]=None, vstart:int=0, vend:Optional[int]=None, hbin:int=1, vbin:int=1):
+        """
+        
+        """
+        self.cam.setup_image_mode(hstart,hend,vstart,vend,hbin,vbin)
+        return
+
+    @requires_cam_connected
+    def get_image_mode_parameters(self):
+        """
+        Return image read mode parameters, (hstart, hend, vstart, vend, hbin, vbin)
+        """
+        return self.cam.get_image_mode_parameters()
 
     # ==== ADC SETTINGS ==== ???
 
@@ -478,8 +537,16 @@ class RamanCameraModel:
 
     # ==== VALIDAION =====
 
+    def validate_single_track_mode(self, center:int, width:int):
+        #TOD0
+        return
+
+    def validate_multi_track_mode(self, number:int, height:int, offset:int):
+        #TOD0
+        return
+
     def validate_read_mode(self, read_mode:str):
-        valid_modes = {"fvb", "image", "singe_track", "multi_track", "random_track"}
+        valid_modes = {"fvb", "image", "single_track", "multi_track", "random_track"}
         if read_mode not in valid_modes:
             raise ValueError(f"Invalid read mode: {read_mode}. Valid modes are: {valid_modes}")
 
