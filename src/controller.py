@@ -24,7 +24,8 @@ class RamanCameraController:
             try:
                 return func(self, *args, **kwargs)
             except Exception as e:
-                print(f"Error in {func.__name__}: {str(e)}")
+                class_name = self.__class__.__name__
+                print(f"Error in {class_name}.{func.__name__}: {str(e)}")
                 self.view.display_msg(f"Error: {str(e)}")
         return wrapper
 
@@ -51,7 +52,9 @@ class RamanCameraController:
             'open_time': str(shutter[2]),
             'close_time': str(shutter[3])
         }
-        self.view.display_used_params(roi=roi_dict, shutter=shutter_dict)
+
+        read_mode = self.camera.get_read_mode()
+        self.view.display_used_params(roi=roi_dict, shutter=shutter_dict, read_mode=read_mode)
         return
 
     def display_msg(self,msg:str):
@@ -137,14 +140,26 @@ class RamanCameraController:
     # ==== SETTINGS METHODS =====
 
     @handle_errors
+    def apply_cam_settings(self,roi,shutter,read_mode):
+        self.set_roi(**roi)
+        self.setup_shutter(**shutter)
+        self.set_read_mode(read_mode)
+        self.display_used_params()
+        return
+
+    @handle_errors
+    def set_read_mode(self,read_mode):
+        read_mode = str(read_mode).lower().strip()
+        self.camera.set_read_mode(read_mode)
+        return
+
+    @handle_errors
     def setup_shutter(self,mode,tll_mode,open_time,close_time):
-        print(f"controller: {mode}")
         mode = str(mode).lower()
         tll_mode = int(tll_mode)
         open_time = "" if open_time == "" else float(open_time)
         close_time = "" if close_time == "" else float(close_time)
         self.camera.setup_shutter(mode,tll_mode,open_time,close_time)
-        self.display_used_params()
         self.display_shutter_state()
         return
 
@@ -160,16 +175,15 @@ class RamanCameraController:
         """
 
         hstart = int(hstart)
-        hend = "" if hend == "" else int(hend)
+        hend = None if hend == "" else int(hend)
         vstart = int(vstart)
-        vend = "" if vend == "" else int(vend)
+        vend = None if vend == "" else int(vend)
         hbin = int(hbin)
         vbin = int(vbin)
 
         self.view.stop_live()  # stop live before changing roi
         self.camera.set_roi(hstart, hend, vstart, vend, hbin, vbin)
 
-        self.display_used_params()
         return
 
 

@@ -105,6 +105,10 @@ class MainWindow(QMainWindow):
         # self.btn_set_shutter = QPushButton("Set Shutter")
         self.shutter_current_state = QLabel("Shutter State: --")
 
+        # Read mode
+        self.read_mode_input = QComboBox()
+        self.read_mode_input.addItems(["fvb", "image", "single_track", "multi_track", "random_track"])
+
         self.set_settings_button = QPushButton("Apply Settings")
 
         # Spectrometer controls
@@ -168,6 +172,12 @@ class MainWindow(QMainWindow):
         # hl_shutter.addWidget(self.btn_set_shutter)
         layout.addLayout(hl_shutter)
 
+        # Read mode
+        hl_readmode = QHBoxLayout()
+        hl_readmode.addWidget(QLabel("Read Mode:"))
+        hl_readmode.addWidget(self.read_mode_input)
+        layout.addLayout(hl_readmode)
+
 
         # set central widget
         central = QWidget()
@@ -201,7 +211,7 @@ class MainWindow(QMainWindow):
         self.timer_temp.timeout.connect(self.display_temp)
         self.timer_temp.start(1000)
 
-    def display_used_params(self, roi:Dict[str,str], shutter:Dict[str,str]):
+    def display_used_params(self, roi:Dict[str,str], shutter:Dict[str,str], read_mode:str):
         """Display used parameters in the GUI fields."""
 
         self.roi_hstart_input.setText(roi["hstart"])
@@ -216,6 +226,8 @@ class MainWindow(QMainWindow):
         self.shutter_open_time_input.setText(shutter["open_time"])
         self.shutter_close_time_input.setText(shutter["close_time"])
 
+        self.read_mode_input.setCurrentText(read_mode)
+
 
     def display_msg(self, message:str):
         self.status.showMessage(message, 5000)  # display for 5 seconds
@@ -226,49 +238,6 @@ class MainWindow(QMainWindow):
 
     def display_shutter_state(self, state:str):
         self.shutter_current_state.setText(f"Shutter State: {state}")
-
-    def closeEvent(self, event):
-        """
-        Runs automatically when the user closes the GUI.
-        Ensures the camera is warmed and disconnected safely.
-        """
-        print("[GUI] Application closing... running safe shutdown")
-
-        try:
-            # Stop live preview if running
-            try:
-                self.timer.stop()
-            except:
-                pass
-            try:
-                self.controller.stop_live()
-            except:
-                pass
-
-            # Warm up the camera
-            try:
-                self.controller.warm_cam()
-                print("Camera warmed up due to forced shutdown.")
-            except Exception as e:
-                print("Warm-up failed:", e)
-
-            # Disconnect camera
-            try:
-                self.controller.disconnect_cam()
-                print("Camera disconnected safely due to shutdown.")
-            except Exception as e:
-                print("Camera disconnect failed:", e)
-
-            # Disconnect spectrometer safely
-            try:
-                self.controller.disconnect_spec()
-            except Exception as e:
-                print("Spectrometer disconnect failed:", e)
-
-        except Exception as e:
-            print("[GUI] Unexpected error during closeEvent:", e)
-
-        event.accept()
 
 
     # ===== Functions ======
@@ -294,20 +263,25 @@ class MainWindow(QMainWindow):
             b.setEnabled(True)
 
     def set_settings(self):
-        hstart = self.roi_hstart_input.text()
-        hend = self.roi_hend_input.text()
-        vstart = self.roi_vstart_input.text()
-        vend = self.roi_vend_input.text()
-        hbin = self.roi_hbin_input.text()
-        vbin = self.roi_vbin_input.text()
+        roi = {
+            "hstart": self.roi_hstart_input.text(),
+            "hend": self.roi_hend_input.text(),
+            "vstart": self.roi_vstart_input.text(),
+            "vend": self.roi_vend_input.text(),
+            "hbin": self.roi_hbin_input.text(),
+            "vbin": self.roi_vbin_input.text()
+        }
 
-        mode = self.shutter_mode_input.currentText()
-        tll_mode = self.tll_mode_input.currentText()
-        open_time = self.shutter_open_time_input.text()
-        close_time = self.shutter_close_time_input.text()
+        shutter = {
+            "mode": self.shutter_mode_input.currentText(),
+            "tll_mode": self.tll_mode_input.currentText(),
+            "open_time": self.shutter_open_time_input.text(),
+            "close_time": self.shutter_close_time_input.text()
+        }
 
-        self.controller.set_roi(hstart=hstart, hend=hend, vstart=vstart, vend=vend, hbin=hbin, vbin=vbin)
-        self.controller.setup_shutter(mode=mode, tll_mode=tll_mode, open_time=open_time, close_time=close_time)
+        read_mode = self.read_mode_input.currentText()
+
+        self.controller.apply_cam_settings(roi, shutter, read_mode)
 
     def start_live(self):
         self.controller.start_live()
@@ -425,6 +399,50 @@ class MainWindow(QMainWindow):
                 self.show_error("Invalid slit width value")
         
 
+    # Override closeEvent to ensure safe shutdown
+
+    def closeEvent(self, event):
+        """
+        Runs automatically when the user closes the GUI.
+        Ensures the camera is warmed and disconnected safely.
+        """
+        print("[GUI] Application closing... running safe shutdown")
+
+        try:
+            # Stop live preview if running
+            try:
+                self.timer.stop()
+            except:
+                pass
+            try:
+                self.controller.stop_live()
+            except:
+                pass
+
+            # Warm up the camera
+            try:
+                self.controller.warm_cam()
+                print("Camera warmed up due to forced shutdown.")
+            except Exception as e:
+                print("Warm-up failed:", e)
+
+            # Disconnect camera
+            try:
+                self.controller.disconnect_cam()
+                print("Camera disconnected safely due to shutdown.")
+            except Exception as e:
+                print("Camera disconnect failed:", e)
+
+            # Disconnect spectrometer safely
+            try:
+                self.controller.disconnect_spec()
+            except Exception as e:
+                print("Spectrometer disconnect failed:", e)
+
+        except Exception as e:
+            print("[GUI] Unexpected error during closeEvent:", e)
+
+        event.accept()
 
 
 

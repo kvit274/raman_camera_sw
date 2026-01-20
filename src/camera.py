@@ -233,10 +233,19 @@ class RamanCameraModel:
         return
 
 
+    # ==== READ MODE ====
 
-    # ==== READOUT MODE ==== ???
+    @requires_cam_connected
+    def set_read_mode(self, read_mode:str):
+        self.validate_read_mode(read_mode)
+        self.cam.set_read_mode(read_mode)
+        print(f"Read mode set to: {read_mode}")
+        return
 
-
+    @requires_cam_connected
+    def get_read_mode(self):
+        """Return current read mode."""
+        return self.cam.get_read_mode()
 
 
     # ==== ADC SETTINGS ==== ???
@@ -468,6 +477,11 @@ class RamanCameraModel:
 
 
     # ==== VALIDAION =====
+
+    def validate_read_mode(self, read_mode:str):
+        valid_modes = {"fvb", "image", "singe_track", "multi_track", "random_track"}
+        if read_mode not in valid_modes:
+            raise ValueError(f"Invalid read mode: {read_mode}. Valid modes are: {valid_modes}")
 
     def validate_shutter_settings(self, mode:str, tll_mode:int, open_time:Optional[float], close_time:Optional[float]):
         """

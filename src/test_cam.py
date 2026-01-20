@@ -30,6 +30,9 @@ class TestCameraModel:
         self.open_time = 5
         self.close_time = 5
 
+        # Read mode
+        self.read_mode = "image"
+
         # default paths:
         self.save_path = Path("./data")
         self.save_path.mkdir(exist_ok=True)
@@ -170,6 +173,19 @@ class TestCameraModel:
         print("Default camera settings applied")
         return
 
+
+    # ==== READ MODE =====
+
+    @requires_cam_connected
+    def set_read_mode(self, read_mode:str):
+        self.validate_read_mode(read_mode)
+        self.read_mode = read_mode
+        print(f"Read mode set to: {read_mode}")
+        return
+
+    @requires_cam_connected
+    def get_read_mode(self):
+        return self.read_mode
 
     # def set_cam_settings(self, exposure, hbin,vbin,read_mode,acq_mode,accum_n=None,roi=None):
     #     # self.cam.set_acquisition(
@@ -370,6 +386,11 @@ class TestCameraModel:
 
 
     # ==== VALIDATION ====
+
+    def validate_read_mode(self, read_mode:str):
+        valid_modes = {"fvb", "image", "singe_track", "multi_track", "random_track"}
+        if read_mode not in valid_modes:
+            raise ValueError(f"Invalid read mode: {read_mode}. Valid modes are: {valid_modes}")
 
     def validate_shutter_settings(self, mode:str, tll_mode:int, open_time:Optional[float], close_time:Optional[float]):
         valid_modes = ["auto", "open", "close"]
