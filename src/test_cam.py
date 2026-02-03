@@ -7,6 +7,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 from pprint import pformat
 from typing import Optional
+from datetime import datetime
 
 class TestCameraModel:
     def __init__(self):
@@ -33,7 +34,17 @@ class TestCameraModel:
         # Read mode
         self.read_mode = "image"
 
+        # Acquisition mode
+        self.acquisition_mode = "single"
+
+        # Trigger mode
+        self.trigger_mode = "int"
+
         # default paths:
+        self.save_path_cvs = Path("./data/cvs")
+        self.save_path_cvs.mkdir(exist_ok=True)
+        self.save_path_image = Path("./data/images")
+        self.save_path_image.mkdir(exist_ok=True)
         self.save_path = Path("./data")
         self.save_path.mkdir(exist_ok=True)
 
@@ -247,74 +258,32 @@ class TestCameraModel:
         """
         return (0,None,0,None,1,1)
 
-    # def set_cam_settings(self, exposure, hbin,vbin,read_mode,acq_mode,accum_n=None,roi=None):
-    #     # self.cam.set_acquisition(
-    #     #     exposure=exposure,
-    #     #     hbin=hbin,
-    #     #     vbin=vbin,
-    #     #     read_mode=read_mode,
-    #     #     acq_mode=acq_mode,
-    #     # )
-        
-    #     # cfg = self._acq_cfg
-    #     # cfg["exposure"] = exposure
-    #     # cfg["hbin"] = hbin
-    #     # cfg["vbin"] = vbin
-    #     # cfg["read_mode"] = read_mode
-    #     # cfg["acq_mode"] = acq_mode
-    #     # cfg["accum_n"] = accum_n
-    #     # cfg["roi"] = roi
-
-    #     # self.cam.set_trigger_mode("int")  # internal trigger | exposure starts immediately
-
-    #     self.cam.set_shutter(0, 0, "auto")  # fully electronic shutter
-
-
-    #     self.cam.set_shutter(opening_time=0, closing_time=0)  # if no shutter
-    #     # self.cam.set_shutter(0, 0, "open")  # fully electronic shutter
-
-    #     self.cam.set_exposure(exposure)
-    #     self.cam.set_read_mode(read_mode)
-
-    #     if read_mode == "image":
-    #         width, height = self.cam.get_detector_size()
-    #         if roi is None:
-    #             hstart, hend = 0, width
-    #             vstart, vend = 0, height
-    #         else:
-    #             x,y,w_roi,h_roi = roi
-    #             hstart, hend = x, x + w_roi
-    #             vstart, vend = y, y + h_roi
-            
-    #         self.cam.setup_image_mode(
-    #             hstart=hstart,
-    #             hend=hend,
-    #             vstart=vstart,
-    #             vend=vend,
-    #             hbin=hbin,
-    #             vbin=vbin,
-    #         )
-
-    #     self.cam.set_acquisition_mode("single")
-
-    #     # what?
-    #     # set vertical shift speed
-    #     vsspeeds = self.cam.get_vsspeeds()
-    #     self.cam.set_vsspeed(vsspeeds[0])   # slowest = highest quality
-
-    #     # set horizontal shift speed
-    #     hsspeeds = self.cam.get_hsspeeds(0)
-    #     self.cam.set_hsspeed(0, hsspeeds[0])  # amplifier index 0, slowest speed
-
-    #     # pre amp gain
-    #     gains = self.cam.get_preampgains()
-    #     self.cam.set_preampgain(gains[1])  # medium gain recommended
-
-
-    #     # acq_mode="single"   # 'single' | 'accumulate' | 'kinetic' | 'run_till_abort'
-    #     # acq_mode = "run_till_abort" # run until stopped
-    #     # acq_mode="accumulate" # might use for accumulate feature
     
+    
+    # ===== ACQUISITION MODE =====
+
+    @requires_cam_connected
+    def set_acquisition_mode(self,mode):
+        """
+        Can be "single", "accum", "kinetic", "fast_kinetic" or "cont" (continuous).
+        If setup_params==True, make sure that the last specified parameters for this mode are set up.
+        """
+        self.validate_acquisition_mode(mode)
+        self.acquisition_mode = mode
+        return
+
+    
+    # ===== TRIGGER MODE =====
+
+    @requires_cam_connected
+    def set_trigger_mode(self,mode):
+        """
+        Can be "int" (internal), "ext" (external), "ext_start" (external start), "ext_exp" (external exposure), "ext_fvb_em" (external FVB EM), "software" (software trigger) or "ext_charge_shift" (external charge shifting).
+        """
+        self.validate_trigger_mode(mode)
+        self.trigger_mode = mode
+        return
+
     
     # ===== COOLING =====
 
@@ -477,6 +446,28 @@ class TestCameraModel:
         if close_time is not None and close_time < min_close_time:
             raise ValueError(f"Close time must be at least {min_close_time} ms")
 
+    def validate_acquisition_mode(self, mode:str):
+        """
+        Validate acquisition mode before applying it.
+        Raises ValueError if any parameter is invalid.
+        """
+        valid_modes = ["single", "accum", "kinetic", "fast_kinetic", "cont"]
+        if mode not in valid_modes:
+            raise ValueError(f"Invalid acquisition mode: {mode}. Valid modes are: {valid_modes}.")
+            
+        return True
+
+    def validate_trigger_mode(self, mode:str):
+        """
+        Validate trigger mode before applying.
+        Raises ValueError if any parameter is invalid.
+        """
+        valid_modes = ["int","ext","ext_start","ext_exp","ext_fvb_em","software","ext_charge_shift"]
+        if mode not in valid_modes:
+            raise ValueError(f"Invalid trigger mode: {mode}. Valid modes are: {valid_modes}.")
+        
+        return True
+
     def validate_roi_settings(self, hstart:int, hend:Optional[int], vstart:int, vend:Optional[int], hbin:int, vbin:int):
         if hstart < 0 or hstart >= self.detect_cam_size()[0]:
             raise ValueError("Invalid horizontal start value")
@@ -557,6 +548,23 @@ class TestCameraModel:
 
 
     # ===== FILE MANAGEMENT =====
+    
+    # import imageio.v2 as imageio
+    def save_frame(self,frame):
+        """
+        Save a single acquired frame as PNG + raw CSV
+        """
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        # frame_uint16 = frame.astype("unit16")
+
+        png_path = self.save_path_image / f"{timestamp}.png"
+        csv_path = self.save_path_cvs / f"{timestamp}.csv"
+
+        plt.imsave(png_path, frame,cmap="gray")
+        np.savetxt(csv_path,frame,delimiter=",",fmt="%d")
+
+        print(f"[SAVE] Frame saved to {png_path}")
 
     def set_save_path(self,save_path):
         self.save_path = save_path

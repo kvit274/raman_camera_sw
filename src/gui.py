@@ -84,21 +84,37 @@ class MainWindow(QMainWindow):
         for w in self.read_mode_widgets.values():
             self.read_mode_stack.addWidget(w)
 
+        # Acquisition 
+        self.acquisition_mode_input = QComboBox()
+        self.acquisition_mode_input.addItems(["single", "accum", "kinetic", "fast_kinetic", "cont"])
+
+        # Trigger mode
+        self.trigger_mode_input = QComboBox()
+        self.trigger_mode_input.addItems(["int","ext","ext_start","ext_exp","ext_fvb_em","software","ext_charge_shift"])
+
+        # Exposure
+        self.exposure_input = QLineEdit()
+        self.exposure_input.setPlaceholderText("Exposure time (ms)")
+        self.exposure_input.setValidator(QDoubleValidator())
+
+        # Amp
+
+
         self.set_settings_button = QPushButton("Apply Settings")
 
         # Spectrometer controls
-        self.btn_connect_spec = QPushButton("Connect Spectrometer")
-        self.btn_disconnect_spec = QPushButton("Disconnect Spectrometer")
-        self.wavelength_input = QLineEdit()
-        self.wavelength_input.setPlaceholderText("Wavelength (m)")
-        self.wavelength_input.setValidator(QDoubleValidator())
-        self.grating_input = QLineEdit()
-        self.grating_input.setPlaceholderText("Grating (#)")
-        self.grating_input.setValidator(QIntValidator())
-        self.slit_width_input = QLineEdit()
-        self.slit_width_input.setPlaceholderText("Slit Width (m)")
-        self.slit_width_input.setValidator(QDoubleValidator())
-        self.btn_update_spec = QPushButton("Update Spec Settings")
+        # self.btn_connect_spec = QPushButton("Connect Spectrometer")
+        # self.btn_disconnect_spec = QPushButton("Disconnect Spectrometer")
+        # self.wavelength_input = QLineEdit()
+        # self.wavelength_input.setPlaceholderText("Wavelength (m)")
+        # self.wavelength_input.setValidator(QDoubleValidator())
+        # self.grating_input = QLineEdit()
+        # self.grating_input.setPlaceholderText("Grating (#)")
+        # self.grating_input.setValidator(QIntValidator())
+        # self.slit_width_input = QLineEdit()
+        # self.slit_width_input.setPlaceholderText("Slit Width (m)")
+        # self.slit_width_input.setValidator(QDoubleValidator())
+        # self.btn_update_spec = QPushButton("Update Spec Settings")
 
 
         # layout
@@ -118,17 +134,18 @@ class MainWindow(QMainWindow):
         layout.addLayout(hl)
 
         # Spectrometer controls
-        hl_spec = QHBoxLayout()
-        hl_spec.addWidget(self.btn_connect_spec)
-        hl_spec.addWidget(self.btn_disconnect_spec)
-        hl_spec.addWidget(self.wavelength_input)
-        hl_spec.addWidget(self.grating_input)
-        hl_spec.addWidget(self.slit_width_input)
-        hl_spec.addWidget(self.btn_update_spec)
-        layout.addLayout(hl_spec)
+        # hl_spec = QHBoxLayout()
+        # hl_spec.addWidget(self.btn_connect_spec)
+        # hl_spec.addWidget(self.btn_disconnect_spec)
+        # hl_spec.addWidget(self.wavelength_input)
+        # hl_spec.addWidget(self.grating_input)
+        # hl_spec.addWidget(self.slit_width_input)
+        # hl_spec.addWidget(self.btn_update_spec)
+        # layout.addLayout(hl_spec)
 
         # ROI controls
         hl_roi = QHBoxLayout()
+        hl_roi.addWidget(QLabel("Roi:"))
         hl_roi.addWidget(self.roi_hstart_input)
         hl_roi.addWidget(self.roi_hend_input)
         hl_roi.addWidget(self.roi_vstart_input)
@@ -140,6 +157,7 @@ class MainWindow(QMainWindow):
 
         # Shutter controls
         hl_shutter = QHBoxLayout()
+        hl_shutter.addWidget(QLabel("Shutter:"))
         hl_shutter.addWidget(self.shutter_mode_input)
         hl_shutter.addWidget(self.tll_mode_input)
         hl_shutter.addWidget(self.shutter_open_time_input)
@@ -148,12 +166,24 @@ class MainWindow(QMainWindow):
         layout.addLayout(hl_shutter)
 
         # Read mode
-        hl_readmode = QHBoxLayout()
-        hl_readmode.addWidget(QLabel("Read Mode:"))
-        hl_readmode.addWidget(self.read_mode_input)
-        layout.addLayout(hl_readmode)
+        hl_read_mode = QHBoxLayout()
+        hl_read_mode.addWidget(QLabel("Read Mode:"))
+        hl_read_mode.addWidget(self.read_mode_input)
+        layout.addLayout(hl_read_mode)
 
         layout.addWidget(self.read_mode_stack)
+
+        # acquisition
+        hl_acquisition_mode = QHBoxLayout()
+        hl_acquisition_mode.addWidget(QLabel("Acquisition Mode:"))
+        hl_acquisition_mode.addWidget(self.acquisition_mode_input)
+        layout.addLayout(hl_acquisition_mode)
+
+        # trigger mode
+        hl_trigger_mode = QHBoxLayout()
+        hl_trigger_mode.addWidget(QLabel("Trigger Mode:"))
+        hl_trigger_mode.addWidget(self.trigger_mode_input)
+        layout.addLayout(hl_trigger_mode)
 
 
         # set central widget
@@ -166,7 +196,7 @@ class MainWindow(QMainWindow):
         self.btn_connect_cam.clicked.connect(self.connect_cam)
         self.btn_live.clicked.connect(self.start_live)
         self.btn_stop.clicked.connect(self.stop_live)
-        self.btn_acquire.clicked.connect(self.acquire_frame)
+        self.btn_acquire.clicked.connect(self.start_acquisition)
         self.btn_disconnect_cam.clicked.connect(self.disconnect_cam)
         # might join these below later
         # self.btn_set_roi.clicked.connect(self.set_roi)
@@ -178,9 +208,9 @@ class MainWindow(QMainWindow):
 
 
         # Connect buttons to controller spec
-        self.btn_connect_spec.clicked.connect(self.connect_spec)
-        self.btn_disconnect_spec.clicked.connect(self.disconnect_spec)
-        self.btn_update_spec.clicked.connect(self.update_spec_settings)
+        # self.btn_connect_spec.clicked.connect(self.connect_spec)
+        # self.btn_disconnect_spec.clicked.connect(self.disconnect_spec)
+        # self.btn_update_spec.clicked.connect(self.update_spec_settings)
 
         # Live preview updates
         self.timer_live = QTimer()
@@ -267,7 +297,11 @@ class MainWindow(QMainWindow):
         active_widget = self.read_mode_stack.currentWidget()
         read_mode_params = active_widget.get_params()
 
-        self.controller.apply_cam_settings(roi, shutter, read_mode_params)
+        acquisition_mode = self.acquisition_mode_input.currentText()
+
+        trigger_mode = self.trigger_mode_input.currentText()
+
+        self.controller.apply_cam_settings(roi, shutter, read_mode_params, acquisition_mode, trigger_mode)
 
     def start_live(self):
         self.controller.start_live()
@@ -299,8 +333,9 @@ class MainWindow(QMainWindow):
             self.preview.height()
         ))
     
-    def acquire_frame(self):
+    def start_acquisition(self):
         frame = self.controller.acquire_single()
+        # frame = self.controller.start_acquisition()
         if frame is None:
             return
         self.display_image(frame)
@@ -352,37 +387,37 @@ class MainWindow(QMainWindow):
 
     # ==== Spectrometer methods (unused) =====
 
-    def connect_spec(self):
-        self.controller.connect_spec()
+    # def connect_spec(self):
+    #     self.controller.connect_spec()
     
-    def disconnect_spec(self):
-        self.controller.disconnect_spec()
+    # def disconnect_spec(self):
+    #     self.controller.disconnect_spec()
     
-    def update_spec_settings(self):
-        wavelength_text = self.wavelength_input.text()
-        grating_text = self.grating_input.text()
-        slit_width_text = self.slit_width_input.text()
+    # def update_spec_settings(self):
+    #     wavelength_text = self.wavelength_input.text()
+    #     grating_text = self.grating_input.text()
+    #     slit_width_text = self.slit_width_input.text()
 
-        if wavelength_text:
-            try:
-                wavelength = float(wavelength_text)
-                self.controller.set_wavelength_spec(wavelength)
-            except ValueError:
-                self.show_error("Invalid wavelength value")
+    #     if wavelength_text:
+    #         try:
+    #             wavelength = float(wavelength_text)
+    #             self.controller.set_wavelength_spec(wavelength)
+    #         except ValueError:
+    #             self.show_error("Invalid wavelength value")
 
-        if grating_text:
-            try:
-                grating = int(grating_text)
-                self.controller.set_grating_spec(grating)
-            except ValueError:
-                self.show_error("Invalid grating value")
+    #     if grating_text:
+    #         try:
+    #             grating = int(grating_text)
+    #             self.controller.set_grating_spec(grating)
+    #         except ValueError:
+    #             self.show_error("Invalid grating value")
 
-        if slit_width_text:
-            try:
-                slit_width = float(slit_width_text)
-                self.controller.set_slit_width_spec("input_side", slit_width)  # Example for input_side
-            except ValueError:
-                self.show_error("Invalid slit width value")
+    #     if slit_width_text:
+    #         try:
+    #             slit_width = float(slit_width_text)
+    #             self.controller.set_slit_width_spec("input_side", slit_width)  # Example for input_side
+    #         except ValueError:
+    #             self.show_error("Invalid slit width value")
         
 
     # Override closeEvent to ensure safe shutdown
@@ -477,6 +512,13 @@ sys.excepthook = excepthook
 
 def main():
     app = QApplication(sys.argv)
+    app.setStyleSheet("""
+        QWidget {
+            background-color: grey;
+            color: white;
+        }
+    """)
+
     window = MainWindow()
     window.show()
     sys.exit(app.exec_())

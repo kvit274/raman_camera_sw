@@ -8,6 +8,8 @@
 8) when selecting setup_image_mode its not clear if parameters are different from roi?
 9) setup_multi_track_mode(number=1, height=1, offset=0) should return smth???
 10) Deal with displaying input values back for read mode
+implement fvb
+
 
 ask if they want 1 button for applying all settings or button for each type of settings
 ask what is open high, open low in exposure thingy
@@ -15,6 +17,7 @@ why spe file?
 ask how we should display items in dropdown menus (easier for me if we display them in the same way sdk2 uses it)
 ask about types (int/float?)
 Do they need random track?
-implement fvb
+where are the frames stored after acquisition?
+
 
 handle the read mode params being sent to controller

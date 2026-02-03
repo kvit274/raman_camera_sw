@@ -10,7 +10,7 @@ class RamanCameraController:
 
     def __init__(self,view):
         self.view = view
-        #self.camera = RamanCameraModel()
+        # self.camera = RamanCameraModel()
         self.camera = TestCameraModel()
         #self.spec = SpectrometerModel()
         self.spec = TestSpectrometerModel()
@@ -78,7 +78,7 @@ class RamanCameraController:
         self.camera.set_default_settings()
         self.display_used_params()
         self.display_shutter_state()
-        self.cool_cam(target_temp=-80)
+        self.cool_cam(target_temp=-70)
         return
     
     def isBusy_cam(self):
@@ -131,7 +131,13 @@ class RamanCameraController:
     
     @handle_errors
     def acquire_single(self):
-        return self.camera.simple_acq()
+        frame = self.camera.simple_acq()
+        self.camera.save_frame(frame)
+        return frame
+
+    @handle_errors
+    def start_acquisition(self):
+        return self.camera.start_acquisition()
     
     @handle_errors
     def adjust_frame(self,frame):
@@ -141,11 +147,23 @@ class RamanCameraController:
     # ==== SETTINGS METHODS =====
 
     @handle_errors
-    def apply_cam_settings(self,roi,shutter,read_mode):
+    def apply_cam_settings(self,roi,shutter,read_mode,acquisition_mode,trigger_mode):
         self.set_roi(**roi)
         self.setup_shutter(**shutter)
         self.set_read_mode(read_mode)
+        self.set_acquisition_mode(acquisition_mode)
+        self.set_trigger_mode(trigger_mode)
         self.display_used_params()
+        return
+
+    @handle_errors
+    def set_acquisition_mode(self,mode):
+        self.camera.set_acquisition_mode(mode)
+        return
+
+    @handle_errors
+    def set_trigger_mode(self,trigger_mode):
+        self.camera.set_trigger_mode(trigger_mode)
         return
 
     @handle_errors
@@ -254,43 +272,43 @@ class RamanCameraController:
 
     # ==== Spectrometer methods (unused) =====
 
-    def connect_spec(self):
-        self.spec.connect()
-        self.spec.get_default_settings()
-        return
+    # def connect_spec(self):
+    #     self.spec.connect()
+    #     self.spec.get_default_settings()
+    #     return
         
-    def disconnect_spec(self):
-        self.spec.disconnect()
+    # def disconnect_spec(self):
+    #     self.spec.disconnect()
 
-    def set_wavelength_spec(self,wavelength):
-        try:
-            wavelength = float(wavelength)
-        except:
-            print("Wavelength must be a number (in meters)")
-            return
-        self.spec.set_wavelength(wavelength)
-        return
+    # def set_wavelength_spec(self,wavelength):
+    #     try:
+    #         wavelength = float(wavelength)
+    #     except:
+    #         print("Wavelength must be a number (in meters)")
+    #         return
+    #     self.spec.set_wavelength(wavelength)
+    #     return
     
-    def set_grating_spec(self,grating,force=False):
-        try:
-            grating = int(grating)
-        except:
-            print("Grating must be an integer (counting from 1)")
-            return
-        self.spec.set_grating(grating,force)
-        return
+    # def set_grating_spec(self,grating,force=False):
+    #     try:
+    #         grating = int(grating)
+    #     except:
+    #         print("Grating must be an integer (counting from 1)")
+    #         return
+    #     self.spec.set_grating(grating,force)
+    #     return
     
-    def set_slit_width_spec(self,slit,width):
-        try:
-            width = float(width)
-        except:
-            print("Slit width must be a number (in meters)")
-            return
-        self.spec.set_slit_width(slit,width)
-        return
+    # def set_slit_width_spec(self,slit,width):
+    #     try:
+    #         width = float(width)
+    #     except:
+    #         print("Slit width must be a number (in meters)")
+    #         return
+    #     self.spec.set_slit_width(slit,width)
+    #     return
     
-    def get_default_settings_spec(self):
+    # def get_default_settings_spec(self):
 
-        self.spec.get_default_settings()
-        return
+    #     self.spec.get_default_settings()
+    #     return
         

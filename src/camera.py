@@ -7,7 +7,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 from pprint import pformat
 from typing import Optional
-
+from datetime import datetime
 
 class RamanCameraModel:
     def __init__(self):
@@ -17,6 +17,10 @@ class RamanCameraModel:
         self.busy = False
 
         # default paths:
+        self.save_path_cvs = Path("./data/cvs")
+        self.save_path_cvs.mkdir(exist_ok=True)
+        self.save_path_image = Path("./data/images")
+        self.save_path_image.mkdir(exist_ok=True)
         self.save_path = Path("./data")
         self.save_path.mkdir(exist_ok=True)
 
@@ -346,14 +350,40 @@ class RamanCameraModel:
         """
         return self.cam.get_shutter()
 
+    
+    # ===== ACQUISITION MODE =====
+
+    @requires_cam_connected
+    def set_acquisition_mode(self,mode):
+        """
+        Can be "single", "accum", "kinetic", "fast_kinetic" or "cont" (continuous).
+        If setup_params==True, make sure that the last specified parameters for this mode are set up.
+        """
+        self.validate_acquisition_mode(mode)
+        self.cam.set_acquisition_mode(mode)
+        return
+
+    
+    # ===== TRIGGER MODE =====
+
+    @requires_cam_connected
+    def set_trigger_mode(self,mode):
+        """
+        Can be "int" (internal), "ext" (external), "ext_start" (external start), "ext_exp" (external exposure), "ext_fvb_em" (external FVB EM), "software" (software trigger) or "ext_charge_shift" (external charge shifting).
+        """
+        self.validate_trigger_mode(mode)
+        self.cam.set_trigger_mode(mode)
+        return
+
 
     # ===== TEMPERATURE CONTROL =====
 
     @requires_cam_connected
-    def cool_cam(self,target_temp:float=-70.0):
+    def cool_cam(self,target_temp:float=-85.0):
         self.busy = True
         self.cancel = False
         self.cam.set_temperature(target_temp, enable_cooler=True)
+        self.cam.set_fan_mode("full")
         # t0 = time.time()
 
         while True:
@@ -364,7 +394,7 @@ class RamanCameraModel:
             temp = round(self.cam.get_temperature(),2)
             print(f"Cooling: {temp}, Status: {self.cam.get_temperature_status()}")
 
-            if temp <= -65.0:
+            if temp <= target_temp:
                 print(f"Temperature stabilized, Status: {self.cam.get_temperature_status()}")
                 break
             # if time.time() - t0 > time_out:
@@ -375,6 +405,7 @@ class RamanCameraModel:
 
     @requires_cam_connected
     def warm_cam(self,safe_temp:float=-20):
+        self.cam.set_fan_mode("off")
         self.busy = True
         self.cancel = True
 
@@ -423,6 +454,7 @@ class RamanCameraModel:
 
     def close_cam(self):
         if self.cam:
+            self.cam.set_fan_mode("off")
             self.cam.close()
             self.cam = None
             print("Camera disconnected safely")
@@ -466,6 +498,13 @@ class RamanCameraModel:
     # ===== ACQUISITION =====
 
     @requires_cam_connected
+    def start_acquisition(self):
+        if self.is_live:
+            self.end_live()
+
+        return self.cam.grab(nframes=1)[0]
+
+    @requires_cam_connected
     def simple_acq(self,num_frames:int=0):
         
         if self.is_live:
@@ -480,9 +519,11 @@ class RamanCameraModel:
             print("Multiple frames acquired")
             return frames
 
-
     
-        
+    # ===== FRAMES =====
+    
+    # @requires_cam_connected
+    # def
 
 
     # def aquire_frame(self):
@@ -572,6 +613,28 @@ class RamanCameraModel:
         
         return True
 
+    def validate_acquisition_mode(self, mode:str):
+        """
+        Validate acquisition mode before applying it.
+        Raises ValueError if any parameter is invalid.
+        """
+        valid_modes = ["single", "accum", "kinetic", "fast_kinetic", "cont"]
+        if mode not in valid_modes:
+            raise ValueError(f"Invalid acquisition mode: {mode}. Valid modes are: {valid_modes}.")
+
+        return True
+
+    def validate_trigger_mode(self, mode:str):
+        """
+        Validate trigger mode before applying.
+        Raises ValueError if any parameter is invalid.
+        """
+        valid_modes = ["int","ext","ext_start","ext_exp","ext_fvb_em","software","ext_charge_shift"]
+        if mode not in valid_modes:
+            raise ValueError(f"Invalid trigger mode: {mode}. Valid modes are: {valid_modes}.")
+        
+        return True
+
     def validate_roi(self,hstart:int, hend:Optional[int], vstart:int, vend:Optional[int], hbin:int, vbin:int):
         """
         Check if the given ROI parameters are valid.
@@ -612,6 +675,24 @@ class RamanCameraModel:
 
 
     # ===== FILE MANAGEMENT =====
+
+    def save_frame(self,frame):
+        """
+        Save a single acquired frame as PNG + raw CSV
+        """
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        # frame_uint16 = frame.astype("unit16")
+
+        png_path = self.save_path_image / f"{timestamp}.png"
+        csv_path = self.save_path_cvs / f"{timestamp}.csv"
+
+        plt.imsave(png_path, frame,cmap="gray")
+        np.savetxt(csv_path,frame,delimiter=",",fmt="%d")
+
+        print(f"[SAVE] Frame saved to {png_path}")
+
+        
 
     def set_save_path(self,save_path):
         self.save_path = save_path
