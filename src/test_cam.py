@@ -52,6 +52,9 @@ class TestCameraModel:
         ]
         self.amp_mode = TAmpModeFull(channel=1, bitdepth=16, oamp=1, oamp_kind="Standard", hsspeed=0.3, hsspeed_MHz=0.3, preamp=0, preamp_gain=1)
 
+        # vsspeed
+        self.all_vsspeeds =  [0.9,1.7,3.2,6.8,12.5]
+        self.vsspeed = 1.7
 
         # default paths:
         self.save_path_cvs = Path("./data/cvs")
@@ -316,6 +319,17 @@ class TestCameraModel:
         self.validate_amp(channel,oamp,hsspeed,preamp)
         self.amp_mode.set_mode(channel,oamp,hsspeed,preamp)
         return
+
+    # ==== VSSPEED ====
+
+    @requires_cam_connected
+    def get_all_vsspeeds(self):
+        return self.all_vsspeeds
+
+    @requires_cam_connected
+    def set_vsspeed(self,vsspeed_idx:int):
+        self.vsspeed = self.all_vsspeeds[vsspeed_idx]
+        print(f"Vsspeed set to: {self.vsspeed}")
     
     # ===== COOLING =====
 

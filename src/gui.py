@@ -100,6 +100,9 @@ class MainWindow(QMainWindow):
         # Amp
         self.amp_mode_input = QComboBox()
 
+        # Vsspeed
+        self.vsspeed_input  = QComboBox()
+
         self.set_settings_button = QPushButton("Apply Settings")
 
         # Spectrometer controls
@@ -186,10 +189,17 @@ class MainWindow(QMainWindow):
         hl_trigger_mode.addWidget(self.trigger_mode_input)
         layout.addLayout(hl_trigger_mode)
 
-        hl_amp_input = QHBoxLayout()
-        hl_amp_input.addWidget(QLabel("Amp Mode:"))
-        hl_amp_input.addWidget(self.amp_mode_input)
-        layout.addLayout(hl_amp_input)
+        # Amp mode
+        hl_amp_mode = QHBoxLayout()
+        hl_amp_mode.addWidget(QLabel("Amp Mode:"))
+        hl_amp_mode.addWidget(self.amp_mode_input)
+        layout.addLayout(hl_amp_mode)
+
+        # Vsspeed
+        hl_vsspeed = QHBoxLayout()
+        hl_vsspeed.addWidget(QLabel("Vsspeed:"))
+        hl_vsspeed.addWidget(self.vsspeed_input)
+        layout.addLayout(hl_vsspeed)
 
         # set central widget
         central = QWidget()
@@ -237,6 +247,16 @@ class MainWindow(QMainWindow):
             self.amp_mode_input.addItem(label)
             self.amp_mode_input.setItemData(self.amp_mode_input.count()-1, m, Qt.UserRole)
         print(f"Items in combo: {self.amp_mode_input.count()}")
+
+    def load_vsspeeds(self,vsspeeds):
+        self.vsspeed_input.clear()
+
+        for idx,value in enumerate(vsspeeds):
+            label = f"{value} ms"
+            self.vsspeed_input.addItem(label)
+
+            # store index
+            self.vsspeed_input.setItemData(self.vsspeed_input.count()-1,idx,Qt.UserRole+1)
 
     def on_read_mode_changed(self, mode):
         widget = self.read_mode_widgets[mode]
@@ -335,8 +355,9 @@ class MainWindow(QMainWindow):
                 "preamp": None
             }
 
+        vsspeed = self.vsspeed_input.currentData(Qt.UserRole+1)
 
-        self.controller.apply_cam_settings(roi, shutter, read_mode_params, acquisition_mode, trigger_mode, exposure,amp)
+        self.controller.apply_cam_settings(roi, shutter, read_mode_params, acquisition_mode, trigger_mode, exposure,amp, vsspeed)
 
     def start_live(self):
         self.controller.start_live()

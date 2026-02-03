@@ -392,6 +392,18 @@ class RamanCameraModel:
         self.cam.set_amp_mode(channel,oamp,hsspeed,preamp)
         return
 
+    # ==== VSSPEED ====
+
+    @requires_cam_connected
+    def get_all_vsspeeds(self):
+        return self.cam.get_all_vsspeeds()
+
+    @requires_cam_connected
+    def set_vsspeed(self,vsspeed_idx:int):
+        # no need for validation?
+        self.cam.set_vsspeed(vsspeed_idx)
+        return
+
     # ===== TEMPERATURE CONTROL =====
 
     @requires_cam_connected

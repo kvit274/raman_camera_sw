@@ -77,6 +77,7 @@ class RamanCameraController:
         # self.camera.get_cam_params()     # save cam defaults for later
         self.camera.set_default_settings()
         self.load_amp_modes()
+        self.load_vsspeeds()
         self.display_used_params()
         self.display_shutter_state()
         self.cool_cam(target_temp=-85)
@@ -148,7 +149,7 @@ class RamanCameraController:
     # ==== SETTINGS METHODS =====
 
     @handle_errors
-    def apply_cam_settings(self,roi,shutter,read_mode,acquisition_mode,trigger_mode,exposure,amp):
+    def apply_cam_settings(self,roi,shutter,read_mode,acquisition_mode,trigger_mode,exposure,amp,vsspeed):
         self.set_roi(**roi)
         self.setup_shutter(**shutter)
         self.set_read_mode(read_mode)
@@ -156,10 +157,20 @@ class RamanCameraController:
         self.set_trigger_mode(trigger_mode)
         self.set_exposure(exposure)
         self.set_amp(amp)
+        self.set_vsspeed(vsspeed)
         self.display_used_params()
         return
 
-    
+
+    # ==== Vsspeed ====
+
+    @handle_errors
+    def set_vsspeed(self,vsspeed):
+        vsspeed = int(vsspeed)
+        self.camera.set_vsspeed(vsspeed)
+        return
+
+
     # ==== AMP methods =====
 
     @handle_errors
@@ -313,6 +324,11 @@ class RamanCameraController:
         self.view.load_amp_modes(amp_modes)
         return
 
+    @handle_errors
+    def load_vsspeeds(self):
+        vsspeeds = self.camera.get_all_vsspeeds()
+        self.view.load_vsspeeds(vsspeeds)
+        return
 
     # ==== Spectrometer methods (unused) =====
 
