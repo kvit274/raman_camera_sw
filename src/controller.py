@@ -157,6 +157,11 @@ class RamanCameraController:
         return
 
     @handle_errors
+    def set_exposure(self,exposure):
+        self.camera.set_acquisition_mode(mode)
+        return
+
+    @handle_errors
     def set_acquisition_mode(self,mode):
         self.camera.set_acquisition_mode(mode)
         return
@@ -240,8 +245,8 @@ class RamanCameraController:
     def setup_shutter(self,mode,tll_mode,open_time,close_time):
         mode = str(mode).lower()
         tll_mode = int(tll_mode)
-        open_time = "" if open_time == "" else float(open_time)
-        close_time = "" if close_time == "" else float(close_time)
+        open_time = None if open_time == "" else float(open_time)       # get back to this! changed "" -> None
+        close_time = None if close_time == "" else float(close_time)
         self.camera.setup_shutter(mode,tll_mode,open_time,close_time)
         self.display_shutter_state()
         return
