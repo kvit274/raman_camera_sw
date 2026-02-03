@@ -404,6 +404,14 @@ class RamanCameraModel:
         self.cam.set_vsspeed(vsspeed_idx)
         return
 
+    # ==== EMCCD gain ====
+    
+    @requires_cam_connected
+    def set_EMCCD_gain(self,emccd_gain, advanced=False):
+        self.validate_EMCCD_gain(emccd_gain,advanced)
+        self.set_EMCCD_gain(emccd_gain,advanced)
+
+
     # ===== TEMPERATURE CONTROL =====
 
     @requires_cam_connected
@@ -605,6 +613,13 @@ class RamanCameraModel:
 
 
     # ==== VALIDAION =====
+
+    def validate_EMCCD_gain(self,emccd_gain:float,advanced:bool):
+        if emccd_gain < 0:
+            raise ValueError(f"Invalid EMCCD gain {emccd_gain}, can not be negative")
+        if emccd_gain > 300 and not advanced:
+            raise ValueError(f"Invalid EMCCD gain {emccd_gain}, to set above 300 use advanced option")
+        return
 
     def validate_exposure(self,exposure:float):
         if exposure < 0:

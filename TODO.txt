@@ -4,8 +4,8 @@
 4) 
 5) for each acquisition mode create sub params
 6) out aux port
-
-
+7) add on option to do advanced emccd gain by ticking the box
+8 opt) do a way to init all settings
 
 ?) ext_trigger ?
 ?) pausing_acquisition ?

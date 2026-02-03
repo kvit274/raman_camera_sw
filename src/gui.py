@@ -103,6 +103,11 @@ class MainWindow(QMainWindow):
         # Vsspeed
         self.vsspeed_input  = QComboBox()
 
+        # EMCCD gain
+        self.emccd_gain_input = QLineEdit()
+        self.emccd_gain_input.setPlaceholderText("EMCCD gain, do not exceed 300")
+        self.emccd_gain_input.setValidator(QDoubleValidator())
+
         self.set_settings_button = QPushButton("Apply Settings")
 
         # Spectrometer controls
@@ -200,6 +205,12 @@ class MainWindow(QMainWindow):
         hl_vsspeed.addWidget(QLabel("Vsspeed:"))
         hl_vsspeed.addWidget(self.vsspeed_input)
         layout.addLayout(hl_vsspeed)
+
+        # EMCCD gain
+        hl_emccd_gain = QHBoxLayout()
+        hl_emccd_gain.addWidget(QLabel("EMCCD gain"))
+        hl_emccd_gain.addWidget(self.emccd_gain_input)
+        layout.addLayout(hl_emccd_gain)
 
         # set central widget
         central = QWidget()
@@ -357,7 +368,9 @@ class MainWindow(QMainWindow):
 
         vsspeed = self.vsspeed_input.currentData(Qt.UserRole+1)
 
-        self.controller.apply_cam_settings(roi, shutter, read_mode_params, acquisition_mode, trigger_mode, exposure,amp, vsspeed)
+        emccd_gain = self.emccd_gain_input.text()
+
+        self.controller.apply_cam_settings(roi, shutter, read_mode_params, acquisition_mode, trigger_mode, exposure, amp, vsspeed, emccd_gain)
 
     def start_live(self):
         self.controller.start_live()

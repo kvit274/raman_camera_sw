@@ -149,7 +149,7 @@ class RamanCameraController:
     # ==== SETTINGS METHODS =====
 
     @handle_errors
-    def apply_cam_settings(self,roi,shutter,read_mode,acquisition_mode,trigger_mode,exposure,amp,vsspeed):
+    def apply_cam_settings(self,roi,shutter,read_mode,acquisition_mode,trigger_mode,exposure,amp,vsspeed, emccd_gain):
         self.set_roi(**roi)
         self.setup_shutter(**shutter)
         self.set_read_mode(read_mode)
@@ -158,9 +158,18 @@ class RamanCameraController:
         self.set_exposure(exposure)
         self.set_amp(amp)
         self.set_vsspeed(vsspeed)
+        self.set_EMCCD_gain(emccd_gain)
         self.display_used_params()
         return
 
+    # ==== EMCCD gain ====
+
+    @handle_errors
+    def set_EMCCD_gain(self,emccd_gain,advanced=False):
+        emccd_gain = None if emccd_gain == "" else float(emccd_gain)
+        if emccd_gain:
+            self.camera.set_EMCCD_gain(emccd_gain,advanced=False)
+        return
 
     # ==== Vsspeed ====
 
