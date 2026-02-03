@@ -69,16 +69,17 @@ class RamanCameraController:
         return
 
 
-    # ==== Model methods =====
+    # ==== Action methods =====
 
     @handle_errors
     def connect_cam(self):
         self.camera.connect_cam()
         # self.camera.get_cam_params()     # save cam defaults for later
         self.camera.set_default_settings()
+        self.load_amp_modes()
         self.display_used_params()
         self.display_shutter_state()
-        self.cool_cam(target_temp=-70)
+        self.cool_cam(target_temp=-85)
         return
     
     def isBusy_cam(self):
@@ -147,29 +148,54 @@ class RamanCameraController:
     # ==== SETTINGS METHODS =====
 
     @handle_errors
-    def apply_cam_settings(self,roi,shutter,read_mode,acquisition_mode,trigger_mode):
+    def apply_cam_settings(self,roi,shutter,read_mode,acquisition_mode,trigger_mode,exposure,amp):
         self.set_roi(**roi)
         self.setup_shutter(**shutter)
         self.set_read_mode(read_mode)
         self.set_acquisition_mode(acquisition_mode)
         self.set_trigger_mode(trigger_mode)
+        self.set_exposure(exposure)
+        self.set_amp(amp)
         self.display_used_params()
         return
 
+    
+    # ==== AMP methods =====
+
+    @handle_errors
+    def set_amp(self,amp):
+        channel,oamp,hsspeed,preamp = amp["channel"],amp["oamp"],amp["hsspeed"],amp["preamp"]
+        channel = None if channel == "" else int(channel)
+        oamp = None if oamp == "" else int(oamp)
+        hsspeed = None if hsspeed == "" else int(hsspeed)
+        preamp = None if preamp == "" else int(preamp)
+        self.camera.set_amp_mode(channel,oamp,hsspeed,preamp)
+        return
+
+    # ==== Exposure methods =====
+
     @handle_errors
     def set_exposure(self,exposure):
-        self.camera.set_acquisition_mode(mode)
+        exposure = None if exposure == "" else float(exposure)
+        if exposure:
+            self.camera.set_exposure(exposure)
         return
+
+    
 
     @handle_errors
     def set_acquisition_mode(self,mode):
         self.camera.set_acquisition_mode(mode)
         return
 
+    # ==== Trigger mode methods =====    
+
     @handle_errors
     def set_trigger_mode(self,trigger_mode):
         self.camera.set_trigger_mode(trigger_mode)
         return
+
+    # ==== Read mode methods =====
 
     @handle_errors
     def get_read_mode_params(self, read_mode):
@@ -241,6 +267,8 @@ class RamanCameraController:
 
         return
 
+    # ==== Shutter methods =====
+
     @handle_errors
     def setup_shutter(self,mode,tll_mode,open_time,close_time):
         mode = str(mode).lower()
@@ -250,6 +278,8 @@ class RamanCameraController:
         self.camera.setup_shutter(mode,tll_mode,open_time,close_time)
         self.display_shutter_state()
         return
+
+    # ==== ROI methods =====
 
     @handle_errors
     def get_roi(self):
@@ -272,6 +302,15 @@ class RamanCameraController:
         self.view.stop_live()  # stop live before changing roi
         self.camera.set_roi(hstart, hend, vstart, vend, hbin, vbin)
 
+        return
+
+
+    # ==== View communication methods ====
+
+    @handle_errors
+    def load_amp_modes(self):
+        amp_modes = self.camera.get_all_amp_modes()
+        self.view.load_amp_modes(amp_modes)
         return
 
 

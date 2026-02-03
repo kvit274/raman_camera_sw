@@ -40,6 +40,19 @@ class TestCameraModel:
         # Trigger mode
         self.trigger_mode = "int"
 
+        # Exposure
+        self.exposure = 1
+
+        # Amp mode
+        self.all_amp_modes = [
+            TAmpModeFull(channel=1, bitdepth=16, oamp=1, oamp_kind="Standard", hsspeed=0.3, hsspeed_MHz=0.3, preamp=0, preamp_gain=1),
+            TAmpModeFull(channel=1, bitdepth=16, oamp=2, oamp_kind="Standard", hsspeed=1.0, hsspeed_MHz=1.0, preamp=0, preamp_gain=1),
+            TAmpModeFull(channel=1, bitdepth=16, oamp=3, oamp_kind="Standard", hsspeed=2.0, hsspeed_MHz=2.0, preamp=1, preamp_gain=1),
+            TAmpModeFull(channel=1, bitdepth=16, oamp=4, oamp_kind="Standard", hsspeed=3.0, hsspeed_MHz=3.0, preamp=2, preamp_gain=1)
+        ]
+        self.amp_mode = TAmpModeFull(channel=1, bitdepth=16, oamp=1, oamp_kind="Standard", hsspeed=0.3, hsspeed_MHz=0.3, preamp=0, preamp_gain=1)
+
+
         # default paths:
         self.save_path_cvs = Path("./data/cvs")
         self.save_path_cvs.mkdir(exist_ok=True)
@@ -276,7 +289,7 @@ class TestCameraModel:
     # ===== TRIGGER MODE =====
 
     @requires_cam_connected
-    def set_trigger_mode(self,mode):
+    def set_trigger_mode(self,mode:str):
         """
         Can be "int" (internal), "ext" (external), "ext_start" (external start), "ext_exp" (external exposure), "ext_fvb_em" (external FVB EM), "software" (software trigger) or "ext_charge_shift" (external charge shifting).
         """
@@ -284,6 +297,25 @@ class TestCameraModel:
         self.trigger_mode = mode
         return
 
+    # ==== EXPOSURE ====
+
+    @requires_cam_connected
+    def set_exposure(self,exposure:float):
+        self.validate_exposure(exposure)
+        self.exposure = exposure
+        return
+
+    # ==== AMP MODE ====
+
+    @requires_cam_connected
+    def get_all_amp_modes(self):
+        return self.all_amp_modes
+
+    @requires_cam_connected
+    def set_amp_mode(self,channel:Optional[int],oamp:Optional[int],hsspeed:Optional[int],preamp:Optional[int]):
+        self.validate_amp(channel,oamp,hsspeed,preamp)
+        self.amp_mode.set_mode(channel,oamp,hsspeed,preamp)
+        return
     
     # ===== COOLING =====
 
@@ -294,7 +326,7 @@ class TestCameraModel:
         return self.temp, "Some status"
 
     @requires_cam_connected
-    def cool_cam(self,target_temp:float=-80.0):
+    def cool_cam(self,target_temp:float=-85.0):
         self.busy = True
         self.cancel = False
         print(f"Cooling to {target_temp} C")
@@ -305,8 +337,8 @@ class TestCameraModel:
                 print("Cooling canceled")
                 break
 
-            self.temp -= 20
-            print(f"Cooling: {self.temp}, Status: Stabilizing")
+            self.temp -= 5
+            # print(f"Cooling: {self.temp}, Status: Stabilizing")
 
             if self.temp <= target_temp:
                 print(f"Temperature stabilized, Status: Stabilized")
@@ -415,6 +447,15 @@ class TestCameraModel:
 
 
     # ==== VALIDATION ====
+
+    def validate_exposure(self,exposure:float):
+        if exposure < 0:
+            raise ValueError(f"Invalid exposure time {exposure}, can not be negative")
+        return
+
+    def validate_amp(self,channel:Optional[int],oamp:Optional[int],hsspeed:Optional[int],preamp:Optional[int]):
+        # Not needed?
+        return
 
     def validate_read_mode(self, read_mode:str):
         valid_modes = {"fvb", "image", "single_track", "multi_track", "random_track"}
@@ -616,3 +657,24 @@ class TestCameraModel:
         frame = gradient + noise
         frame = np.clip(frame, 0, 1)
         return frame.astype(np.float32)
+
+
+class TAmpModeFull:
+    def __init__(self,channel,bitdepth,oamp,oamp_kind,hsspeed,hsspeed_MHz,preamp,preamp_gain):
+        self.channel = channel
+        self.channel_bitdepth = bitdepth
+        self.oamp = oamp
+        self.oamp_kind = oamp_kind
+        self.hsspeed = hsspeed
+        self.hsspeed_MHz = hsspeed_MHz
+        self.preamp = preamp
+        self.preamp_gain = preamp_gain
+
+    def set_mode(self,channel,oamp,hsspeed,preamp):
+        self.channel = channel
+        self.oamp = oamp
+        self.hsspeed = hsspeed
+        self.preamp = preamp
+
+    def __repr__(self):
+        return f"TAmpModeFull(channel={self.channel}, bitdepth={self.channel_bitdepth}, oamp={self.oamp}, oamp_kind={self.oamp_kind}, hsspeed={self.hsspeed}, hsspeed_MHz={self.hsspeed_MHz}, preamp={self.preamp}, preamp_gain={self.preamp_gain})"

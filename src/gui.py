@@ -3,7 +3,7 @@ import traceback
 import sys
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QStackedWidget, QLineEdit, QPushButton, QFileDialog, QLabel, QComboBox, QMessageBox
 from PyQt5.QtGui import QIntValidator, QDoubleValidator, QImage, QPixmap
-from PyQt5.QtCore import pyqtSignal, QTimer, QThread
+from PyQt5.QtCore import pyqtSignal, QTimer, QThread, Qt
 import os
 from controller import RamanCameraController
 from widgets import MultiTrackWidget, SingleTrackWidget, FVBWidget, ImageWidget, RandomTrackWidget
@@ -98,7 +98,7 @@ class MainWindow(QMainWindow):
         self.exposure_input.setValidator(QDoubleValidator())
 
         # Amp
-
+        self.amp_mode_input = QComboBox()
 
         self.set_settings_button = QPushButton("Apply Settings")
 
@@ -117,7 +117,8 @@ class MainWindow(QMainWindow):
         # self.btn_update_spec = QPushButton("Update Spec Settings")
 
 
-        # layout
+        # ===== LAYOUT =====
+
         layout = QVBoxLayout()
         layout.addWidget(self.preview)
         layout.addWidget(self.temp)
@@ -185,6 +186,10 @@ class MainWindow(QMainWindow):
         hl_trigger_mode.addWidget(self.trigger_mode_input)
         layout.addLayout(hl_trigger_mode)
 
+        hl_amp_input = QHBoxLayout()
+        hl_amp_input.addWidget(QLabel("Amp Mode:"))
+        hl_amp_input.addWidget(self.amp_mode_input)
+        layout.addLayout(hl_amp_input)
 
         # set central widget
         central = QWidget()
@@ -221,6 +226,17 @@ class MainWindow(QMainWindow):
         self.timer_temp.timeout.connect(self.display_temp)
         self.timer_temp.start(1000)
 
+    def load_amp_modes(self,amp_modes):
+        self.amp_mode_input.clear()
+        print(f"Amp modes: {len(amp_modes)}")
+
+        for m in amp_modes:
+            label = (
+                f"channel={m.channel}, channel_bitdepth={m.channel_bitdepth}, oamp={m.oamp}, oamp_kind={m.oamp_kind}, hsspeed={m.hsspeed}, hsspeed_MHz={m.hsspeed_MHz}, preamp={m.preamp}, preamp_gain={m.preamp_gain}"
+            )
+            self.amp_mode_input.addItem(label)
+            self.amp_mode_input.setItemData(self.amp_mode_input.count()-1, m, Qt.UserRole)
+        print(f"Items in combo: {self.amp_mode_input.count()}")
 
     def on_read_mode_changed(self, mode):
         widget = self.read_mode_widgets[mode]
@@ -301,7 +317,26 @@ class MainWindow(QMainWindow):
 
         trigger_mode = self.trigger_mode_input.currentText()
 
-        self.controller.apply_cam_settings(roi, shutter, read_mode_params, acquisition_mode, trigger_mode)
+        exposure = self.exposure_input.text()
+
+        amp_mode = self.amp_mode_input.currentData(Qt.UserRole)
+        if amp_mode is not None:
+            amp = {
+                "channel": amp_mode.channel,
+                "oamp": amp_mode.oamp,
+                "hsspeed": amp_mode.hsspeed,
+                "preamp": amp_mode.preamp
+            }
+        else:
+            amp = {
+                "channel": None,
+                "oamp": None,
+                "hsspeed": None,
+                "preamp": None
+            }
+
+
+        self.controller.apply_cam_settings(roi, shutter, read_mode_params, acquisition_mode, trigger_mode, exposure,amp)
 
     def start_live(self):
         self.controller.start_live()
@@ -520,7 +555,8 @@ def main():
     """)
 
     window = MainWindow()
-    window.show()
+    window.move(0,0)
+    window.showMaximized()
     sys.exit(app.exec_())
 
 if __name__ == "__main__":

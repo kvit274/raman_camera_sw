@@ -311,9 +311,6 @@ class RamanCameraModel:
         """
         return self.cam.get_image_mode_parameters()
 
-    # ==== ADC SETTINGS ==== ???
-
-
 
     # ==== SHUTTER SETUP ====
 
@@ -367,7 +364,7 @@ class RamanCameraModel:
     # ===== TRIGGER MODE =====
 
     @requires_cam_connected
-    def set_trigger_mode(self,mode):
+    def set_trigger_mode(self,mode:str):
         """
         Can be "int" (internal), "ext" (external), "ext_start" (external start), "ext_exp" (external exposure), "ext_fvb_em" (external FVB EM), "software" (software trigger) or "ext_charge_shift" (external charge shifting).
         """
@@ -375,6 +372,25 @@ class RamanCameraModel:
         self.cam.set_trigger_mode(mode)
         return
 
+    # ==== EXPOSURE ====
+
+    @requires_cam_connected
+    def set_exposure(self,exposure:float):
+        self.validate_exposure(exposure)
+        self.cam.set_exposure(exposure)
+        return
+
+    # ==== AMP MODE ====
+
+    @requires_cam_connected
+    def get_all_amp_modes(self):
+        return self.cam.get_all_amp_modes()
+
+    @requires_cam_connected
+    def set_amp_mode(self,channel:Optional[int],oamp:Optional[int],hsspeed:Optional[int],preamp:Optional[int]):
+        self.validate_amp(channel,oamp,hsspeed,preamp)
+        self.cam.set_amp_mode(channel,oamp,hsspeed,preamp)
+        return
 
     # ===== TEMPERATURE CONTROL =====
 
@@ -577,6 +593,15 @@ class RamanCameraModel:
 
 
     # ==== VALIDAION =====
+
+    def validate_exposure(self,exposure:float):
+        if exposure < 0:
+            raise ValueError(f"Invalid exposure time {exposure}, can not be negative")
+        return
+
+    def validate_amp(self,channel:Optional[int],oamp:Optional[int],hsspeed:Optional[int],preamp:Optional[int]):
+        # Not needed?
+        return
 
     def validate_single_track_mode(self, center:int, width:int):
         #TOD0

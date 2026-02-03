@@ -1,3 +1,20 @@
+1)
+2) adjust ADC
+3) 
+4) 
+5) for each acquisition mode create sub params
+6) out aux port
+
+
+
+?) ext_trigger ?
+?) pausing_acquisition ?
+
+
+
+
+
+
 
 2) save/load settings
 
@@ -9,7 +26,7 @@
 9) setup_multi_track_mode(number=1, height=1, offset=0) should return smth???
 10) Deal with displaying input values back for read mode
 implement fvb
-
+10) save image should be in the controller.
 
 ask if they want 1 button for applying all settings or button for each type of settings
 ask what is open high, open low in exposure thingy
@@ -21,3 +38,6 @@ where are the frames stored after acquisition?
 
 
 handle the read mode params being sent to controller
+
+
+# they use multi track / image / fvb
