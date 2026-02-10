@@ -10,8 +10,8 @@ class RamanCameraController:
 
     def __init__(self,view):
         self.view = view
-        # self.camera = RamanCameraModel()
-        self.camera = TestCameraModel()
+        self.camera = RamanCameraModel()
+        # self.camera = TestCameraModel()
         #self.spec = SpectrometerModel()
         self.spec = TestSpectrometerModel()
         # self.camera = MagicMock()    # use temporally for testing
@@ -68,6 +68,13 @@ class RamanCameraController:
         self.view.display_shutter_state(state)
         return
 
+    @handle_errors
+    def display_acquisition_state(self):
+        in_progress_state = self.camera.acquisition_in_progress()
+        progress = self.camera.get_acquisition_progress()
+        # self.view.display_acquisition_state(in_progress_state,progress)
+        return in_progress_state,progress
+        
 
     # ==== Action methods =====
 
@@ -75,7 +82,7 @@ class RamanCameraController:
     def connect_cam(self):
         self.camera.connect_cam()
         # self.camera.get_cam_params()     # save cam defaults for later
-        self.camera.set_default_settings()
+        # self.camera.set_default_settings() !!
         self.load_amp_modes()
         self.load_vsspeeds()
         self.display_used_params()
@@ -139,7 +146,9 @@ class RamanCameraController:
 
     @handle_errors
     def start_acquisition(self):
-        return self.camera.start_acquisition()
+        self.camera.start_acquisition()
+        self.camera.save_frames()
+        return
     
     @handle_errors
     def adjust_frame(self,frame):
@@ -201,11 +210,103 @@ class RamanCameraController:
             self.camera.set_exposure(exposure)
         return
 
-    
+    # ==== Acquisition mode methods ====
+
+    # @handle_errors
+    # def get_read_mode_params(self, read_mode):
+        
+    #     dispatch = {
+    #         "multi_track": self.camera.get_multi_track_mode_params,
+    #         "single_track": self.camera.get_single_track_mode_params,
+    #         "random_track": self.camera.get_random_track_mode_params,
+    #         "image": self.camera.get_image_mode_params
+    #     }
+
+    #     handler = dispatch.get(read_mode)
+    #     return handler()
 
     @handle_errors
-    def set_acquisition_mode(self,mode):
-        self.camera.set_acquisition_mode(mode)
+    def set_acquisition_mode(self,acquisition_mode):
+        mode = acquisition_mode["mode"]
+        print(f"Acquisition mode: {mode}")
+        
+        dispatch = {
+            "single": self.setup_single_mode,
+            "accum": self.setup_accum_mode,
+            "kinetic": self.setup_kinetic_mode,
+            "fast_kinetic": self.setup_fast_kinetic_mode,
+            "cont": self.setup_cont_mode
+        }
+
+        handler = dispatch.get(mode)
+        print(f"acquisition mode handler: {handler}")
+        if not handler:
+            raise ValueError(f"Invalid read mode: {mode}")
+
+        handler(acquisition_mode)
+        # self.camera.set_read_mode(read_mode)
+        return
+
+    @handle_errors
+    def setup_single_mode(self,params):
+        del params["mode"]
+        print("Got to setup_single_mode in controller")
+        self.camera.setup_single_mode()
+        return
+
+    @handle_errors
+    def setup_accum_mode(self,params):
+        del params["mode"]
+
+        if "num_acc" not in params:
+            raise ValueError("num_acc parameter is required for accumulation mode")
+        params["num_acc"] = int(params["num_acc"])
+        if "cycle_time_acc" in params:
+            params["cycle_time_acc"] = float(params["cycle_time_acc"])
+
+        self.camera.setup_accum_mode(**params)
+        return
+
+    @handle_errors
+    def setup_kinetic_mode(self,params):
+        del params["mode"]
+        
+        if "num_cycle" not in params:
+            raise ValueError("num_cycle parameter is required for kinetic mode")
+        params["num_cycle"] = int(params["num_cycle"])
+        if "cycle_time" in params:
+            params["cycle_time"] = float(params["cycle_time"])
+        if "num_acc" in params:
+            params["num_acc"] = int(params["num_acc"])
+        if "cycle_time_acc" in params:
+            params["cycle_time_acc"] = float(params["cycle_time_acc"])
+        if "num_prescan" in params:
+            params["num_prescan"] = int(params["num_prescan"])
+
+        self.camera.setup_kinetic_mode(**params)
+        return
+
+    @handle_errors
+    def setup_fast_kinetic_mode(self,params):
+        del params["mode"]
+
+        if "num_acc" not in params:
+            raise ValueError("num_acc parameter is required for fast kinetic mode")
+        params["num_acc"] = int(params["num_acc"])
+        if "cycle_time_acc" in params:
+            params["cycle_time_acc"] = float(params["cycle_time_acc"])
+
+        self.camera.setup_fast_kinetic_mode(**params)
+        return
+
+    @handle_errors
+    def setup_cont_mode(self,params):
+        del params["mode"]
+
+        if "cycle_time" in params:
+            params["cycle_time"] = float(params["cycle_time"]) if params["cycle_time"] != "" else None
+
+        self.camera.setup_continuous_mode(**params)
         return
 
     # ==== Trigger mode methods =====    
@@ -233,6 +334,7 @@ class RamanCameraController:
     @handle_errors
     def set_read_mode(self,read_mode):
         mode = read_mode["mode"]
+        print(f"Trying to set read mode in controller to: {mode}")
         
         dispatch = {
             "multi_track": self.setup_multi_track_mode,
@@ -242,6 +344,7 @@ class RamanCameraController:
         }
 
         handler = dispatch.get(mode)
+        print(f"Handler: {handler}")
         if not handler:
             raise ValueError(f"Invalid read mode: {mode}")
 
@@ -284,7 +387,16 @@ class RamanCameraController:
 
     @handle_errors
     def setup_image_mode(self,params):
+        print(f"Entered setup_image_mode in controller")
+        del params["mode"]
+        params["hstart"] = int(params["hstart"]) if params["hstart"] != "" else 0
+        params["hend"] = int(params["hend"]) if params["hend"] != "" else None
+        params["vstart"] = int(params["vstart"]) if params["vstart"] != "" else 0
+        params["vend"] = int(params["vend"]) if params["vend"] != "" else None
+        params["hbin"] = int(params["hbin"]) if params["hbin"] != "" else 1
+        params["vbin"] = int(params["vbin"]) if params["vbin"] != "" else 1
 
+        self.camera.setup_image_mode(**params)
         return
 
     # ==== Shutter methods =====
@@ -312,12 +424,12 @@ class RamanCameraController:
         Start is inclusive, end is exclusive
         """
 
-        hstart = int(hstart)
+        hstart = None if hstart == "" else int(hstart)
         hend = None if hend == "" else int(hend)
-        vstart = int(vstart)
+        vstart = None if vstart == "" else int(vstart)
         vend = None if vend == "" else int(vend)
-        hbin = int(hbin)
-        vbin = int(vbin)
+        hbin = None if hbin == "" else int(hbin)
+        vbin = None if vbin == "" else int(vbin)
 
         self.view.stop_live()  # stop live before changing roi
         self.camera.set_roi(hstart, hend, vstart, vend, hbin, vbin)

@@ -7,6 +7,9 @@ import os
 from controller import RamanCameraController
 from typing import Dict
 
+
+# ===== READ MODE WIDGETS =====
+
 class MultiTrackWidget(QWidget):
 
     """
@@ -95,9 +98,52 @@ class ImageWidget(QWidget):
 
     def __init__(self):
         super().__init__()
+        layout = QHBoxLayout(self)
+        label = QLabel("Image ROI settings")
+
+        self.roi_hstart_input = QLineEdit()
+        self.roi_hstart_input.setPlaceholderText("ROI H Start")
+        self.roi_hstart_input.setValidator(QIntValidator())
+
+        self.roi_hend_input = QLineEdit()
+        self.roi_hend_input.setPlaceholderText("ROI H End")
+        self.roi_hend_input.setValidator(QIntValidator())
+
+        self.roi_vstart_input = QLineEdit()
+        self.roi_vstart_input.setPlaceholderText("ROI V Start")
+        self.roi_vstart_input.setValidator(QIntValidator())
+
+        self.roi_vend_input = QLineEdit()
+        self.roi_vend_input.setPlaceholderText("ROI V End")
+        self.roi_vend_input.setValidator(QIntValidator())
+
+        self.roi_hbin_input = QLineEdit()
+        self.roi_hbin_input.setPlaceholderText("ROI H Bin")
+        self.roi_hbin_input.setValidator(QIntValidator())
+        
+        self.roi_vbin_input = QLineEdit()
+        self.roi_vbin_input.setPlaceholderText("ROI V Bin")
+        self.roi_vbin_input.setValidator(QIntValidator())
+
+        layout.addWidget(label)
+        layout.addWidget(self.roi_hstart_input)
+        layout.addWidget(self.roi_hend_input)
+        layout.addWidget(self.roi_vstart_input)
+        layout.addWidget(self.roi_vend_input)
+        layout.addWidget(self.roi_hbin_input)
+        layout.addWidget(self.roi_vbin_input)
 
     def get_params(self):
         params = {"mode": "image"}
+        hstart, hend = self.roi_hstart_input.text(), self.roi_hend_input.text()
+        vstart, vend = self.roi_vstart_input.text(), self.roi_vend_input.text()
+        hbin, vbin = self.roi_hbin_input.text(), self.roi_vbin_input.text()
+        params["hstart"] = hstart
+        params["hend"] = hend
+        params["vstart"] = vstart
+        params["vend"] = vend
+        params["hbin"] = hbin
+        params["vbin"] = vbin
         return params
 
 class RandomTrackWidget(QWidget):
@@ -126,4 +172,164 @@ class RandomTrackWidget(QWidget):
             params["start"] = start
         if stop != "":
             params["stop"] = stop
+        return params
+
+
+# ===== ACQUISITION MODE WIDGETS =====
+
+class AccumWidget(QWidget):
+    """
+    num_acc is the number of accumulated frames,
+    cycle_time_acc is the acquisition period (by default the minimal possible based on exposure and transfer time).
+    """
+
+    def __init__(self):
+        super().__init__()
+        layout = QHBoxLayout(self)
+        label = QLabel("Accumulative Aquisition Mode Settings")
+
+        self.num_acc_input = QLineEdit()
+        self.num_acc_input.setPlaceholderText("Number of Accumulated frames")
+        self.num_acc_input.setValidator(QIntValidator())
+
+        self.cycle_time_acc_input = QLineEdit()
+        self.cycle_time_acc_input.setPlaceholderText("Aquisition Period (ms)")
+        self.cycle_time_acc_input.setValidator(QDoubleValidator())
+
+        layout.addWidget(label)
+        layout.addWidget(self.num_acc_input)
+        layout.addWidget(self.cycle_time_acc_input)
+
+    def get_params(self):
+        params = {"mode": "accum"}
+        num_acc = self.num_acc_input.text()
+        cycle_time_acc = self.cycle_time_acc_input.text()
+
+        if num_acc != "":
+            params["num_acc"] = num_acc
+        if cycle_time_acc != "":
+            params["cycle_time_acc"] = cycle_time_acc
+        return params
+
+class KineticWidget(QWidget):
+    """
+    num_cycle is the number of kinetic cycles frames, 
+    cycle_time is the acquisition period between accum frames, 
+    num_accum is the number of accumulated frames, 
+    cycle_time_acc is the accum acquisition period, 
+    num_prescan is the number of prescans.
+    """
+
+    def __init__(self):
+        super().__init__()
+        layout = QHBoxLayout(self)
+        label = QLabel("Kinetic Aquisition Mode Settings")
+
+        self.num_cycle_input = QLineEdit()
+        self.num_cycle_input.setPlaceholderText("Number of Cycles")
+        self.num_cycle_input.setValidator(QIntValidator())
+
+        self.cycle_time_input = QLineEdit()
+        self.cycle_time_input.setPlaceholderText("Acquisition Period between accum frames (ms)")
+        self.cycle_time_input.setValidator(QDoubleValidator())
+
+        self.num_acc_input = QLineEdit()
+        self.num_acc_input.setPlaceholderText("Number of Accumulated frames")
+        self.num_acc_input.setValidator(QIntValidator())
+
+        self.cycle_time_acc_input = QLineEdit()
+        self.cycle_time_acc_input.setPlaceholderText("Aquisition Period (ms)")
+        self.cycle_time_acc_input.setValidator(QDoubleValidator())
+
+        self.num_prescan = QLineEdit()
+        self.num_prescan.setPlaceholderText("Number of Prescan Frames")
+        self.num_prescan.setValidator(QIntValidator())
+
+        layout.addWidget(label)
+        layout.addWidget(self.num_cycle_input)
+        layout.addWidget(self.cycle_time_input)
+        layout.addWidget(self.num_acc_input)
+        layout.addWidget(self.cycle_time_acc_input)
+        layout.addWidget(self.num_prescan)
+
+    def get_params(self):
+        params = {"mode": "kinetic"}
+        num_cycle = self.num_cycle_input.text()
+        cycle_time = self.cycle_time_input.text()
+        num_acc = self.num_acc_input.text()
+        cycle_time_acc = self.cycle_time_acc_input.text()
+        num_prescan = self.num_prescan.text()
+
+        if num_cycle != "":
+            params["num_cycle"] = num_cycle
+        if cycle_time != "":
+            params["cycle_time"] = cycle_time
+        if num_acc != "":
+            params["num_acc"] = num_acc
+        
+        if cycle_time_acc != "":
+            params["cycle_time_acc"] = cycle_time_acc
+        if num_prescan != "":
+            params["num_prescan"] = num_prescan
+        return params
+
+class FastKineticWidget(QWidget):
+    """
+    num_acc is the number of accumulated frames, 
+    cycle_time_acc is the acquisition period (by default the minimal possible based on exposure and transfer time).
+    """
+
+    def __init__(self):
+        super().__init__()
+        layout = QHBoxLayout(self)
+        label = QLabel("Fast Kinetic Aquisition Mode Settings")
+
+        self.num_acc_input = QLineEdit()
+        self.num_acc_input.setPlaceholderText("Number of Accumulated frames")
+        self.num_acc_input.setValidator(QIntValidator())
+
+        self.cycle_time_acc_input = QLineEdit()
+        self.cycle_time_acc_input.setPlaceholderText("Aquisition Period (ms)")
+        self.cycle_time_acc_input.setValidator(QDoubleValidator())
+
+        layout.addWidget(label)
+        layout.addWidget(self.num_acc_input)
+        layout.addWidget(self.cycle_time_acc_input)
+
+    def get_params(self):
+        params = {"mode": "fast_kinetic"}
+        num_acc = self.num_acc_input.text()
+        cycle_time_acc = self.cycle_time_acc_input.text()
+        if num_acc != "":
+            params["num_acc"] = num_acc
+        if cycle_time_acc != "":
+            params["cycle_time_acc"] = cycle_time_acc
+        return params
+
+class ContinuousWidget(QWidget):
+    """cycle_time is the acquisition period (by default the minimal possible based on exposure and transfer time)."""
+    
+    def __init__(self):
+        super().__init__()
+        layout = QHBoxLayout(self)
+        label = QLabel("Continuous Aquisition Mode Settings")
+
+        self.cycle_time = QLineEdit()
+        self.cycle_time.setPlaceholderText("Acquisition Period (ms)")
+        self.cycle_time.setValidator(QDoubleValidator())
+
+
+    def get_params(self):
+        params = {"mode": "cont"}
+        cycle_time = self.cycle_time.text()
+        if cycle_time != "":
+            params["cycle_time"] = cycle_time
+        return params
+
+class SingleWidget(QWidget):
+    def __init__(self):
+        super().__init__()
+
+    def get_params(self):
+        params = {"mode": "single"}
         return params

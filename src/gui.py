@@ -6,7 +6,7 @@ from PyQt5.QtGui import QIntValidator, QDoubleValidator, QImage, QPixmap
 from PyQt5.QtCore import pyqtSignal, QTimer, QThread, Qt
 import os
 from controller import RamanCameraController
-from widgets import MultiTrackWidget, SingleTrackWidget, FVBWidget, ImageWidget, RandomTrackWidget
+from widgets import MultiTrackWidget, SingleTrackWidget, FVBWidget, ImageWidget, RandomTrackWidget, SingleWidget, AccumWidget, KineticWidget, FastKineticWidget, ContinuousWidget
 from typing import Dict
 
 class MainWindow(QMainWindow):
@@ -53,7 +53,7 @@ class MainWindow(QMainWindow):
         self.roi_vbin_input = QLineEdit()
         self.roi_vbin_input.setPlaceholderText("ROI V Bin")
         self.roi_vbin_input.setValidator(QIntValidator())
-        # self.btn_set_roi = QPushButton("Set ROI")
+        self.btn_set_roi = QPushButton("Set ROI")
 
         # Shutter controls
         self.shutter_mode_input = QComboBox()
@@ -87,6 +87,17 @@ class MainWindow(QMainWindow):
         # Acquisition 
         self.acquisition_mode_input = QComboBox()
         self.acquisition_mode_input.addItems(["single", "accum", "kinetic", "fast_kinetic", "cont"])
+        self.acquisition_mode_stack = QStackedWidget()
+        self.acquisition_mode_widgets = {
+            "single": SingleWidget(),
+            "accum": AccumWidget(),
+            "kinetic": KineticWidget(),
+            "fast_kinetic": FastKineticWidget(),
+            "cont": ContinuousWidget()
+        }
+
+        for w in self.acquisition_mode_widgets.values():
+            self.acquisition_mode_stack.addWidget(w)
 
         # Trigger mode
         self.trigger_mode_input = QComboBox()
@@ -110,6 +121,9 @@ class MainWindow(QMainWindow):
 
         self.set_settings_button = QPushButton("Apply Settings")
 
+        # ==== Acquisition progress ====
+        self.acquisition_state = QLabel("Acquisition in progress: False")
+
         # Spectrometer controls
         # self.btn_connect_spec = QPushButton("Connect Spectrometer")
         # self.btn_disconnect_spec = QPushButton("Disconnect Spectrometer")
@@ -131,6 +145,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.preview)
         layout.addWidget(self.temp)
         layout.addWidget(self.shutter_current_state)
+        layout.addWidget(self.acquisition_state)
         layout.addWidget(self.set_settings_button)
 
         # Camera control buttons
@@ -182,17 +197,25 @@ class MainWindow(QMainWindow):
 
         layout.addWidget(self.read_mode_stack)
 
-        # acquisition
+        # acquisition mode
         hl_acquisition_mode = QHBoxLayout()
         hl_acquisition_mode.addWidget(QLabel("Acquisition Mode:"))
         hl_acquisition_mode.addWidget(self.acquisition_mode_input)
         layout.addLayout(hl_acquisition_mode)
+
+        layout.addWidget(self.acquisition_mode_stack)
 
         # trigger mode
         hl_trigger_mode = QHBoxLayout()
         hl_trigger_mode.addWidget(QLabel("Trigger Mode:"))
         hl_trigger_mode.addWidget(self.trigger_mode_input)
         layout.addLayout(hl_trigger_mode)
+
+        # Exposure
+        hl_exposure = QHBoxLayout()
+        hl_exposure.addWidget(QLabel("Exposure (ms):"))
+        hl_exposure.addWidget(self.exposure_input)
+        layout.addLayout(hl_exposure)
 
         # Amp mode
         hl_amp_mode = QHBoxLayout()
@@ -224,14 +247,13 @@ class MainWindow(QMainWindow):
         self.btn_stop.clicked.connect(self.stop_live)
         self.btn_acquire.clicked.connect(self.start_acquisition)
         self.btn_disconnect_cam.clicked.connect(self.disconnect_cam)
-        # might join these below later
-        # self.btn_set_roi.clicked.connect(self.set_roi)
-        # self.btn_set_shutter.clicked.connect(self.set_shutter)
         self.set_settings_button.clicked.connect(self.set_settings)
         self.read_mode_input.currentTextChanged.connect(
             self.on_read_mode_changed
         )
-
+        self.acquisition_mode_input.currentTextChanged.connect(
+            self.on_acquisition_mode_changed
+        )
 
         # Connect buttons to controller spec
         # self.btn_connect_spec.clicked.connect(self.connect_spec)
@@ -246,6 +268,10 @@ class MainWindow(QMainWindow):
         self.timer_temp = QTimer()
         self.timer_temp.timeout.connect(self.display_temp)
         self.timer_temp.start(1000)
+
+        # Display acquisition status
+        self.timer_acquisition = QTimer()
+        self.timer_acquisition.timeout.connect(self.display_acquisition_state)
 
     def load_amp_modes(self,amp_modes):
         self.amp_mode_input.clear()
@@ -272,6 +298,10 @@ class MainWindow(QMainWindow):
     def on_read_mode_changed(self, mode):
         widget = self.read_mode_widgets[mode]
         self.read_mode_stack.setCurrentWidget(widget)
+
+    def on_acquisition_mode_changed(self,mode):
+        widget = self.acquisition_mode_widgets[mode]
+        self.acquisition_mode_stack.setCurrentWidget(widget)
 
     def display_used_params(self, roi:Dict[str,str], shutter:Dict[str,str], read_mode:str):
         """Display used parameters in the GUI fields."""
@@ -301,6 +331,11 @@ class MainWindow(QMainWindow):
     def display_shutter_state(self, state:str):
         self.shutter_current_state.setText(f"Shutter State: {state}")
 
+    def display_acquisition_state(self):
+        in_progress,state = self.controller.display_acquisition_state()
+        num_frames, num_acc = state
+        self.acquisition_state.setText(f"Acquisition in progress: {in_progress} (frames done: {num_frames}, acc_done: {num_acc})")
+
 
     # ===== Functions ======
 
@@ -308,12 +343,14 @@ class MainWindow(QMainWindow):
 
     def connect_cam(self):
         self.controller.connect_cam()
+        self.timer_acquisition.start(500)
         # self.disable_buttons()
         # self.worker = CoolingWorker(self.controller,target_temp=-80)
         # self.worker.finished.connect(self.enable_buttons)
         # self.worker.start()
 
     def disconnect_cam(self):
+        self.timer_acquisition.stop()
         self.controller.disconnect_cam()
 
     def disable_buttons(self):
@@ -341,10 +378,11 @@ class MainWindow(QMainWindow):
             "close_time": self.shutter_close_time_input.text()
         }
 
-        active_widget = self.read_mode_stack.currentWidget()
-        read_mode_params = active_widget.get_params()
+        active_read_mode_widget = self.read_mode_stack.currentWidget()
+        read_mode_params = active_read_mode_widget.get_params()
 
-        acquisition_mode = self.acquisition_mode_input.currentText()
+        active_acquisition_mode_widget = self.acquisition_mode_stack.currentWidget()
+        acquisition_mode_params = active_acquisition_mode_widget.get_params()
 
         trigger_mode = self.trigger_mode_input.currentText()
 
@@ -370,7 +408,7 @@ class MainWindow(QMainWindow):
 
         emccd_gain = self.emccd_gain_input.text()
 
-        self.controller.apply_cam_settings(roi, shutter, read_mode_params, acquisition_mode, trigger_mode, exposure, amp, vsspeed, emccd_gain)
+        self.controller.apply_cam_settings(roi, shutter, read_mode_params, acquisition_mode_params, trigger_mode, exposure, amp, vsspeed, emccd_gain)
 
     def start_live(self):
         self.controller.start_live()
@@ -402,12 +440,17 @@ class MainWindow(QMainWindow):
             self.preview.height()
         ))
     
-    def start_acquisition(self):
+    # use for preview of acquisition
+    def acquisition_preview(self):
         frame = self.controller.acquire_single()
         # frame = self.controller.start_acquisition()
         if frame is None:
             return
         self.display_image(frame)
+
+    def start_acquisition(self):
+        # frame = self.controller.acquire_single()
+        self.controller.start_acquisition()
 
     def toggle_accum_input(self, mode):
         if mode == "accumulate":
@@ -524,10 +567,10 @@ class MainWindow(QMainWindow):
                 print("Camera disconnect failed:", e)
 
             # Disconnect spectrometer safely
-            try:
-                self.controller.disconnect_spec()
-            except Exception as e:
-                print("Spectrometer disconnect failed:", e)
+            # try:
+            #     self.controller.disconnect_spec()
+            # except Exception as e:
+            #     print("Spectrometer disconnect failed:", e)
 
         except Exception as e:
             print("[GUI] Unexpected error during closeEvent:", e)

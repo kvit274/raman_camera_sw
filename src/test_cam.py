@@ -267,6 +267,7 @@ class TestCameraModel:
         """
         
         """
+        self.validate_roi_settings(hstart, hend, vstart, vend, hbin, vbin)
         self.set_read_mode("image")
         return 
 
@@ -278,17 +279,37 @@ class TestCameraModel:
         return (0,None,0,None,1,1)
 
     
-    
     # ===== ACQUISITION MODE =====
 
+    ## validation TOD0
+
     @requires_cam_connected
-    def set_acquisition_mode(self,mode):
-        """
-        Can be "single", "accum", "kinetic", "fast_kinetic" or "cont" (continuous).
-        If setup_params==True, make sure that the last specified parameters for this mode are set up.
-        """
-        self.validate_acquisition_mode(mode)
-        self.acquisition_mode = mode
+    def setup_single_mode(self):
+        self.acquisition_mode = "single"
+        return
+
+    @requires_cam_connected
+    def setup_accum_mode(self,num_acc:int, cycle_time_acc:Optional[float]=0):
+        # validation?
+        self.acquisition_mode = "accum"
+        return
+
+    @requires_cam_connected
+    def setup_kinetic_mode(self, num_cycle:int, cycle_time:Optional[float]=0, num_acc:Optional[int]=1, cycle_time_acc:Optional[float]=0, num_prescan:Optional[int]=0):
+        # validation?
+        self.acquisition_mode = "kinetic"
+        return
+
+    @requires_cam_connected
+    def setup_fast_kinetic_mode(self, num_acc:int, cycle_time_acc:Optional[float]=0):
+        # validation?
+        self.acquisition_mode = "fast_kinetic"
+        return
+    
+    @requires_cam_connected
+    def setup_cont_mode(self, cycle_time:Optional[float]=0):
+        # validation?
+        self.acquisition_mode = "cont"
         return
 
     
@@ -454,23 +475,6 @@ class TestCameraModel:
         
         frame = self.generate_fake_frame()
         return frame
-
-
-    # ===== ACQUISITION =====
-
-    @requires_cam_connected
-    def simple_acq(self,num_frames:int=0):
-        if self.is_live:
-            self.end_live()
-
-        if num_frames == 0:
-            frame = self.generate_fake_frame()
-            print("Single frame acquired")
-            return frame
-        else:
-            frames = [self.generate_fake_frame() for _ in range(num_frames)]
-            print("Multiple frames acquired")
-            return frames
 
 
     # ==== VALIDATION ====

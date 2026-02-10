@@ -1,7 +1,7 @@
-1)
-2) adjust ADC
-3) 
-4) 
+1) eposure for n time and do it m times and then average results(sum/average)
+2) implement continuous acquisition
+3) do more appropriate validation
+4) single preview (just snap instead of live)
 5) for each acquisition mode create sub params
 6) out aux port
 7) add on option to do advanced emccd gain by ticking the box
@@ -10,9 +10,9 @@
 ?) ext_trigger ?
 ?) pausing_acquisition ?
 
+) acquisition should block live preview
 
-
-
+# trigger mode is internal by default
 
 
 
@@ -41,3 +41,34 @@ handle the read mode params being sent to controller
 
 
 # they use multi track / image / fvb
+
+
+
+log:
+
+Trying to set read mode in controller to: image
+Handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x000001F66D73D850>>
+Entered setup_image_mode in controller
+Setting up image mode... Real mode:image
+Acquisition mode: single
+acquisition mode handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x000001F66D73D850>>
+Got to setup_single_mode in controller
+Trying to change acquisition mode to single.. Actual: single
+Acquisition parameters: None
+Number of frames: 1
+Acquisition parameters after adjustment: {'nframes': None, 'mode': 'single'}
+Acquisition parameters after start: {'nframes': None, 'mode': 'single'}
+num of frames: 1
+Error in RamanCameraController.start_acquisition: 
+
+Trying to set read mode in controller to: image
+Handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x000001F66D73D850>>
+Entered setup_image_mode in controller
+Setting up image mode... Real mode:image
+Acquisition mode: accum
+acquisition mode handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x000001F66D73D850>>
+Acquisition parameters: {'nframes': None, 'mode': 'single'}
+Number of frames: 2
+Acquisition parameters after adjustment: {'nframes': None, 'mode': 'accum'}
+Acquisition parameters after start: {'nframes': None, 'mode': 'accum'}
+num of frames: 2

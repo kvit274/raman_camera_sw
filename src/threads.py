@@ -3,7 +3,7 @@ from PyQt5.QtCore import QThread, pyqtSignal
 class CoolingWorker(QThread):
     finished = pyqtSignal()
 
-    def __init__(self, camera, target_temp:float=-70.0):
+    def __init__(self, camera, target_temp:float=-85.0):
         super().__init__()
         self.camera = camera
         self.target_temp = target_temp
@@ -25,3 +25,16 @@ class WarmUpCloseWorker(QThread):
         self.camera.warm_cam(self.target_temp)
         self.camera.safe_close()
         self.finished.emit()
+
+# TOD0!!
+# class AcquisitionStatusWorker(QThread):
+#     finished = pyqtSignal()
+
+#     def __init__(self, camera):
+#         super().__init__()
+#         self.camera = camera
+
+#     def run(self):
+#         self.camera.wait_for_frame()
+#         self.camera.safe_close()
+#         self.finished.emit()
