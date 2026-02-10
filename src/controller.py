@@ -5,7 +5,7 @@ from test_cam import TestCameraModel
 from test_spec import TestSpectrometerModel
 import time
 from threads import CoolingWorker, WarmUpCloseWorker
-
+import traceback
 class RamanCameraController:
 
     def __init__(self,view):
@@ -24,9 +24,13 @@ class RamanCameraController:
             try:
                 return func(self, *args, **kwargs)
             except Exception as e:
-                class_name = self.__class__.__name__
-                print(f"Error in {class_name}.{func.__name__}: {str(e)}")
-                self.view.display_msg(f"Error: {str(e)}")
+                print("============ EXCEPTION ============")
+                traceback.print_exc()
+                print("===================================")
+                self.view.display_msg(str(e))
+                # class_name = self.__class__.__name__
+                # print(f"Error in {class_name}.{func.__name__}: {str(e)}")
+                # self.view.display_msg(f"Error: {str(e)}")
         return wrapper
 
 
@@ -129,6 +133,7 @@ class RamanCameraController:
     def stop_live(self):
         self.camera.end_live()
         self.view.stop_live_timer()
+        self.return_settings()
         return
     
     def get_temp(self):
@@ -169,6 +174,71 @@ class RamanCameraController:
         self.set_vsspeed(vsspeed)
         self.set_EMCCD_gain(emccd_gain)
         self.display_used_params()
+        print(f"Printing all set settings:\n{self.camera.cam.get_settings(include=-10)}\n")
+        return
+
+    @handle_errors
+    def return_settings(self)
+        settings = self.camera.get_acquisition_settings()
+
+        read_mode = settings["read_mode"]
+        read_mode_params = {"mode": read_mode}
+        if read_mode == "multi_track":
+            num, height, offset = settings["read_parameters/multi_track"]
+            read_mode_params["number"] = num
+            read_mode_params["height"] = height
+            read_mode_params["offset"] = offset
+        elif read_mode == "single_track":
+            center, width = settings["read_parameters/single_track"]
+            read_mode_params["center"] = center
+            read_mode_params["width"] = width
+        elif read_mode == "random_track":
+            tracks = settings["read_parameters/random_track"]
+            read_mode_params["tracks"] = tracks
+        elif read_mode == "image":
+            hstart,hend,vstart,vend,hbin,vbin = settings["read_parameters/image"]
+            read_mode_params["hstart"] = hstart
+            read_mode_params["hend"] = hend
+            read_mode_params["vstart"] = vstart
+            read_mode_params["vend"] = vend
+            read_mode_params["hbin"] = hbin
+            read_mode_params["vbin"] = vbin
+        self.set_read_mode(read_mode_params)
+
+        self.setup_shutter(*settings["shutter"])
+
+        self.set_trigger_mode(settings["trigger_mode"])
+        self.set_exposure(settings["exposure"])
+
+        self.set_amp_mode(settings["channel"],settings["oamp"],settings["hsspeed"],settings["preamp"])
+        self.set_vsspeed(settings["vsspeed"])
+        # set fan mode? not sure if needed
+
+        # most important below, everything above can be commented out?
+        acquisition_mode = settings["acq_mode"]
+        acquisition_mode_params = {"mode":acquisition_mode}
+        if mode == "accum":
+            num_acc,cycle_time = settings["acq_parameters/accum"]
+            acquisition_mode_params["num_acc"] = num_acc
+            acquisition_mode_params["cycle_time"] = cycle_time
+        elif mode == "kinetic":
+            num_cycle, cycle_time, num_acc, cycle_time_acc, num_prescan = settings["acq_parameters/kinetic"]
+            acquisition_mode_params["num_cycle"] = num_cycle
+            acquisition_mode_params["cycle_time"] = cycle_time
+            acquisition_mode_params["num_acc"] = num_acc
+            acquisition_mode_params["cycle_time_acc"] = cycle_time_acc
+            acquisition_mode_params["num_prescan"] = num_prescan
+        elif mode == "fast_kinetic":
+            num_acc,cycle_time_acc = settings["acq_parameters/accum"]
+            acquisition_mode_params["num_acc"] = num_acc
+            acquisition_mode_params["cycle_time_acc"] = cycle_time_acc
+        elif mode == "cont":
+            cycle_time = settings["acq_parameters/cont"]
+            acquisition_mode_params["cycle_time"] = cycle_time
+        
+        self.set_acquisition_mode(acquisition_mode_params)
+
+
         return
 
     # ==== EMCCD gain ====

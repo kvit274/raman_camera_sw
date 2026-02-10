@@ -16,6 +16,9 @@ class RamanCameraModel:
         self.is_live = False    # if camera is capturing live images
         self.busy = False
 
+        # acquisiton settings
+        self.acquisiton_settings = None
+
         # default paths:
         self.save_path_cvs = Path("./data/cvs")
         self.save_path_cvs.mkdir(exist_ok=True)
@@ -140,6 +143,12 @@ class RamanCameraModel:
         print(f"Camera initialized")
         return
 
+    @requires_cam_connected
+    def get_acquisition_settings(self):
+        """
+        Return last used settings before the live preview
+        """
+        return self.acquisition_settings
 
     # TOD0!!
     @requires_cam_connected
@@ -454,7 +463,7 @@ class RamanCameraModel:
             temp = round(self.cam.get_temperature(),2)
             print(f"Cooling: {temp}, Status: {self.cam.get_temperature_status()}")
 
-            if temp <= target_temp+5:
+            if temp <= target_temp+10:      # GET RID OF 10!!
                 print(f"Temperature stabilized, Status: {self.cam.get_temperature_status()}")
                 break
             # if time.time() - t0 > time_out:
@@ -532,6 +541,7 @@ class RamanCameraModel:
     
         # self.cam.set_exposure(0.03)     # update fast
         # self.cam.start_acquisition(mode="cont")     # sets acquisition mode to "run till abort"
+        self.acquisiton_settings = self.cam.get_settings(include=-10)
         self.is_live = True  
         print("Live mode started")
         return
@@ -543,6 +553,8 @@ class RamanCameraModel:
         # self.cam.stop_acquisition()
         self.is_live=False
         print("Live mode stopped")
+        # if self.acquisiton_settings:
+        #     self.cam.
         return
 
     @requires_cam_connected
@@ -571,20 +583,21 @@ class RamanCameraModel:
         if self.is_live:
             self.end_live()
 
-        print(f"Acquisition parameters: {self.cam.get_acquisition_parameters()}")
-        acquisition_mode = self.cam.get_acquisition_mode()
-        num_frames = 1
-        if acquisition_mode == "accum":
-            num_frames = self.cam.get_accum_mode_parameters()[0]
-        if acquisition_mode == "kinetic":
-            num_frames = self.cam.get_kinetic_mode_parameters()[2]
-        if acquisition_mode == "fast_kinetic":
-            num_frames = self.cam.get_fast_kinetic_mode_parameters()[0]
-        print(f"Number of frames: {num_frames}")
-        self.cam.setup_acquisition(mode=acquisition_mode,nframes=num_frames)
-        print(f"Acquisition parameters after adjustment: {self.cam.get_acquisition_parameters()}")
+        # print(f"Acquisition parameters: {self.cam.get_acquisition_parameters()}")
+        # acquisition_mode = self.cam.get_acquisition_mode()
+        # num_frames = 1
+        # if acquisition_mode == "accum":
+        #     num_frames = self.cam.get_accum_mode_parameters()[0]
+        # if acquisition_mode == "kinetic":
+        #     num_frames = self.cam.get_kinetic_mode_parameters()[2]
+        # if acquisition_mode == "fast_kinetic":
+        #     num_frames = self.cam.get_fast_kinetic_mode_parameters()[0]
+        # print(f"Number of frames: {num_frames}")
+        # self.cam.setup_acquisition(mode=acquisition_mode,nframes=num_frames)
+        # print(f"Acquisition parameters after adjustment: {self.cam.get_acquisition_parameters()}")
+        self.cam.clear_acquisition()    # clear the buffer
         self.cam.start_acquisition()
-        print(f"Acquisition parameters after start: {self.cam.get_acquisition_parameters()}")
+        # print(f"Acquisition parameters after start: {self.cam.get_acquisition_parameters()}")
         # self.cam.wait_for_frame(since='start', nframes=1, timeout=20.0, error_on_stopped=False)
 
         return
@@ -795,31 +808,41 @@ class RamanCameraModel:
 
         acquisition_mode = self.cam.get_acquisition_mode()
         num_frames = 1
-        if acquisition_mode == "accum":
-            num_frames = self.cam.get_accum_mode_parameters()[0]
+        # if acquisition_mode == "accum":
+        #     num_frames = 1
         if acquisition_mode == "kinetic":
-            num_frames = self.cam.get_kinetic_mode_parameters()[2]
+            num_frames = self.cam.get_kinetic_mode_parameters()[0]
         if acquisition_mode == "fast_kinetic":
             num_frames = self.cam.get_fast_kinetic_mode_parameters()[0]
         print(f"num of frames: {num_frames}")
-        self.cam.wait_for_frame(since='lastread', nframes=num_frames, timeout=20.0, error_on_stopped=False)
-        # time.sleep(5)
-        new_frames_range = self.cam.get_new_images_range()  # (first,last) first inclusive
-        if not new_frames_range:
-            print("No new images found :(")
-            return
-        else:
-            print(f"Found {new_frames_range[0]}-{new_frames_range[1]} new images")
+
         
-        frames = self.cam.read_multiple_images(rng=new_frames_range,peek=False,missing_frame="skip",return_info=False,return_rng=False)
-        if len(frames)==0:
-            print("No frames found")
-            return
+        self.cam.wait_for_frame(since='start', nframes=num_frames, timeout=20.0, error_on_stopped=False)
+        # time.sleep(5)
+        
+        # new_frames_range = self.cam.get_new_images_range()  # (first,last) first inclusive
+        # if not new_frames_range:
+        #     print("No new images found :(")
+        #     return
+        # else:
+        #     print(f"Found {new_frames_range[0]}-{new_frames_range[1]} new images")
+        
+        frames = self.cam.read_multiple_images(rng=None,peek=False,missing_frame="skip",return_info=False,return_rng=False)
+
+        if frames is None:
+            raise RuntimeError("No images in the buffer could be obtained")
+
+        if isinstance(frames,np.ndarray):
+            frames = [frames]
+
+        # if len(frames)==0:
+        #     print("No frames found")
+        #     return
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         for idx,frame in enumerate(frames):
 
-            if frame.size() == 0:
+            if frame.size == 0:
                 print("Empty frame")
                 return
 
