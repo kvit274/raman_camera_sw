@@ -254,6 +254,17 @@ class MainWindow(QMainWindow):
         section_roi = CollapsibleSection("ROI")
         roi_layout = QVBoxLayout()
 
+        self.roi_preset_input = QComboBox()
+        self.roi_preset_input.addItems(["1024x256", "512x128", "256x64", "128x32", "Custom"])
+        roi_layout.addWidget(QLabel("ROI Presets"))
+        roi_layout.addWidget(self.roi_preset_input)
+
+        # Binning preset selector
+        self.bin_preset_input = QComboBox()
+        self.bin_preset_input.addItems(["1x1","2x2","4x4","8x8","Custom"])
+        roi_layout.addWidget(QLabel("Binning Preset"))
+        roi_layout.addWidget(self.bin_preset_input)
+
         roi_layout.addWidget(QLabel("H Start"))
         roi_layout.addWidget(self.roi_hstart_input)
 
@@ -412,6 +423,8 @@ class MainWindow(QMainWindow):
         self.read_mode_input.currentTextChanged.connect(self.on_read_mode_changed)
         self.acquisition_mode_input.currentTextChanged.connect(self.on_acquisition_mode_changed)
         self.save_frame_path_button.clicked.connect(self.select_save_frame_path)
+        self.roi_preset_input.currentTextChanged.connect(self.apply_roi_preset)
+        self.bin_preset_input.currentTextChanged.connect(self.apply_bin_preset)
 
         # Live preview updates
         self.timer_live = QTimer()
@@ -513,6 +526,41 @@ class MainWindow(QMainWindow):
     def enable_buttons(self):
         for b in [self.btn_connect_cam, self.btn_live, self.btn_stop, self.btn_acquire]:
             b.setEnabled(True)
+
+    def apply_roi_preset(self, text):
+        try:
+            full_w, full_h = self.controller.camera.detect_cam_size()
+        except:
+            return  # camera not connected
+
+        if text == "Custom":
+            return
+
+        if text.startswith("Full"):
+            roi_w, roi_h = full_w, full_h
+        else:
+            roi_w, roi_h = map(int, text.split("x"))
+
+        # Center ROI
+        hstart = (full_w - roi_w) // 2
+        vstart = (full_h - roi_h) // 2
+        hend = hstart + roi_w
+        vend = vstart + roi_h
+
+        self.roi_hstart_input.setText(str(hstart))
+        self.roi_hend_input.setText(str(hend))
+        self.roi_vstart_input.setText(str(vstart))
+        self.roi_vend_input.setText(str(vend))
+
+
+    def apply_bin_preset(self, text):
+        if text == "Custom":
+            return
+
+        hbin, vbin = map(int, text.split("x"))
+        self.roi_hbin_input.setText(str(hbin))
+        self.roi_vbin_input.setText(str(vbin))
+
 
     def set_settings(self):
         roi = {
