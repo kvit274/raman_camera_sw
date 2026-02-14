@@ -10,11 +10,9 @@ class RamanCameraController:
 
     def __init__(self,view):
         self.view = view
-        self.camera = RamanCameraModel()
-        # self.camera = TestCameraModel()
-        #self.spec = SpectrometerModel()
+        # self.camera = RamanCameraModel()
+        self.camera = TestCameraModel()
         self.spec = TestSpectrometerModel()
-        # self.camera = MagicMock()    # use temporally for testing
 
 
     # ==== Decorators =====
@@ -164,6 +162,7 @@ class RamanCameraController:
 
     @handle_errors
     def apply_cam_settings(self,roi,shutter,read_mode,acquisition_mode,trigger_mode,exposure,amp,vsspeed, emccd_gain):
+        self.stop_live()
         self.set_roi(**roi)
         self.setup_shutter(**shutter)
         self.set_read_mode(read_mode)
@@ -178,7 +177,7 @@ class RamanCameraController:
         return
 
     @handle_errors
-    def return_settings(self)
+    def return_settings(self):
         settings = self.camera.get_acquisition_settings()
 
         read_mode = settings["read_mode"]
@@ -501,7 +500,7 @@ class RamanCameraController:
         hbin = None if hbin == "" else int(hbin)
         vbin = None if vbin == "" else int(vbin)
 
-        self.view.stop_live()  # stop live before changing roi
+        # self.view.stop_live()  # stop live before changing roi
         self.camera.set_roi(hstart, hend, vstart, vend, hbin, vbin)
 
         return
@@ -520,46 +519,3 @@ class RamanCameraController:
         vsspeeds = self.camera.get_all_vsspeeds()
         self.view.load_vsspeeds(vsspeeds)
         return
-
-    # ==== Spectrometer methods (unused) =====
-
-    # def connect_spec(self):
-    #     self.spec.connect()
-    #     self.spec.get_default_settings()
-    #     return
-        
-    # def disconnect_spec(self):
-    #     self.spec.disconnect()
-
-    # def set_wavelength_spec(self,wavelength):
-    #     try:
-    #         wavelength = float(wavelength)
-    #     except:
-    #         print("Wavelength must be a number (in meters)")
-    #         return
-    #     self.spec.set_wavelength(wavelength)
-    #     return
-    
-    # def set_grating_spec(self,grating,force=False):
-    #     try:
-    #         grating = int(grating)
-    #     except:
-    #         print("Grating must be an integer (counting from 1)")
-    #         return
-    #     self.spec.set_grating(grating,force)
-    #     return
-    
-    # def set_slit_width_spec(self,slit,width):
-    #     try:
-    #         width = float(width)
-    #     except:
-    #         print("Slit width must be a number (in meters)")
-    #         return
-    #     self.spec.set_slit_width(slit,width)
-    #     return
-    
-    # def get_default_settings_spec(self):
-
-    #     self.spec.get_default_settings()
-    #     return
-        

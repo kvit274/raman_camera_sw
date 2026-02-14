@@ -1,12 +1,12 @@
 import atexit
 import traceback
 import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QStackedWidget, QLineEdit, QPushButton, QFileDialog, QLabel, QComboBox, QMessageBox
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QStackedWidget, QLineEdit, QPushButton, QFileDialog, QLabel, QComboBox, QMessageBox, QScrollArea, QGroupBox, QSizePolicy, QSplitter
 from PyQt5.QtGui import QIntValidator, QDoubleValidator, QImage, QPixmap
 from PyQt5.QtCore import pyqtSignal, QTimer, QThread, Qt
 import os
 from controller import RamanCameraController
-from widgets import MultiTrackWidget, SingleTrackWidget, FVBWidget, ImageWidget, RandomTrackWidget, SingleWidget, AccumWidget, KineticWidget, FastKineticWidget, ContinuousWidget
+from widgets import MultiTrackWidget, SingleTrackWidget, FVBWidget, ImageWidget, RandomTrackWidget, SingleWidget, AccumWidget, KineticWidget, FastKineticWidget, ContinuousWidget, CollapsibleSection
 from typing import Dict
 
 class MainWindow(QMainWindow):
@@ -24,7 +24,7 @@ class MainWindow(QMainWindow):
 
         # Camera preview and controls
         self.preview = QLabel("Preview")
-        self.preview.setFixedSize(640,480)  # change to camera max width/height
+        self.preview.setFixedSize(1024,256)  # change to camera max width/height
         self.btn_connect_cam = QPushButton("Connect Camera")
         self.btn_live = QPushButton("Start Live")
         self.btn_stop = QPushButton("Stop Live")
@@ -141,103 +141,271 @@ class MainWindow(QMainWindow):
 
         # ===== LAYOUT =====
 
-        layout = QVBoxLayout()
-        layout.addWidget(self.preview)
-        layout.addWidget(self.temp)
-        layout.addWidget(self.shutter_current_state)
-        layout.addWidget(self.acquisition_state)
-        layout.addWidget(self.set_settings_button)
+        # layout = QVBoxLayout()
+        # layout.addWidget(self.preview)
+        # layout.addWidget(self.temp)
+        # layout.addWidget(self.shutter_current_state)
+        # layout.addWidget(self.acquisition_state)
+        # layout.addWidget(self.set_settings_button)
 
-        # Camera control buttons
-        hl = QHBoxLayout()
-        hl.addWidget(self.btn_connect_cam)
-        hl.addWidget(self.btn_live)
-        hl.addWidget(self.btn_stop)
-        hl.addWidget(self.btn_acquire)
-        hl.addWidget(self.btn_disconnect_cam)
-        layout.addLayout(hl)
+        # # Camera control buttons
+        # hl = QHBoxLayout()
+        # hl.addWidget(self.btn_connect_cam)
+        # hl.addWidget(self.btn_live)
+        # hl.addWidget(self.btn_stop)
+        # hl.addWidget(self.btn_acquire)
+        # hl.addWidget(self.btn_disconnect_cam)
+        # layout.addLayout(hl)
 
-        # Spectrometer controls
-        # hl_spec = QHBoxLayout()
-        # hl_spec.addWidget(self.btn_connect_spec)
-        # hl_spec.addWidget(self.btn_disconnect_spec)
-        # hl_spec.addWidget(self.wavelength_input)
-        # hl_spec.addWidget(self.grating_input)
-        # hl_spec.addWidget(self.slit_width_input)
-        # hl_spec.addWidget(self.btn_update_spec)
-        # layout.addLayout(hl_spec)
+        # # ROI controls
+        # hl_roi = QHBoxLayout()
+        # hl_roi.addWidget(QLabel("Roi:"))
+        # hl_roi.addWidget(self.roi_hstart_input)
+        # hl_roi.addWidget(self.roi_hend_input)
+        # hl_roi.addWidget(self.roi_vstart_input)
+        # hl_roi.addWidget(self.roi_vend_input)
+        # hl_roi.addWidget(self.roi_hbin_input)
+        # hl_roi.addWidget(self.roi_vbin_input)
+        # # hl_roi.addWidget(self.btn_set_roi)
+        # layout.addLayout(hl_roi)
 
-        # ROI controls
-        hl_roi = QHBoxLayout()
-        hl_roi.addWidget(QLabel("Roi:"))
-        hl_roi.addWidget(self.roi_hstart_input)
-        hl_roi.addWidget(self.roi_hend_input)
-        hl_roi.addWidget(self.roi_vstart_input)
-        hl_roi.addWidget(self.roi_vend_input)
-        hl_roi.addWidget(self.roi_hbin_input)
-        hl_roi.addWidget(self.roi_vbin_input)
-        # hl_roi.addWidget(self.btn_set_roi)
-        layout.addLayout(hl_roi)
+        # # Shutter controls
+        # hl_shutter = QHBoxLayout()
+        # hl_shutter.addWidget(QLabel("Shutter:"))
+        # hl_shutter.addWidget(self.shutter_mode_input)
+        # hl_shutter.addWidget(self.tll_mode_input)
+        # hl_shutter.addWidget(self.shutter_open_time_input)
+        # hl_shutter.addWidget(self.shutter_close_time_input)
+        # # hl_shutter.addWidget(self.btn_set_shutter)
+        # layout.addLayout(hl_shutter)
 
-        # Shutter controls
-        hl_shutter = QHBoxLayout()
-        hl_shutter.addWidget(QLabel("Shutter:"))
-        hl_shutter.addWidget(self.shutter_mode_input)
-        hl_shutter.addWidget(self.tll_mode_input)
-        hl_shutter.addWidget(self.shutter_open_time_input)
-        hl_shutter.addWidget(self.shutter_close_time_input)
-        # hl_shutter.addWidget(self.btn_set_shutter)
-        layout.addLayout(hl_shutter)
+        # # Read mode
+        # hl_read_mode = QHBoxLayout()
+        # hl_read_mode.addWidget(QLabel("Read Mode:"))
+        # hl_read_mode.addWidget(self.read_mode_input)
+        # layout.addLayout(hl_read_mode)
 
-        # Read mode
-        hl_read_mode = QHBoxLayout()
-        hl_read_mode.addWidget(QLabel("Read Mode:"))
-        hl_read_mode.addWidget(self.read_mode_input)
-        layout.addLayout(hl_read_mode)
+        # layout.addWidget(self.read_mode_stack)
 
-        layout.addWidget(self.read_mode_stack)
+        # # acquisition mode
+        # hl_acquisition_mode = QHBoxLayout()
+        # hl_acquisition_mode.addWidget(QLabel("Acquisition Mode:"))
+        # hl_acquisition_mode.addWidget(self.acquisition_mode_input)
+        # layout.addLayout(hl_acquisition_mode)
 
-        # acquisition mode
-        hl_acquisition_mode = QHBoxLayout()
-        hl_acquisition_mode.addWidget(QLabel("Acquisition Mode:"))
-        hl_acquisition_mode.addWidget(self.acquisition_mode_input)
-        layout.addLayout(hl_acquisition_mode)
+        # layout.addWidget(self.acquisition_mode_stack)
 
-        layout.addWidget(self.acquisition_mode_stack)
+        # # trigger mode
+        # hl_trigger_mode = QHBoxLayout()
+        # hl_trigger_mode.addWidget(QLabel("Trigger Mode:"))
+        # hl_trigger_mode.addWidget(self.trigger_mode_input)
+        # layout.addLayout(hl_trigger_mode)
 
-        # trigger mode
-        hl_trigger_mode = QHBoxLayout()
-        hl_trigger_mode.addWidget(QLabel("Trigger Mode:"))
-        hl_trigger_mode.addWidget(self.trigger_mode_input)
-        layout.addLayout(hl_trigger_mode)
+        # # Exposure
+        # hl_exposure = QHBoxLayout()
+        # hl_exposure.addWidget(QLabel("Exposure (ms):"))
+        # hl_exposure.addWidget(self.exposure_input)
+        # layout.addLayout(hl_exposure)
 
-        # Exposure
-        hl_exposure = QHBoxLayout()
-        hl_exposure.addWidget(QLabel("Exposure (ms):"))
-        hl_exposure.addWidget(self.exposure_input)
-        layout.addLayout(hl_exposure)
+        # # Amp mode
+        # hl_amp_mode = QHBoxLayout()
+        # hl_amp_mode.addWidget(QLabel("Amp Mode:"))
+        # hl_amp_mode.addWidget(self.amp_mode_input)
+        # layout.addLayout(hl_amp_mode)
 
-        # Amp mode
-        hl_amp_mode = QHBoxLayout()
-        hl_amp_mode.addWidget(QLabel("Amp Mode:"))
-        hl_amp_mode.addWidget(self.amp_mode_input)
-        layout.addLayout(hl_amp_mode)
+        # # Vsspeed
+        # hl_vsspeed = QHBoxLayout()
+        # hl_vsspeed.addWidget(QLabel("Vsspeed:"))
+        # hl_vsspeed.addWidget(self.vsspeed_input)
+        # layout.addLayout(hl_vsspeed)
 
-        # Vsspeed
-        hl_vsspeed = QHBoxLayout()
-        hl_vsspeed.addWidget(QLabel("Vsspeed:"))
-        hl_vsspeed.addWidget(self.vsspeed_input)
-        layout.addLayout(hl_vsspeed)
+        # # EMCCD gain
+        # hl_emccd_gain = QHBoxLayout()
+        # hl_emccd_gain.addWidget(QLabel("EMCCD gain"))
+        # hl_emccd_gain.addWidget(self.emccd_gain_input)
+        # layout.addLayout(hl_emccd_gain)
 
-        # EMCCD gain
-        hl_emccd_gain = QHBoxLayout()
-        hl_emccd_gain.addWidget(QLabel("EMCCD gain"))
-        hl_emccd_gain.addWidget(self.emccd_gain_input)
-        layout.addLayout(hl_emccd_gain)
+        # # set central widget
+        # central = QWidget()
+        # central.setLayout(layout)
+        # self.setCentralWidget(central)
 
-        # set central widget
+
+
+        # ============================================================
+        # MAIN SPLIT LAYOUT
+        # ============================================================
+
+       # ============================================================
+        # LEFT PANEL (FULL HEIGHT)
+        # ============================================================
+
+        left_container = QWidget()
+        left_layout = QVBoxLayout(left_container)
+        left_layout.setSpacing(10)
+        left_layout.setContentsMargins(10, 10, 10, 10)
+
+        # -------- Camera Control (NOT collapsible) --------
+        control_layout = QVBoxLayout()
+
+        control_layout.addWidget(QLabel("Camera Control"))
+        control_layout.addWidget(self.btn_connect_cam)
+        control_layout.addWidget(self.btn_live)
+        control_layout.addWidget(self.btn_stop)
+        control_layout.addWidget(self.btn_acquire)
+        control_layout.addWidget(self.btn_disconnect_cam)
+
+        left_layout.addLayout(control_layout)
+
+        # -------- ROI --------
+        section_roi = CollapsibleSection("ROI")
+        roi_layout = QVBoxLayout()
+
+        roi_layout.addWidget(QLabel("H Start"))
+        roi_layout.addWidget(self.roi_hstart_input)
+
+        roi_layout.addWidget(QLabel("H End"))
+        roi_layout.addWidget(self.roi_hend_input)
+
+        roi_layout.addWidget(QLabel("V Start"))
+        roi_layout.addWidget(self.roi_vstart_input)
+
+        roi_layout.addWidget(QLabel("V End"))
+        roi_layout.addWidget(self.roi_vend_input)
+
+        roi_layout.addWidget(QLabel("H Bin"))
+        roi_layout.addWidget(self.roi_hbin_input)
+
+        roi_layout.addWidget(QLabel("V Bin"))
+        roi_layout.addWidget(self.roi_vbin_input)
+
+        section_roi.setContentLayout(roi_layout)
+        left_layout.addWidget(section_roi)
+
+        # -------- Shutter --------
+        section_shutter = CollapsibleSection("Shutter")
+        shutter_layout = QVBoxLayout()
+
+        shutter_layout.addWidget(QLabel("Mode"))
+        shutter_layout.addWidget(self.shutter_mode_input)
+
+        shutter_layout.addWidget(QLabel("TTL Mode"))
+        shutter_layout.addWidget(self.tll_mode_input)
+
+        shutter_layout.addWidget(QLabel("Open Time (ms)"))
+        shutter_layout.addWidget(self.shutter_open_time_input)
+
+        shutter_layout.addWidget(QLabel("Close Time (ms)"))
+        shutter_layout.addWidget(self.shutter_close_time_input)
+
+        section_shutter.setContentLayout(shutter_layout)
+        left_layout.addWidget(section_shutter)
+
+        # -------- Read Mode --------
+        section_read = CollapsibleSection("Read Mode")
+        read_layout = QVBoxLayout()
+
+        read_layout.addWidget(self.read_mode_input)
+        read_layout.addWidget(self.read_mode_stack)
+
+        section_read.setContentLayout(read_layout)
+        left_layout.addWidget(section_read)
+
+        # -------- Acquisition --------
+        section_acq = CollapsibleSection("Acquisition")
+        acq_layout = QVBoxLayout()
+
+        acq_layout.addWidget(QLabel("Acquisition Mode"))
+        acq_layout.addWidget(self.acquisition_mode_input)
+
+        acq_layout.addWidget(self.acquisition_mode_stack)
+
+        acq_layout.addWidget(QLabel("Trigger Mode"))
+        acq_layout.addWidget(self.trigger_mode_input)
+
+        acq_layout.addWidget(QLabel("Exposure (ms)"))
+        acq_layout.addWidget(self.exposure_input)
+
+        section_acq.setContentLayout(acq_layout)
+        left_layout.addWidget(section_acq)
+
+        # -------- Amplifier --------
+        section_amp = CollapsibleSection("Amplifier / Speed")
+        amp_layout = QVBoxLayout()
+
+        amp_layout.addWidget(QLabel("Amp Mode"))
+        amp_layout.addWidget(self.amp_mode_input)
+
+        amp_layout.addWidget(QLabel("Vertical Shift Speed"))
+        amp_layout.addWidget(self.vsspeed_input)
+
+        amp_layout.addWidget(QLabel("EMCCD Gain"))
+        amp_layout.addWidget(self.emccd_gain_input)
+
+        section_amp.setContentLayout(amp_layout)
+        left_layout.addWidget(section_amp)
+
+        left_layout.addWidget(self.set_settings_button)
+        left_layout.addStretch()
+
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setWidget(left_container)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+
+        # ============================================================
+        # RIGHT PREVIEW (FULL HEIGHT)
+        # ============================================================
+
+        preview_container = QWidget()
+        preview_layout = QVBoxLayout(preview_container)
+        preview_layout.setContentsMargins(0, 0, 0, 0)
+
+        self.preview.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.preview.setAlignment(Qt.AlignCenter)
+
+        preview_layout.addWidget(self.preview)
+
+        # ============================================================
+        # SPLITTER (DRAGGABLE)
+        # ============================================================
+
+        splitter = QSplitter(Qt.Horizontal)
+        splitter.addWidget(scroll)
+        splitter.addWidget(preview_container)
+        splitter.setStretchFactor(0, 0)
+        splitter.setStretchFactor(1, 1)
+        splitter.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding)
+
+        # ============================================================
+        # STATUS BAR (BOTTOM STRIP)
+        # ============================================================
+
+        status_container = QWidget()
+        status_layout = QHBoxLayout(status_container)
+        status_layout.setContentsMargins(10, 5, 10, 5)
+
+        # self.status = QLabel("")
+        self.status.setStyleSheet("color: red;")
+
+        status_layout.addWidget(self.temp)
+        status_layout.addWidget(self.shutter_current_state)
+        status_layout.addWidget(self.acquisition_state)
+        status_layout.addStretch()
+        status_layout.addWidget(self.status)
+
+        status_container.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Fixed)
+
+        # ============================================================
+        # FINAL MAIN LAYOUT
+        # ============================================================
+
+        main_layout = QVBoxLayout()
+        main_layout.addWidget(splitter,1)
+        main_layout.addWidget(status_container)
+
         central = QWidget()
-        central.setLayout(layout)
+        central.setLayout(main_layout)
         self.setCentralWidget(central)
 
 
@@ -254,11 +422,6 @@ class MainWindow(QMainWindow):
         self.acquisition_mode_input.currentTextChanged.connect(
             self.on_acquisition_mode_changed
         )
-
-        # Connect buttons to controller spec
-        # self.btn_connect_spec.clicked.connect(self.connect_spec)
-        # self.btn_disconnect_spec.clicked.connect(self.disconnect_spec)
-        # self.btn_update_spec.clicked.connect(self.update_spec_settings)
 
         # Live preview updates
         self.timer_live = QTimer()

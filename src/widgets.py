@@ -1,14 +1,44 @@
 import atexit
 import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QStackedWidget, QLineEdit, QPushButton, QFileDialog, QLabel, QComboBox, QMessageBox
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QStackedWidget, QLineEdit, QPushButton, QFileDialog, QLabel, QComboBox, QMessageBox, QToolButton
 from PyQt5.QtGui import QIntValidator, QDoubleValidator, QImage, QPixmap
-from PyQt5.QtCore import pyqtSignal, QTimer, QThread
+from PyQt5.QtCore import pyqtSignal, QTimer, QThread, Qt
 import os
 from controller import RamanCameraController
 from typing import Dict
 
 
 # ===== READ MODE WIDGETS =====
+
+class CollapsibleSection(QWidget):
+    def __init__(self, title):
+        super().__init__()
+
+        self.toggle_button = QToolButton()
+        self.toggle_button.setText(title)
+        self.toggle_button.setCheckable(True)
+        self.toggle_button.setChecked(False)
+        self.toggle_button.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.toggle_button.setArrowType(Qt.RightArrow)
+        self.toggle_button.clicked.connect(self.toggle)
+
+        self.content_area = QWidget()
+        self.content_area.setVisible(False)
+
+        layout = QVBoxLayout(self)
+        layout.addWidget(self.toggle_button)
+        layout.addWidget(self.content_area)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+    def toggle(self):
+        expanded = self.toggle_button.isChecked()
+        self.toggle_button.setArrowType(
+            Qt.DownArrow if expanded else Qt.RightArrow
+        )
+        self.content_area.setVisible(expanded)
+
+    def setContentLayout(self, content_layout):
+        self.content_area.setLayout(content_layout)
 
 class MultiTrackWidget(QWidget):
 
@@ -120,7 +150,7 @@ class ImageWidget(QWidget):
         self.roi_hbin_input = QLineEdit()
         self.roi_hbin_input.setPlaceholderText("ROI H Bin")
         self.roi_hbin_input.setValidator(QIntValidator())
-        
+
         self.roi_vbin_input = QLineEdit()
         self.roi_vbin_input.setPlaceholderText("ROI V Bin")
         self.roi_vbin_input.setValidator(QIntValidator())

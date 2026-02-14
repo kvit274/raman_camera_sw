@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from pprint import pformat
 from typing import Optional
 from datetime import datetime
+from functools import wraps
 
 class RamanCameraModel:
     def __init__(self):
@@ -34,6 +35,14 @@ class RamanCameraModel:
             if not self.cam:
                 raise RuntimeError("Camera not connected")
                 return None
+            return func(self, *args, **kwargs)
+        return wrapper
+
+    def requires_live_stopped(func):
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
+            if self.is_live:
+                self.end_live()
             return func(self, *args, **kwargs)
         return wrapper
 
@@ -499,7 +508,7 @@ class RamanCameraModel:
 
     
     # ==== DISCONNECT CAMERA =====
-
+    @requires_live_stopped
     def safe_close(self):
         """
         Turn off the cooler and wait until the temperature is at least -20
@@ -521,6 +530,7 @@ class RamanCameraModel:
         self.close_cam()
         return
 
+    @requires_live_stopped
     def close_cam(self):
         if self.cam:
             self.cam.set_fan_mode("off")
@@ -572,6 +582,9 @@ class RamanCameraModel:
 
     @requires_cam_connected
     def acquisition_in_progress(self):
+        """
+        Returns tuple (frames done, acc done)
+        """
         return self.cam.acquisition_in_progress()
 
     @requires_cam_connected
@@ -579,6 +592,7 @@ class RamanCameraModel:
         return self.cam.get_acquisition_progress()
 
     @requires_cam_connected
+    @requires_live_stopped
     def start_acquisition(self):
         if self.is_live:
             self.end_live()
@@ -597,6 +611,12 @@ class RamanCameraModel:
         # print(f"Acquisition parameters after adjustment: {self.cam.get_acquisition_parameters()}")
         self.cam.clear_acquisition()    # clear the buffer
         self.cam.start_acquisition()
+        print("Acquisition started")
+        print(f"Mode: {self.cam.get_acquisition_mode()}")
+        print(f"Progress: {self.cam.get_acquisition_progress()}")
+        print(f"Trigger: {self.mca.get_trigger_mode()}")
+        frames,acc = self.cam.acquisition_in_progress()
+        print(f"In progress: (frames:{frames}acc:{acc})")
         # print(f"Acquisition parameters after start: {self.cam.get_acquisition_parameters()}")
         # self.cam.wait_for_frame(since='start', nframes=1, timeout=20.0, error_on_stopped=False)
 
@@ -604,6 +624,7 @@ class RamanCameraModel:
         # return self.cam.grab(nframes=1)[0]
 
     @requires_cam_connected
+    @requires_live_stopped
     def simple_acq(self,num_frames:int=0):
         
         if self.is_live:
@@ -816,7 +837,11 @@ class RamanCameraModel:
             num_frames = self.cam.get_fast_kinetic_mode_parameters()[0]
         print(f"num of frames: {num_frames}")
 
-        
+        print("\nAcquisition state in save_frames:")
+        print(f"Mode: {self.cam.get_acquisition_mode()}")
+        print(f"Progress: {self.cam.get_acquisition_progress()}")
+        frames,acc = self.cam.acquisition_in_progress()
+        print(f"In progress: (frames:{frames}acc:{acc})")
         self.cam.wait_for_frame(since='start', nframes=num_frames, timeout=20.0, error_on_stopped=False)
         # time.sleep(5)
         

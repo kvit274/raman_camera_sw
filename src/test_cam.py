@@ -284,6 +284,14 @@ class TestCameraModel:
     ## validation TOD0
 
     @requires_cam_connected
+    def acquisition_in_progress(self):
+        return False
+
+    @requires_cam_connected
+    def get_acquisition_progress(self):
+        return (0,0)
+
+    @requires_cam_connected
     def setup_single_mode(self):
         self.acquisition_mode = "single"
         return
