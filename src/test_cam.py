@@ -653,8 +653,9 @@ class TestCameraModel:
 
         print(f"[SAVE] Frame saved to {png_path}")
 
-    def set_save_path(self,save_path):
-        self.save_path = save_path
+    def set_save_frame_path(self,path):
+        # validation TOD0
+        self.save_path = path
     
     def set_dlls_path(self,dlls_path):
         pll.par["devices/dll/andor_sdk2"] = dlls_path

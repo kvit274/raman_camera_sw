@@ -223,7 +223,7 @@ class AccumWidget(QWidget):
         self.num_acc_input.setValidator(QIntValidator())
 
         self.cycle_time_acc_input = QLineEdit()
-        self.cycle_time_acc_input.setPlaceholderText("Aquisition Period (ms)")
+        self.cycle_time_acc_input.setPlaceholderText("Aquisition Period (s)")
         self.cycle_time_acc_input.setValidator(QDoubleValidator())
 
         layout.addWidget(label)
@@ -260,7 +260,7 @@ class KineticWidget(QWidget):
         self.num_cycle_input.setValidator(QIntValidator())
 
         self.cycle_time_input = QLineEdit()
-        self.cycle_time_input.setPlaceholderText("Acquisition Period between accum frames (ms)")
+        self.cycle_time_input.setPlaceholderText("Acquisition Period between accum frames (s)")
         self.cycle_time_input.setValidator(QDoubleValidator())
 
         self.num_acc_input = QLineEdit()
@@ -268,7 +268,7 @@ class KineticWidget(QWidget):
         self.num_acc_input.setValidator(QIntValidator())
 
         self.cycle_time_acc_input = QLineEdit()
-        self.cycle_time_acc_input.setPlaceholderText("Aquisition Period (ms)")
+        self.cycle_time_acc_input.setPlaceholderText("Aquisition Period (s)")
         self.cycle_time_acc_input.setValidator(QDoubleValidator())
 
         self.num_prescan = QLineEdit()
@@ -319,7 +319,7 @@ class FastKineticWidget(QWidget):
         self.num_acc_input.setValidator(QIntValidator())
 
         self.cycle_time_acc_input = QLineEdit()
-        self.cycle_time_acc_input.setPlaceholderText("Aquisition Period (ms)")
+        self.cycle_time_acc_input.setPlaceholderText("Aquisition Period (s)")
         self.cycle_time_acc_input.setValidator(QDoubleValidator())
 
         layout.addWidget(label)
@@ -345,7 +345,7 @@ class ContinuousWidget(QWidget):
         label = QLabel("Continuous Aquisition Mode Settings")
 
         self.cycle_time = QLineEdit()
-        self.cycle_time.setPlaceholderText("Acquisition Period (ms)")
+        self.cycle_time.setPlaceholderText("Acquisition Period (s)")
         self.cycle_time.setValidator(QDoubleValidator())
 
 

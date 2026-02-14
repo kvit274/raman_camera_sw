@@ -96,6 +96,11 @@ class RamanCameraController:
         return self.camera.busy
 
     @handle_errors
+    def set_save_frame_path(self,path):
+        self.camera.set_save_frame_path(path)
+        return
+
+    @handle_errors
     def cool_cam(self,target_temp):
         # self.camera.cool_cam(target_temp)
         self.view.disable_buttons()

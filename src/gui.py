@@ -1,5 +1,6 @@
 import atexit
 import traceback
+from pathlib import Path
 import sys
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QStackedWidget, QLineEdit, QPushButton, QFileDialog, QLabel, QComboBox, QMessageBox, QScrollArea, QGroupBox, QSizePolicy, QSplitter
 from PyQt5.QtGui import QIntValidator, QDoubleValidator, QImage, QPixmap
@@ -32,6 +33,10 @@ class MainWindow(QMainWindow):
         self.btn_disconnect_cam = QPushButton("Disconnect Camera")
         self.temp = QLabel("Temp: -- °C")
 
+        # Save path directories
+        self.save_frame_path_button = QPushButton("Save frames to:")
+        self.save_frame_path_label = QLabel("Frames saved to: ./data")
+
         # Camera settings
 
         # ROI
@@ -59,7 +64,7 @@ class MainWindow(QMainWindow):
         self.shutter_mode_input = QComboBox()
         self.shutter_mode_input.addItems(["auto", "open", "close"])
         self.tll_mode_input = QComboBox()
-        self.tll_mode_input.addItems(["0", "1"]) # ask about these
+        self.tll_mode_input.addItems(["0", "1"]) # THESE NEEDS TO BE CHANGED TO: TTL_low TTL_high for nicer ux
         self.shutter_open_time_input = QLineEdit()
         self.shutter_open_time_input.setPlaceholderText("Shutter Open Time (ms)")
         self.shutter_open_time_input.setValidator(QDoubleValidator())
@@ -105,7 +110,7 @@ class MainWindow(QMainWindow):
 
         # Exposure
         self.exposure_input = QLineEdit()
-        self.exposure_input.setPlaceholderText("Exposure time (ms)")
+        self.exposure_input.setPlaceholderText("Exposure time (s)")
         self.exposure_input.setValidator(QDoubleValidator())
 
         # Amp
@@ -123,20 +128,6 @@ class MainWindow(QMainWindow):
 
         # ==== Acquisition progress ====
         self.acquisition_state = QLabel("Acquisition in progress: False")
-
-        # Spectrometer controls
-        # self.btn_connect_spec = QPushButton("Connect Spectrometer")
-        # self.btn_disconnect_spec = QPushButton("Disconnect Spectrometer")
-        # self.wavelength_input = QLineEdit()
-        # self.wavelength_input.setPlaceholderText("Wavelength (m)")
-        # self.wavelength_input.setValidator(QDoubleValidator())
-        # self.grating_input = QLineEdit()
-        # self.grating_input.setPlaceholderText("Grating (#)")
-        # self.grating_input.setValidator(QIntValidator())
-        # self.slit_width_input = QLineEdit()
-        # self.slit_width_input.setPlaceholderText("Slit Width (m)")
-        # self.slit_width_input.setValidator(QDoubleValidator())
-        # self.btn_update_spec = QPushButton("Update Spec Settings")
 
 
         # ===== LAYOUT =====
@@ -254,6 +245,8 @@ class MainWindow(QMainWindow):
         control_layout.addWidget(self.btn_stop)
         control_layout.addWidget(self.btn_acquire)
         control_layout.addWidget(self.btn_disconnect_cam)
+        control_layout.addWidget(self.save_frame_path_button)
+        control_layout.addWidget(self.save_frame_path_label)
 
         left_layout.addLayout(control_layout)
 
@@ -416,12 +409,9 @@ class MainWindow(QMainWindow):
         self.btn_acquire.clicked.connect(self.start_acquisition)
         self.btn_disconnect_cam.clicked.connect(self.disconnect_cam)
         self.set_settings_button.clicked.connect(self.set_settings)
-        self.read_mode_input.currentTextChanged.connect(
-            self.on_read_mode_changed
-        )
-        self.acquisition_mode_input.currentTextChanged.connect(
-            self.on_acquisition_mode_changed
-        )
+        self.read_mode_input.currentTextChanged.connect(self.on_read_mode_changed)
+        self.acquisition_mode_input.currentTextChanged.connect(self.on_acquisition_mode_changed)
+        self.save_frame_path_button.clicked.connect(self.select_save_frame_path)
 
         # Live preview updates
         self.timer_live = QTimer()
@@ -452,7 +442,7 @@ class MainWindow(QMainWindow):
         self.vsspeed_input.clear()
 
         for idx,value in enumerate(vsspeeds):
-            label = f"{value} ms"
+            label = f"{value} microsec."
             self.vsspeed_input.addItem(label)
 
             # store index
@@ -629,12 +619,11 @@ class MainWindow(QMainWindow):
             # self.dlls_path_label.setText(f"DLL file: {file}")
             self.dlls_path_label.setText(os.path.basename(file))
 
-    def select_save_path(self):
-        directory = QFileDialog.getExistingDirectory(self, "Select saving directory")
-        if directory:
-            self.save_path = directory
-            self.save_path_label.setText(f"Save folder: {directory}")
-            # self.save_path.setText(os.path.dirname(directory))
+    def select_save_frame_path(self):
+        folder = QFileDialog.getExistingDirectory(self,"Select folder to save frames","",QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks)
+        if folder:
+            self.save_frame_path_label.setText(f"Frames saved to: {folder}")
+            self.controller.set_save_frame_path(Path(folder))
 
     # def run_exp(self):
     #     params = {

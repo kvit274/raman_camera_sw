@@ -450,7 +450,7 @@ class RamanCameraModel:
     @requires_cam_connected
     def set_EMCCD_gain(self,emccd_gain, advanced=False):
         self.validate_EMCCD_gain(emccd_gain,advanced)
-        self.set_EMCCD_gain(emccd_gain,advanced)
+        self.cam.set_EMCCD_gain(emccd_gain,advanced)
 
 
     # ===== TEMPERATURE CONTROL =====
@@ -895,11 +895,11 @@ class RamanCameraModel:
     #     np.savetxt(csv_path,frame,delimiter=",",fmt="%d")
 
     #     print(f"[SAVE] Frame saved to {png_path}")
-
         
 
-    def set_save_path(self,save_path):
-        self.save_path = save_path
+    def set_save_frame_path(self,path):
+        # validation TOD0
+        self.save_path = path
     
     def set_dlls_path(self,dlls_path):
         pll.par["devices/dll/andor_sdk2"] = dlls_path
