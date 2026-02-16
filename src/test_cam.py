@@ -117,7 +117,7 @@ class TestCameraModel:
         Return tuple (width, height) pixels of the camera
         Not affected by ROI
         """
-        return (128,256)
+        return (1024,256)
     
     @requires_cam_connected
     def get_data_dim(self):

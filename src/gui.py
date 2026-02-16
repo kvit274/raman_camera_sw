@@ -7,7 +7,7 @@ from PyQt5.QtGui import QIntValidator, QDoubleValidator, QImage, QPixmap
 from PyQt5.QtCore import pyqtSignal, QTimer, QThread, Qt
 import os
 from controller import RamanCameraController
-from widgets import MultiTrackWidget, SingleTrackWidget, FVBWidget, ImageWidget, RandomTrackWidget, SingleWidget, AccumWidget, KineticWidget, FastKineticWidget, ContinuousWidget, CollapsibleSection
+from widgets import MultiTrackWidget, SingleTrackWidget, FVBWidget, ImageWidget, RandomTrackWidget, SingleWidget, AccumWidget, KineticWidget, FastKineticWidget, ContinuousWidget, CollapsibleSection, QNoScrollComboBox, PreviewWidget
 from typing import Dict
 
 class MainWindow(QMainWindow):
@@ -24,7 +24,7 @@ class MainWindow(QMainWindow):
         self.controller = RamanCameraController(view=self)
 
         # Camera preview and controls
-        self.preview = QLabel("Preview")
+        self.preview = PreviewWidget()
         self.preview.setFixedSize(1024,256)  # change to camera max width/height
         self.btn_connect_cam = QPushButton("Connect Camera")
         self.btn_live = QPushButton("Start Live")
@@ -60,10 +60,13 @@ class MainWindow(QMainWindow):
         self.roi_vbin_input.setValidator(QIntValidator())
         self.btn_set_roi = QPushButton("Set ROI")
 
+        # for field in [self.roi_hstart_input,self.roi_hend_input,self.roi_vstart_input,self.roi_vend_input,self.roi_hbin_input,self.roi_vbin_input]:
+        #     field.textChanged.connect(self.update_preview_grid)
+
         # Shutter controls
-        self.shutter_mode_input = QComboBox()
+        self.shutter_mode_input = QNoScrollComboBox()
         self.shutter_mode_input.addItems(["auto", "open", "close"])
-        self.tll_mode_input = QComboBox()
+        self.tll_mode_input = QNoScrollComboBox()
         self.tll_mode_input.addItems(["0", "1"]) # THESE NEEDS TO BE CHANGED TO: TTL_low TTL_high for nicer ux
         self.shutter_open_time_input = QLineEdit()
         self.shutter_open_time_input.setPlaceholderText("Shutter Open Time (ms)")
@@ -75,22 +78,26 @@ class MainWindow(QMainWindow):
         self.shutter_current_state = QLabel("Shutter State: --")
 
         # Read mode
-        self.read_mode_input = QComboBox()
+        self.read_mode_input = QNoScrollComboBox()
         self.read_mode_input.addItems(["fvb", "image", "single_track", "multi_track", "random_track"])
         self.read_mode_stack = QStackedWidget()
+        image_widget = ImageWidget()
+        image_widget.roi_visual_changed.connect(self.update_image_preview_overlay)  # connect to draw on preview
         self.read_mode_widgets = {
             "fvb": FVBWidget(),
-            "image": ImageWidget(),
+            "image": image_widget,
             "single_track": SingleTrackWidget(),
             "multi_track": MultiTrackWidget(),
             "random_track": RandomTrackWidget()
         }
 
+        
+
         for w in self.read_mode_widgets.values():
             self.read_mode_stack.addWidget(w)
 
         # Acquisition 
-        self.acquisition_mode_input = QComboBox()
+        self.acquisition_mode_input = QNoScrollComboBox()
         self.acquisition_mode_input.addItems(["single", "accum", "kinetic", "fast_kinetic", "cont"])
         self.acquisition_mode_stack = QStackedWidget()
         self.acquisition_mode_widgets = {
@@ -105,7 +112,7 @@ class MainWindow(QMainWindow):
             self.acquisition_mode_stack.addWidget(w)
 
         # Trigger mode
-        self.trigger_mode_input = QComboBox()
+        self.trigger_mode_input = QNoScrollComboBox()
         self.trigger_mode_input.addItems(["int","ext","ext_start","ext_exp","ext_fvb_em","software","ext_charge_shift"])
 
         # Exposure
@@ -114,10 +121,10 @@ class MainWindow(QMainWindow):
         self.exposure_input.setValidator(QDoubleValidator())
 
         # Amp
-        self.amp_mode_input = QComboBox()
+        self.amp_mode_input = QNoScrollComboBox()
 
         # Vsspeed
-        self.vsspeed_input  = QComboBox()
+        self.vsspeed_input  = QNoScrollComboBox()
 
         # EMCCD gain
         self.emccd_gain_input = QLineEdit()
@@ -236,6 +243,12 @@ class MainWindow(QMainWindow):
         left_layout.setSpacing(10)
         left_layout.setContentsMargins(10, 10, 10, 10)
 
+        left_container.setStyleSheet("""
+            QWidget {
+                background-color: #2b2b2b;
+            }
+        """)
+
         # -------- Camera Control (NOT collapsible) --------
         control_layout = QVBoxLayout()
 
@@ -254,13 +267,13 @@ class MainWindow(QMainWindow):
         section_roi = CollapsibleSection("ROI")
         roi_layout = QVBoxLayout()
 
-        self.roi_preset_input = QComboBox()
+        self.roi_preset_input = QNoScrollComboBox()
         self.roi_preset_input.addItems(["1024x256", "512x128", "256x64", "128x32", "Custom"])
         roi_layout.addWidget(QLabel("ROI Presets"))
         roi_layout.addWidget(self.roi_preset_input)
 
         # Binning preset selector
-        self.bin_preset_input = QComboBox()
+        self.bin_preset_input = QNoScrollComboBox()
         self.bin_preset_input.addItems(["1x1","2x2","4x4","8x8","Custom"])
         roi_layout.addWidget(QLabel("Binning Preset"))
         roi_layout.addWidget(self.bin_preset_input)
@@ -365,10 +378,17 @@ class MainWindow(QMainWindow):
         preview_layout = QVBoxLayout(preview_container)
         preview_layout.setContentsMargins(0, 0, 0, 0)
 
-        self.preview.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.preview.setAlignment(Qt.AlignCenter)
+        preview_container.setStyleSheet("""
+            QWidget {
+                background-color: #3c3f41;
+                border-left: 1px solid #555555;
+            }
+        """)
 
-        preview_layout.addWidget(self.preview)
+        self.preview.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        # self.preview.setAlignment(Qt.AlignRight |Qt.AlignVCenter)
+
+        preview_layout.addWidget(self.preview, alignment = Qt.AlignRight)
 
         # ============================================================
         # SPLITTER (DRAGGABLE)
@@ -386,6 +406,7 @@ class MainWindow(QMainWindow):
         # ============================================================
 
         status_container = QWidget()
+        status_container.setObjectName("statusBarContainer")
         status_layout = QHBoxLayout(status_container)
         status_layout.setContentsMargins(10, 5, 10, 5)
 
@@ -393,8 +414,11 @@ class MainWindow(QMainWindow):
         self.status.setStyleSheet("color: red;")
 
         status_layout.addWidget(self.temp)
+        status_layout.addWidget(self._separator())
         status_layout.addWidget(self.shutter_current_state)
+        status_layout.addWidget(self._separator())
         status_layout.addWidget(self.acquisition_state)
+        status_layout.addWidget(self._separator())
         status_layout.addStretch()
         status_layout.addWidget(self.status)
 
@@ -502,6 +526,33 @@ class MainWindow(QMainWindow):
         num_frames, num_acc = state
         self.acquisition_state.setText(f"Acquisition in progress: {in_progress} (frames done: {num_frames}, acc_done: {num_acc})")
 
+    def update_image_preview_overlay(self,roi,show_roi,show_grid):
+        if self.read_mode_input.currentText() != "image":
+            self.preview.overlay_enabled = False
+            self.preview.set_roi(None)
+            return
+        
+        self.preview.overlay_enabled = True
+        self.preview.show_roi = show_roi
+        self.preview.show_grid = show_grid
+        self.preview.set_roi(roi)
+
+    # def update_preview_grid(self):
+    #     try:
+    #         roi = (
+    #             int(self.roi_hstart_input.text() or 0),
+    #             int(self.roi_hend_input.text() or 0),
+    #             int(self.roi_vstart_input.text() or 0),
+    #             int(self.roi_vend_input.text() or 0),
+    #             int(self.roi_hbin_input.text() or 1),
+    #             int(self.roi_vbin_input.text() or 1),
+    #         )
+    #         self.preview.set_roi(roi)
+    #     except:
+    #         pass
+
+
+
 
     # ===== Functions ======
 
@@ -536,10 +587,7 @@ class MainWindow(QMainWindow):
         if text == "Custom":
             return
 
-        if text.startswith("Full"):
-            roi_w, roi_h = full_w, full_h
-        else:
-            roi_w, roi_h = map(int, text.split("x"))
+        roi_w, roi_h = map(int, text.split("x"))
 
         # Center ROI
         hstart = (full_w - roi_w) // 2
@@ -633,13 +681,13 @@ class MainWindow(QMainWindow):
         # !!! this needs to be fixed
         # Normalize to 8-bit
         frame8, h, w = self.controller.adjust_frame(frame)
-
-        qimg = QImage(frame8.data, w, h, w, QImage.Format_Grayscale8)
-        pix = QPixmap.fromImage(qimg)
-        self.preview.setPixmap(pix.scaled(
-            self.preview.width(),
-            self.preview.height()
-        ))
+        self.preview.set_frame((frame8,h,w))
+        # qimg = QImage(frame8.data, w, h, w, QImage.Format_Grayscale8)
+        # pix = QPixmap.fromImage(qimg)
+        # self.preview.setPixmap(pix.scaled(
+        #     self.preview.width(),
+        #     self.preview.height()
+        # ))
     
     # use for preview of acquisition
     def acquisition_preview(self):
@@ -672,6 +720,13 @@ class MainWindow(QMainWindow):
         if folder:
             self.save_frame_path_label.setText(f"Frames saved to: {folder}")
             self.controller.set_save_frame_path(Path(folder))
+
+    # ==== VISUALS ====
+    def _separator(self):
+        sep = QWidget()
+        sep.setFixedWidth(1)
+        sep.setObjectName("statusSeparator")
+        return sep
 
     # def run_exp(self):
     #     params = {
@@ -826,9 +881,52 @@ def main():
     app = QApplication(sys.argv)
     app.setStyleSheet("""
         QWidget {
-            background-color: grey;
+            background-color: #3c3f41;
             color: white;
+            font-size: 13px;
         }
+
+        QWidget#sectionContent {
+            background-color: #323232;
+            border: 1px solid #444444;
+            border-radius: 4px;
+        }
+
+        QLineEdit, QComboBox, QSpinBox {
+            background-color: #2b2b2b;
+            border: 1px solid #555555;
+            border-radius: 4px;
+            padding: 4px
+        }
+
+        QLabel {
+            border: none;
+            background: transparent;
+        }
+
+        QCheckBox {
+            spacing: 6px;
+        }
+
+        QSplitter::handle {
+            background-color: #555555;
+        }
+
+        QSplitter::handle:hover {
+            background-color: #777777;
+        }
+
+        QWidget#statusBarContainer {
+            background-color: #2b2b2b;
+            border-top: 1px solid #444444;
+        }
+
+        QWidget#statusSeparator {
+            background-color: #555555;
+            margin-left: 5px;
+            margin-right: 5px;
+        }
+
     """)
 
     window = MainWindow()

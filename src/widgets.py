@@ -1,14 +1,82 @@
 import atexit
 import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QStackedWidget, QLineEdit, QPushButton, QFileDialog, QLabel, QComboBox, QMessageBox, QToolButton
-from PyQt5.QtGui import QIntValidator, QDoubleValidator, QImage, QPixmap
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QStackedWidget, QLineEdit, QPushButton, QFileDialog, QLabel, QComboBox, QMessageBox, QToolButton, QCheckBox
+from PyQt5.QtGui import QIntValidator, QDoubleValidator, QImage, QPixmap, QPainter, QPen, QColor
 from PyQt5.QtCore import pyqtSignal, QTimer, QThread, Qt
 import os
 from controller import RamanCameraController
 from typing import Dict
 
+# ==== PAINT ON PREVIEW ====
 
-# ===== READ MODE WIDGETS =====
+class PreviewWidget(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        # fixed detector size
+        self.setFixedSize(1024, 256) # ideally not hardcoded
+        self.setStyleSheet("background-color: black;")
+
+        self.overlay_enabled = False
+        self.roi = None  # (hstart, hend, vstart, vend, hbin, vbin)
+        self.frame = None
+        self.show_roi = False
+        self.show_grid = False
+
+    def set_roi(self, roi):
+        self.roi = roi
+        self.update()
+
+    def set_frame(self,frame):
+        self.frame = frame
+        self.update()
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.fillRect(self.rect(), Qt.black)
+
+        if self.frame:
+            qimg = QImage(frame8.tobytes(), w, h, w, QImage.Format_Grayscale8)
+            painter.drawImage(0,0,qimg)
+
+        if not self.overlay_enabled or not self.roi:
+            return
+
+        hstart, hend, vstart, vend, hbin, vbin = self.roi
+
+        pen = QPen(Qt.yellow)
+        pen.setWidth(1)
+        painter.setPen(pen)
+
+        # Draw ROI border
+        if self.show_roi:
+            painter.drawLine(hstart, vstart, hend - 1, vstart)
+            painter.drawLine(hstart, vend - 1, hend - 1, vend - 1)
+            painter.drawLine(hstart, vstart, hstart, vend - 1)
+            painter.drawLine(hend - 1, vstart, hend - 1, vend - 1)
+
+        # Draw binning grid
+        if self.show_grid:
+            if hbin > 1:
+                for x in range(hstart, hend, hbin):
+                    painter.drawLine(x, vstart, x, vend - 1)
+
+            if vbin > 1:
+                for y in range(vstart, vend, vbin):
+                    painter.drawLine(hstart, y, hend - 1, y)
+
+
+# ==== UNSCROLLABLE COMBO BOX ====
+
+class QNoScrollComboBox(QComboBox):
+    """
+    Avoids accidental scrolling between option
+    """
+
+    def wheelEvent(self,event):
+        event.ignore()
+
+# ==== LEFT PART LAYOUT ====
 
 class CollapsibleSection(QWidget):
     def __init__(self, title):
@@ -25,6 +93,8 @@ class CollapsibleSection(QWidget):
         self.content_area = QWidget()
         self.content_area.setVisible(False)
 
+        self.content_area.setStyleSheet("sectionContent")
+
         layout = QVBoxLayout(self)
         layout.addWidget(self.toggle_button)
         layout.addWidget(self.content_area)
@@ -39,6 +109,8 @@ class CollapsibleSection(QWidget):
 
     def setContentLayout(self, content_layout):
         self.content_area.setLayout(content_layout)
+
+# ===== READ MODE WIDGETS =====
 
 class MultiTrackWidget(QWidget):
 
@@ -126,10 +198,22 @@ class FVBWidget(QWidget):
 
 class ImageWidget(QWidget):
 
+    roi_visual_changed = pyqtSignal(tuple,bool,bool)        # roi tuple, show roi, show grid
+
     def __init__(self):
         super().__init__()
-        layout = QHBoxLayout(self)
+
+        layout = QVBoxLayout(self)
         label = QLabel("Image ROI settings")
+        layout.addWidget(label)
+
+        # ROI preset selector
+        self.roi_preset_input = QNoScrollComboBox()
+        self.roi_preset_input.addItems(["1024x256", "512x128", "256x64", "128x32", "Custom"])
+        self.show_roi_checkbox = QCheckBox("Show ROI")
+        layout.addWidget(QLabel("ROI Presets"))
+        layout.addWidget(self.show_roi_checkbox)
+        layout.addWidget(self.roi_preset_input)
 
         self.roi_hstart_input = QLineEdit()
         self.roi_hstart_input.setPlaceholderText("ROI H Start")
@@ -147,6 +231,19 @@ class ImageWidget(QWidget):
         self.roi_vend_input.setPlaceholderText("ROI V End")
         self.roi_vend_input.setValidator(QIntValidator())
 
+        layout.addWidget(self.roi_hstart_input)
+        layout.addWidget(self.roi_hend_input)
+        layout.addWidget(self.roi_vstart_input)
+        layout.addWidget(self.roi_vend_input)
+
+        # Binning preset selector
+        self.bin_preset_input = QNoScrollComboBox()
+        self.bin_preset_input.addItems(["1x1","2x2","4x4","8x8","Custom"])
+        self.show_grid_checkbox = QCheckBox("Show binning grid")
+        layout.addWidget(QLabel("Binning Preset"))
+        layout.addWidget(self.show_grid_checkbox)
+        layout.addWidget(self.bin_preset_input)
+
         self.roi_hbin_input = QLineEdit()
         self.roi_hbin_input.setPlaceholderText("ROI H Bin")
         self.roi_hbin_input.setValidator(QIntValidator())
@@ -154,14 +251,60 @@ class ImageWidget(QWidget):
         self.roi_vbin_input = QLineEdit()
         self.roi_vbin_input.setPlaceholderText("ROI V Bin")
         self.roi_vbin_input.setValidator(QIntValidator())
-
-        layout.addWidget(label)
-        layout.addWidget(self.roi_hstart_input)
-        layout.addWidget(self.roi_hend_input)
-        layout.addWidget(self.roi_vstart_input)
-        layout.addWidget(self.roi_vend_input)
+        
         layout.addWidget(self.roi_hbin_input)
         layout.addWidget(self.roi_vbin_input)
+
+        self.roi_preset_input.currentTextChanged.connect(self.apply_roi_preset)
+        self.bin_preset_input.currentTextChanged.connect(self.apply_bin_preset)
+        for field in [self.roi_hstart_input,self.roi_hend_input,self.roi_vstart_input,self.roi_vend_input,self.roi_hbin_input,self.roi_vbin_input]:
+            field.textChanged.connect(self.emit_visual_update)
+        self.show_roi_checkbox.stateChanged.connect(self.emit_visual_update)
+        self.show_grid_checkbox.stateChanged.connect(self.emit_visual_update)
+
+    def emit_visual_update(self):
+        try:
+            roi = (
+                int(self.roi_hstart_input.text() or 0),
+                int(self.roi_hend_input.text() or 0),
+                int(self.roi_vstart_input.text() or 0),
+                int(self.roi_vend_input.text() or 0),
+                int(self.roi_hbin_input.text() or 1),
+                int(self.roi_vbin_input.text() or 1)
+            )
+
+            self.roi_visual_changed.emit(roi,self.show_roi_checkbox.isChecked(),self.show_grid_checkbox.isChecked())
+        except:
+            pass
+
+    def apply_roi_preset(self, text):
+        if text == "Custom":
+            return
+
+        full_w = 1024
+        full_h = 256
+
+        roi_w, roi_h = map(int, text.split("x"))
+
+        # Center ROI
+        hstart = (full_w - roi_w) // 2
+        vstart = (full_h - roi_h) // 2
+        hend = hstart + roi_w
+        vend = vstart + roi_h
+
+        self.roi_hstart_input.setText(str(hstart))
+        self.roi_hend_input.setText(str(hend))
+        self.roi_vstart_input.setText(str(vstart))
+        self.roi_vend_input.setText(str(vend))
+
+
+    def apply_bin_preset(self, text):
+        if text == "Custom":
+            return
+
+        hbin, vbin = map(int, text.split("x"))
+        self.roi_hbin_input.setText(str(hbin))
+        self.roi_vbin_input.setText(str(vbin))
 
     def get_params(self):
         params = {"mode": "image"}
@@ -342,7 +485,7 @@ class ContinuousWidget(QWidget):
     def __init__(self):
         super().__init__()
         layout = QHBoxLayout(self)
-        label = QLabel("Continuous Aquisition Mode Settings")
+        label = QLabel("Continuous Acquisition Mode Settings")
 
         self.cycle_time = QLineEdit()
         self.cycle_time.setPlaceholderText("Acquisition Period (s)")

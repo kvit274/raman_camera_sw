@@ -6,6 +6,10 @@
 6) out aux port
 7) add on option to do advanced emccd gain by ticking the box
 8 opt) do a way to init all settings
+) frame period?
+) stop live when applying settings DONE
+
+!) roi is only used in image mode!!
 
 ?) ext_trigger ?
 ?) pausing_acquisition ?
@@ -42,6 +46,23 @@ handle the read mode params being sent to controller
 
 # they use multi track / image / fvb
 
+
+new log:
+
+============ EXCEPTION ============
+Traceback (most recent call last):
+  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 25, in wrapper
+    return func(self, *args, **kwargs)
+  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 154, in start_acquisition
+    self.camera.save_frames()
+  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 814, in save_frames
+    self.cam.wait_for_frame(since='start', nframes=num_frames, timeout=20.0, error_on_stopped=False)
+  File "C:\Users\aberdin\AppData\Roaming\Python\Python39\site-packages\pylablib\core\devio\interface.py", line 666, in wrapped
+    res=func(**all_args)
+  File "C:\Users\aberdin\AppData\Roaming\Python\Python39\site-packages\pylablib\devices\interface\camera.py", line 262, in wait_for_frame
+    raise self.TimeoutError
+pylablib.devices.Andor.base.AndorTimeoutError
+===================================
 
 
 log:
