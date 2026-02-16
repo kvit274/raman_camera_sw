@@ -35,30 +35,30 @@ class RamanCameraController:
     # ==== View methods =====
 
     # might join those below later
-    @handle_errors
-    def display_used_params(self):
-        roi = self.camera.get_roi()
-        roi_dict = {
-            'hstart': str(roi[0]),
-            'hend': "" if roi[1] is None else str(roi[1]),
-            'vstart': str(roi[2]),
-            'vend': "" if roi[3] is None else str(roi[3]),
-            'hbin': str(roi[4]),
-            'vbin': str(roi[5])
-        }
+    # @handle_errors
+    # def display_used_params(self):
+    #     roi = self.camera.get_roi()
+    #     roi_dict = {
+    #         'hstart': str(roi[0]),
+    #         'hend': "" if roi[1] is None else str(roi[1]),
+    #         'vstart': str(roi[2]),
+    #         'vend': "" if roi[3] is None else str(roi[3]),
+    #         'hbin': str(roi[4]),
+    #         'vbin': str(roi[5])
+    #     }
 
-        shutter = self.camera.get_shutter_parameters()
-        shutter_dict = {
-            'mode': str(shutter[0]),
-            'tll_mode': str(shutter[1]),
-            'open_time': str(shutter[2]),
-            'close_time': str(shutter[3])
-        }
+    #     shutter = self.camera.get_shutter_parameters()
+    #     shutter_dict = {
+    #         'mode': str(shutter[0]),
+    #         'tll_mode': str(shutter[1]),
+    #         'open_time': str(shutter[2]),
+    #         'close_time': str(shutter[3])
+    #     }
 
-        read_mode = self.camera.get_read_mode()
-        # read_mode_params = self.get_read_mode_params(read_mode)
-        self.view.display_used_params(roi=roi_dict, shutter=shutter_dict, read_mode=read_mode)
-        return
+    #     read_mode = self.camera.get_read_mode()
+    #     # read_mode_params = self.get_read_mode_params(read_mode)
+    #     self.view.display_used_params(roi=roi_dict, shutter=shutter_dict, read_mode=read_mode)
+    #     return
 
     def display_msg(self,msg:str):
         self.view.display_msg(msg)
@@ -87,7 +87,7 @@ class RamanCameraController:
         # self.camera.set_default_settings() !!
         self.load_amp_modes()
         self.load_vsspeeds()
-        self.display_used_params()
+        # self.display_used_params()
         self.display_shutter_state()
         self.cool_cam(target_temp=-85)
         return
@@ -166,9 +166,9 @@ class RamanCameraController:
     # ==== SETTINGS METHODS =====
 
     @handle_errors
-    def apply_cam_settings(self,roi,shutter,read_mode,acquisition_mode,trigger_mode,exposure,amp,vsspeed, emccd_gain):
+    def apply_cam_settings(self,shutter,read_mode,acquisition_mode,trigger_mode,exposure,amp,vsspeed, emccd_gain):
         self.stop_live()
-        self.set_roi(**roi)
+        # self.set_roi(**roi)
         self.setup_shutter(**shutter)
         self.set_read_mode(read_mode)
         self.set_acquisition_mode(acquisition_mode)
@@ -177,7 +177,7 @@ class RamanCameraController:
         self.set_amp(amp)
         self.set_vsspeed(vsspeed)
         self.set_EMCCD_gain(emccd_gain)
-        self.display_used_params()
+        # self.display_used_params()
         print(f"Printing all set settings:\n{self.camera.cam.get_settings(include=-10)}\n")
         return
 

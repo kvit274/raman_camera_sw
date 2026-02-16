@@ -36,6 +36,7 @@ class PreviewWidget(QWidget):
         painter.fillRect(self.rect(), Qt.black)
 
         if self.frame:
+            frame8, h, w = self.frame
             qimg = QImage(frame8.tobytes(), w, h, w, QImage.Format_Grayscale8)
             painter.drawImage(0,0,qimg)
 

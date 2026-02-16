@@ -11,7 +11,6 @@ from widgets import MultiTrackWidget, SingleTrackWidget, FVBWidget, ImageWidget,
 from typing import Dict
 
 class MainWindow(QMainWindow):
-    # run_clicked = pyqtSignal(dict)
 
     def __init__(self):
 
@@ -39,29 +38,6 @@ class MainWindow(QMainWindow):
 
         # Camera settings
 
-        # ROI
-        self.roi_hstart_input = QLineEdit()
-        self.roi_hstart_input.setPlaceholderText("ROI H Start")
-        self.roi_hstart_input.setValidator(QIntValidator())
-        self.roi_hend_input = QLineEdit()
-        self.roi_hend_input.setPlaceholderText("ROI H End")
-        self.roi_hend_input.setValidator(QIntValidator())
-        self.roi_vstart_input = QLineEdit()
-        self.roi_vstart_input.setPlaceholderText("ROI V Start")
-        self.roi_vstart_input.setValidator(QIntValidator())
-        self.roi_vend_input = QLineEdit()
-        self.roi_vend_input.setPlaceholderText("ROI V End")
-        self.roi_vend_input.setValidator(QIntValidator())
-        self.roi_hbin_input = QLineEdit()
-        self.roi_hbin_input.setPlaceholderText("ROI H Bin")
-        self.roi_hbin_input.setValidator(QIntValidator())
-        self.roi_vbin_input = QLineEdit()
-        self.roi_vbin_input.setPlaceholderText("ROI V Bin")
-        self.roi_vbin_input.setValidator(QIntValidator())
-        self.btn_set_roi = QPushButton("Set ROI")
-
-        # for field in [self.roi_hstart_input,self.roi_hend_input,self.roi_vstart_input,self.roi_vend_input,self.roi_hbin_input,self.roi_vbin_input]:
-        #     field.textChanged.connect(self.update_preview_grid)
 
         # Shutter controls
         self.shutter_mode_input = QNoScrollComboBox()
@@ -137,106 +113,10 @@ class MainWindow(QMainWindow):
         self.acquisition_state = QLabel("Acquisition in progress: False")
 
 
-        # ===== LAYOUT =====
+        # ===== LAYOUT (split) =====
 
-        # layout = QVBoxLayout()
-        # layout.addWidget(self.preview)
-        # layout.addWidget(self.temp)
-        # layout.addWidget(self.shutter_current_state)
-        # layout.addWidget(self.acquisition_state)
-        # layout.addWidget(self.set_settings_button)
-
-        # # Camera control buttons
-        # hl = QHBoxLayout()
-        # hl.addWidget(self.btn_connect_cam)
-        # hl.addWidget(self.btn_live)
-        # hl.addWidget(self.btn_stop)
-        # hl.addWidget(self.btn_acquire)
-        # hl.addWidget(self.btn_disconnect_cam)
-        # layout.addLayout(hl)
-
-        # # ROI controls
-        # hl_roi = QHBoxLayout()
-        # hl_roi.addWidget(QLabel("Roi:"))
-        # hl_roi.addWidget(self.roi_hstart_input)
-        # hl_roi.addWidget(self.roi_hend_input)
-        # hl_roi.addWidget(self.roi_vstart_input)
-        # hl_roi.addWidget(self.roi_vend_input)
-        # hl_roi.addWidget(self.roi_hbin_input)
-        # hl_roi.addWidget(self.roi_vbin_input)
-        # # hl_roi.addWidget(self.btn_set_roi)
-        # layout.addLayout(hl_roi)
-
-        # # Shutter controls
-        # hl_shutter = QHBoxLayout()
-        # hl_shutter.addWidget(QLabel("Shutter:"))
-        # hl_shutter.addWidget(self.shutter_mode_input)
-        # hl_shutter.addWidget(self.tll_mode_input)
-        # hl_shutter.addWidget(self.shutter_open_time_input)
-        # hl_shutter.addWidget(self.shutter_close_time_input)
-        # # hl_shutter.addWidget(self.btn_set_shutter)
-        # layout.addLayout(hl_shutter)
-
-        # # Read mode
-        # hl_read_mode = QHBoxLayout()
-        # hl_read_mode.addWidget(QLabel("Read Mode:"))
-        # hl_read_mode.addWidget(self.read_mode_input)
-        # layout.addLayout(hl_read_mode)
-
-        # layout.addWidget(self.read_mode_stack)
-
-        # # acquisition mode
-        # hl_acquisition_mode = QHBoxLayout()
-        # hl_acquisition_mode.addWidget(QLabel("Acquisition Mode:"))
-        # hl_acquisition_mode.addWidget(self.acquisition_mode_input)
-        # layout.addLayout(hl_acquisition_mode)
-
-        # layout.addWidget(self.acquisition_mode_stack)
-
-        # # trigger mode
-        # hl_trigger_mode = QHBoxLayout()
-        # hl_trigger_mode.addWidget(QLabel("Trigger Mode:"))
-        # hl_trigger_mode.addWidget(self.trigger_mode_input)
-        # layout.addLayout(hl_trigger_mode)
-
-        # # Exposure
-        # hl_exposure = QHBoxLayout()
-        # hl_exposure.addWidget(QLabel("Exposure (ms):"))
-        # hl_exposure.addWidget(self.exposure_input)
-        # layout.addLayout(hl_exposure)
-
-        # # Amp mode
-        # hl_amp_mode = QHBoxLayout()
-        # hl_amp_mode.addWidget(QLabel("Amp Mode:"))
-        # hl_amp_mode.addWidget(self.amp_mode_input)
-        # layout.addLayout(hl_amp_mode)
-
-        # # Vsspeed
-        # hl_vsspeed = QHBoxLayout()
-        # hl_vsspeed.addWidget(QLabel("Vsspeed:"))
-        # hl_vsspeed.addWidget(self.vsspeed_input)
-        # layout.addLayout(hl_vsspeed)
-
-        # # EMCCD gain
-        # hl_emccd_gain = QHBoxLayout()
-        # hl_emccd_gain.addWidget(QLabel("EMCCD gain"))
-        # hl_emccd_gain.addWidget(self.emccd_gain_input)
-        # layout.addLayout(hl_emccd_gain)
-
-        # # set central widget
-        # central = QWidget()
-        # central.setLayout(layout)
-        # self.setCentralWidget(central)
-
-
-
-        # ============================================================
-        # MAIN SPLIT LAYOUT
-        # ============================================================
-
-       # ============================================================
-        # LEFT PANEL (FULL HEIGHT)
-        # ============================================================
+        # ==== LEFT PANEL (FULL HEIGHT) ====
+        
 
         left_container = QWidget()
         left_layout = QVBoxLayout(left_container)
@@ -262,42 +142,6 @@ class MainWindow(QMainWindow):
         control_layout.addWidget(self.save_frame_path_label)
 
         left_layout.addLayout(control_layout)
-
-        # -------- ROI --------
-        section_roi = CollapsibleSection("ROI")
-        roi_layout = QVBoxLayout()
-
-        self.roi_preset_input = QNoScrollComboBox()
-        self.roi_preset_input.addItems(["1024x256", "512x128", "256x64", "128x32", "Custom"])
-        roi_layout.addWidget(QLabel("ROI Presets"))
-        roi_layout.addWidget(self.roi_preset_input)
-
-        # Binning preset selector
-        self.bin_preset_input = QNoScrollComboBox()
-        self.bin_preset_input.addItems(["1x1","2x2","4x4","8x8","Custom"])
-        roi_layout.addWidget(QLabel("Binning Preset"))
-        roi_layout.addWidget(self.bin_preset_input)
-
-        roi_layout.addWidget(QLabel("H Start"))
-        roi_layout.addWidget(self.roi_hstart_input)
-
-        roi_layout.addWidget(QLabel("H End"))
-        roi_layout.addWidget(self.roi_hend_input)
-
-        roi_layout.addWidget(QLabel("V Start"))
-        roi_layout.addWidget(self.roi_vstart_input)
-
-        roi_layout.addWidget(QLabel("V End"))
-        roi_layout.addWidget(self.roi_vend_input)
-
-        roi_layout.addWidget(QLabel("H Bin"))
-        roi_layout.addWidget(self.roi_hbin_input)
-
-        roi_layout.addWidget(QLabel("V Bin"))
-        roi_layout.addWidget(self.roi_vbin_input)
-
-        section_roi.setContentLayout(roi_layout)
-        left_layout.addWidget(section_roi)
 
         # -------- Shutter --------
         section_shutter = CollapsibleSection("Shutter")
@@ -447,8 +291,6 @@ class MainWindow(QMainWindow):
         self.read_mode_input.currentTextChanged.connect(self.on_read_mode_changed)
         self.acquisition_mode_input.currentTextChanged.connect(self.on_acquisition_mode_changed)
         self.save_frame_path_button.clicked.connect(self.select_save_frame_path)
-        self.roi_preset_input.currentTextChanged.connect(self.apply_roi_preset)
-        self.bin_preset_input.currentTextChanged.connect(self.apply_bin_preset)
 
         # Live preview updates
         self.timer_live = QTimer()
@@ -493,22 +335,22 @@ class MainWindow(QMainWindow):
         widget = self.acquisition_mode_widgets[mode]
         self.acquisition_mode_stack.setCurrentWidget(widget)
 
-    def display_used_params(self, roi:Dict[str,str], shutter:Dict[str,str], read_mode:str):
-        """Display used parameters in the GUI fields."""
+    # def display_used_params(self, roi:Dict[str,str], shutter:Dict[str,str], read_mode:str):
+    #     """Display used parameters in the GUI fields."""
 
-        self.roi_hstart_input.setText(roi["hstart"])
-        self.roi_hend_input.setText(roi["hend"])
-        self.roi_vstart_input.setText(roi["vstart"])
-        self.roi_vend_input.setText(roi["vend"])
-        self.roi_hbin_input.setText(roi["hbin"])
-        self.roi_vbin_input.setText(roi["vbin"])
+    #     self.roi_hstart_input.setText(roi["hstart"])
+    #     self.roi_hend_input.setText(roi["hend"])
+    #     self.roi_vstart_input.setText(roi["vstart"])
+    #     self.roi_vend_input.setText(roi["vend"])
+    #     self.roi_hbin_input.setText(roi["hbin"])
+    #     self.roi_vbin_input.setText(roi["vbin"])
 
-        self.shutter_mode_input.setCurrentText(shutter["mode"])
-        self.tll_mode_input.setCurrentText(shutter["tll_mode"])
-        self.shutter_open_time_input.setText(shutter["open_time"])
-        self.shutter_close_time_input.setText(shutter["close_time"])
+    #     self.shutter_mode_input.setCurrentText(shutter["mode"])
+    #     self.tll_mode_input.setCurrentText(shutter["tll_mode"])
+    #     self.shutter_open_time_input.setText(shutter["open_time"])
+    #     self.shutter_close_time_input.setText(shutter["close_time"])
 
-        self.read_mode_input.setCurrentText(read_mode)
+    #     self.read_mode_input.setCurrentText(read_mode)
 
 
     def display_msg(self, message:str):
@@ -536,22 +378,6 @@ class MainWindow(QMainWindow):
         self.preview.show_roi = show_roi
         self.preview.show_grid = show_grid
         self.preview.set_roi(roi)
-
-    # def update_preview_grid(self):
-    #     try:
-    #         roi = (
-    #             int(self.roi_hstart_input.text() or 0),
-    #             int(self.roi_hend_input.text() or 0),
-    #             int(self.roi_vstart_input.text() or 0),
-    #             int(self.roi_vend_input.text() or 0),
-    #             int(self.roi_hbin_input.text() or 1),
-    #             int(self.roi_vbin_input.text() or 1),
-    #         )
-    #         self.preview.set_roi(roi)
-    #     except:
-    #         pass
-
-
 
 
     # ===== Functions ======
@@ -611,14 +437,14 @@ class MainWindow(QMainWindow):
 
 
     def set_settings(self):
-        roi = {
-            "hstart": self.roi_hstart_input.text(),
-            "hend": self.roi_hend_input.text(),
-            "vstart": self.roi_vstart_input.text(),
-            "vend": self.roi_vend_input.text(),
-            "hbin": self.roi_hbin_input.text(),
-            "vbin": self.roi_vbin_input.text()
-        }
+        # roi = {
+        #     "hstart": self.roi_hstart_input.text(),
+        #     "hend": self.roi_hend_input.text(),
+        #     "vstart": self.roi_vstart_input.text(),
+        #     "vend": self.roi_vend_input.text(),
+        #     "hbin": self.roi_hbin_input.text(),
+        #     "vbin": self.roi_vbin_input.text()
+        # }
 
         shutter = {
             "mode": self.shutter_mode_input.currentText(),
@@ -657,7 +483,7 @@ class MainWindow(QMainWindow):
 
         emccd_gain = self.emccd_gain_input.text()
 
-        self.controller.apply_cam_settings(roi, shutter, read_mode_params, acquisition_mode_params, trigger_mode, exposure, amp, vsspeed, emccd_gain)
+        self.controller.apply_cam_settings(shutter, read_mode_params, acquisition_mode_params, trigger_mode, exposure, amp, vsspeed, emccd_gain)
 
     def start_live(self):
         self.controller.start_live()
