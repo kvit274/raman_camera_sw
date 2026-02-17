@@ -7,7 +7,7 @@ from PyQt5.QtGui import QIntValidator, QDoubleValidator, QImage, QPixmap
 from PyQt5.QtCore import pyqtSignal, QTimer, QThread, Qt
 import os
 from controller import RamanCameraController
-from widgets import MultiTrackWidget, SingleTrackWidget, FVBWidget, ImageWidget, RandomTrackWidget, SingleWidget, AccumWidget, KineticWidget, FastKineticWidget, ContinuousWidget, CollapsibleSection, QNoScrollComboBox, PreviewWidget
+from widgets import MultiTrackWidget, SingleTrackWidget, FVBWidget, ImageWidget, RandomTrackWidget, SingleWidget, AccumWidget, KineticWidget, FastKineticWidget, ContinuousWidget, CollapsibleSection, QNoScrollComboBox, PreviewWidget, RulerContainer
 from typing import Dict
 
 class MainWindow(QMainWindow):
@@ -25,6 +25,7 @@ class MainWindow(QMainWindow):
         # Camera preview and controls
         self.preview = PreviewWidget()
         self.preview.setFixedSize(1024,256)  # change to camera max width/height
+        self.preview_container = RulerContainer(self.preview)
         self.btn_connect_cam = QPushButton("Connect Camera")
         self.btn_live = QPushButton("Start Live")
         self.btn_stop = QPushButton("Stop Live")
@@ -56,7 +57,9 @@ class MainWindow(QMainWindow):
         # Read mode
         self.read_mode_input = QNoScrollComboBox()
         self.read_mode_input.addItems(["fvb", "image", "single_track", "multi_track", "random_track"])
+        self.read_mode_input.setCurrentText("image")
         self.read_mode_stack = QStackedWidget()
+        self.read_mode_stack.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
         image_widget = ImageWidget()
         image_widget.roi_visual_changed.connect(self.update_image_preview_overlay)  # connect to draw on preview
         self.read_mode_widgets = {
@@ -232,7 +235,8 @@ class MainWindow(QMainWindow):
         self.preview.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         # self.preview.setAlignment(Qt.AlignRight |Qt.AlignVCenter)
 
-        preview_layout.addWidget(self.preview, alignment = Qt.AlignRight)
+        # preview_layout.addWidget(self.preview, alignment = Qt.AlignRight)
+        preview_layout.addWidget(self.preview_container, alignment = Qt.AlignRight)
 
         # ============================================================
         # SPLITTER (DRAGGABLE)
@@ -289,7 +293,9 @@ class MainWindow(QMainWindow):
         self.btn_disconnect_cam.clicked.connect(self.disconnect_cam)
         self.set_settings_button.clicked.connect(self.set_settings)
         self.read_mode_input.currentTextChanged.connect(self.on_read_mode_changed)
+        self.on_read_mode_changed("image")      # update ui for image
         self.acquisition_mode_input.currentTextChanged.connect(self.on_acquisition_mode_changed)
+        self.on_acquisition_mode_changed("single")
         self.save_frame_path_button.clicked.connect(self.select_save_frame_path)
 
         # Live preview updates
@@ -331,9 +337,13 @@ class MainWindow(QMainWindow):
         widget = self.read_mode_widgets[mode]
         self.read_mode_stack.setCurrentWidget(widget)
 
+        self.read_mode_stack.setFixedHeight(widget.sizeHint().height())
+
     def on_acquisition_mode_changed(self,mode):
         widget = self.acquisition_mode_widgets[mode]
         self.acquisition_mode_stack.setCurrentWidget(widget)
+
+        self.acquisition_mode_stack.setFixedHeight(widget.sizeHint().height())
 
     # def display_used_params(self, roi:Dict[str,str], shutter:Dict[str,str], read_mode:str):
     #     """Display used parameters in the GUI fields."""
@@ -756,11 +766,17 @@ def main():
             margin-right: 5px;
         }
 
+        QWidget#rulerContainer {
+            background-color: #555555;
+        }
+
     """)
 
     window = MainWindow()
     window.move(0,0)
     window.showMaximized()
+    # QTimer.singleShot(0,lambda: self.on_read_mode_changed(self.read_mode_input.currentText()))  # sinlge shot to update ui selections on loading
+    # QTimer.singleShot(0,lambda: self.on_acquisition_mode_changed(self.acquisition_mode_input.currentText()))  # sinlge shot to update ui selections on loading
     sys.exit(app.exec_())
 
 if __name__ == "__main__":

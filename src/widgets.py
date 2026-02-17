@@ -15,19 +15,8 @@ class PreviewWidget(QWidget):
     def __init__(self):
         super().__init__()
 
-        self.detector_w = 1024
-        self.detector_h = 256
-
-        self.ruler_top = 25
-        self.ruler_left = 40
-        # self.padding = 20
-        self.margin_right = 20
-        self.margin_bottom = 20
-
-        self.setMinimumSize(
-            self.detector_w + self.ruler_left + self.margin_right,
-            self.detector_h + self.ruler_top + self.margin_bottom
-        )
+        self.setFixedSize(1024,256)  # ideally not hardcoded
+        self.setStyleSheet("background-color:black;")
 
         self.overlay_enabled = False
         self.roi = None
@@ -47,18 +36,11 @@ class PreviewWidget(QWidget):
         painter = QPainter(self)
         painter.fillRect(self.rect(), Qt.black)
 
-        image_rect = QRect(
-            self.ruler_left,
-            self.ruler_top,
-            self.width() - self.ruler_left - self.margin_right,
-            self.height() - self.ruler_top - self.margin_bottom
-        )
-
         # Draw frame
         if self.frame:
             frame8, h, w = self.frame
             qimg = QImage(frame8.tobytes(), w, h, w, QImage.Format_Grayscale8)
-            painter.drawImage(image_rect, qimg)
+            painter.drawImage(0,0, qimg)
 
         # Draw ROI + grid (same logic, but inside image_rect)
         if self.overlay_enabled and self.roi:
@@ -69,81 +51,76 @@ class PreviewWidget(QWidget):
             painter.setPen(pen)
 
             if self.show_roi:
-                painter.drawRect(hstart, vstart,
-                                hend - hstart,
-                                vend - vstart)
+                painter.drawLine(hstart,vstart,hend-1,vstart)
+                painter.drawLine(hstart,vend-1,hend-1,vend-1)
+                painter.drawLine(hstart,vstart,hstart,vend-1)
+                painter.drawLine(hend-1,vstart,hend-1,vend-1)
 
             if self.show_grid:
-                for x in range(hstart, hend, hbin):
-                    painter.drawLine(x, vstart, x, vend)
+                if hbin > 1:
+                    for x in range(hstart, hend, hbin):
+                        painter.drawLine(x, vstart, x, vend-1)
 
-                for y in range(vstart, vend, vbin):
-                    painter.drawLine(hstart, y, hend, y)
+                if vbin > 1:
+                    for y in range(vstart, vend, vbin):
+                        painter.drawLine(hstart, y, hend-1, y)
 
-        # === DRAW RULERS ===
-        self.draw_rulers(painter, image_rect)
-    
-    def draw_rulers(self, painter, image_rect):
+# ==== Draw Rulers ====
+
+class RulerContainer(QWidget):
+    def __init__(self, preview_widget):
+        super().__init__()
+
+        self.preview = preview_widget
+
+        self.ruler_left = 60
+        self.ruler_top = 40
+        self.margin_right = 20
+        self.margin_bottom = 20
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(
+            self.ruler_left,
+            self.ruler_top,
+            self.margin_right,
+            self.margin_bottom
+        )
+        layout.addWidget(self.preview)
+
+        self.setObjectName("rulerContainer")
+
+    def paintEvent(self, event):
+        super().paintEvent(event)
+
+        painter = QPainter(self)
         painter.setPen(QPen(Qt.white))
 
-        # ------------------ X AXIS (TOP) ------------------
+        image_rect = self.preview.geometry()
+
+        detector_w = 1024
+        detector_h = 256
+
+        # ---------- X axis (TOP) ----------
         step_x = 256
-
-        for x in range(0, self.detector_w + 1, step_x):
+        for x in range(0, detector_w + 1, step_x):
             px = image_rect.left() + int(
-                x * image_rect.width() / self.detector_w
+                x * image_rect.width() / detector_w
             )
 
-            painter.drawLine(
-                px,
-                image_rect.top() - 6,
-                px,
-                image_rect.top()
-            )
+            painter.drawLine(px, image_rect.top() - 6, px, image_rect.top())
+            painter.drawText(px - 15, image_rect.top() - 10, str(x))
 
-            text = str(x)
-
-            # Prevent right clipping
-            text_width = painter.fontMetrics().horizontalAdvance(text)
-            text_x = px - text_width // 2
-
-            if x == self.detector_w:
-                text_x = px - text_width  # anchor right
-
-            painter.drawText(
-                text_x,
-                image_rect.top() - 10,
-                text
-            )
-
-        # ------------------ Y AXIS (LEFT) ------------------
+        # ---------- Y axis (LEFT) ----------
         step_y = 64
-
-        for y in range(0, self.detector_h + 1, step_y):
+        for y in range(0, detector_h + 1, step_y):
             py = image_rect.top() + int(
-                y * image_rect.height() / self.detector_h
+                y * image_rect.height() / detector_h
             )
 
-            painter.drawLine(
-                image_rect.left() - 6,
-                py,
-                image_rect.left(),
-                py
-            )
+            painter.drawLine(image_rect.left() - 6, py,
+                            image_rect.left(), py)
 
-            text = str(y)
-
-            text_width = painter.fontMetrics().horizontalAdvance(text)
-            text_x = image_rect.left() - 10 - text_width
-
-            if y == self.detector_h:
-                py -= 4  # lift slightly so not clipped
-
-            painter.drawText(
-                text_x,
-                py + 5,
-                text
-            )
+            painter.drawText(5, py + 5, str(y))
 
 
 # ==== UNSCROLLABLE COMBO BOX ====
@@ -290,6 +267,7 @@ class ImageWidget(QWidget):
         # ROI preset selector
         self.roi_preset_input = QNoScrollComboBox()
         self.roi_preset_input.addItems(["1024x256", "512x128", "256x64", "128x32", "Custom"])
+        self.roi_preset_input.setCurrentText("Custom")
         self.show_roi_checkbox = QCheckBox("Show ROI")
         layout.addWidget(QLabel("ROI Presets"))
         layout.addWidget(self.show_roi_checkbox)
@@ -319,6 +297,7 @@ class ImageWidget(QWidget):
         # Binning preset selector
         self.bin_preset_input = QNoScrollComboBox()
         self.bin_preset_input.addItems(["1x1","2x2","4x4","8x8","Custom"])
+        self.bin_preset_input.setCurrentText("Custom")
         self.show_grid_checkbox = QCheckBox("Show binning grid")
         layout.addWidget(QLabel("Binning Preset"))
         layout.addWidget(self.show_grid_checkbox)

@@ -19,6 +19,7 @@
 ?) pausing_acquisition ?
 
 ) acquisition should block live preview
+?) set_frame_info_format might be useful?
 
 # trigger mode is internal by default
 

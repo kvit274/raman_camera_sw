@@ -73,6 +73,10 @@ class RamanCameraModel:
             return
         except:
             raise ConnectionError("Could not connect to device")
+
+    @requires_cam_connected
+    def enable_frame_transfer_mode(self,mode:bool=True):
+        self.cam.enable_frame_transfer_mode(mode)
     
     @requires_cam_connected
     def get_cam_params(self,save_path=Path("./cam_params.txt")):

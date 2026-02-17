@@ -67,6 +67,9 @@ class TestCameraModel:
         self.save_path = Path("./data")
         self.save_path.mkdir(exist_ok=True)
 
+        # transfer frame mode:
+        self.enable_frame_transfer_mode = None
+
 
     # ==== DECORATORS =====
 
@@ -92,6 +95,10 @@ class TestCameraModel:
 
         # hend, vend = self.detect_cam_size()
         # self.set_roi(hstart=0, hend=hend, vstart=0, vend=vend, hbin=1, vbin=1)
+
+    @requires_cam_connected
+    def enable_frame_transfer_mode(self,mode:bool=True):
+        self.enable_frame_transfer_mode = mode
 
     @requires_cam_connected
     def get_cam_params(self,save_path=Path("./cam_params.txt")):

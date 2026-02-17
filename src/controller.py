@@ -10,8 +10,8 @@ class RamanCameraController:
 
     def __init__(self,view):
         self.view = view
-        self.camera = RamanCameraModel()
-        # self.camera = TestCameraModel()
+        # self.camera = RamanCameraModel()
+        self.camera = TestCameraModel()
         self.spec = TestSpectrometerModel()
 
 
@@ -414,6 +414,7 @@ class RamanCameraController:
         print(f"Trying to set read mode in controller to: {mode}")
         
         dispatch = {
+            "fvb": self.set_read_mode,
             "multi_track": self.setup_multi_track_mode,
             "single_track": self.setup_single_track_mode,
             "random_track": self.setup_random_track_mode,
@@ -428,6 +429,10 @@ class RamanCameraController:
         handler(read_mode)
         # self.camera.set_read_mode(read_mode)
         return
+
+    @handle_errors
+    def set_read_mode(self,read_mode):
+        self.camera.set_read_mode(mode)
 
     @handle_errors
     def setup_single_track_mode(self,params):
