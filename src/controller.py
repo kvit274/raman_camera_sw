@@ -83,6 +83,7 @@ class RamanCameraController:
     @handle_errors
     def connect_cam(self):
         self.camera.connect_cam()
+        self.camera.enable_frame_transfer_mode(True)    # MUST BE MOVED SOMEWHERE LATER
         # self.camera.get_cam_params()     # save cam defaults for later
         # self.camera.set_default_settings() !!
         self.load_amp_modes()

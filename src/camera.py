@@ -567,7 +567,7 @@ class RamanCameraModel:
     def end_live(self):
         if not self.is_live:
             return
-        # self.cam.stop_acquisition()
+        self.cam.stop_acquisition()
         self.is_live=False
         print("Live mode stopped")
         # if self.acquisiton_settings:
@@ -604,18 +604,22 @@ class RamanCameraModel:
         if self.is_live:
             self.end_live()
 
-        # print(f"Acquisition parameters: {self.cam.get_acquisition_parameters()}")
-        # acquisition_mode = self.cam.get_acquisition_mode()
-        # num_frames = 1
-        # if acquisition_mode == "accum":
-        #     num_frames = self.cam.get_accum_mode_parameters()[0]
-        # if acquisition_mode == "kinetic":
-        #     num_frames = self.cam.get_kinetic_mode_parameters()[2]
-        # if acquisition_mode == "fast_kinetic":
-        #     num_frames = self.cam.get_fast_kinetic_mode_parameters()[0]
-        # print(f"Number of frames: {num_frames}")
-        # self.cam.setup_acquisition(mode=acquisition_mode,nframes=num_frames)
-        # print(f"Acquisition parameters after adjustment: {self.cam.get_acquisition_parameters()}")
+        print(f"Acquisition parameters: {self.cam.get_acquisition_parameters()}")
+        acquisition_mode = self.cam.get_acquisition_mode()
+        num_frames = 1
+        if acquisition_mode == "accum":
+            num_frames = self.cam.get_accum_mode_parameters()[0]
+        if acquisition_mode == "kinetic":
+            num_frames = self.cam.get_kinetic_mode_parameters()[0]
+        if acquisition_mode == "fast_kinetic":
+            num_frames = self.cam.get_fast_kinetic_mode_parameters()[0]
+        print(f"Number of frames: {num_frames}")
+        self.cam.setup_acquisition(mode=acquisition_mode,nframes=num_frames)
+        print(f"Acquisition parameters after adjustment: {self.cam.get_acquisition_parameters()}")
+
+
+        if self.cam.acquisition_in_progress():
+            self.cam.stop_acquisition()      # stop acquisition if it is already in progress, just in case
         self.cam.clear_acquisition()    # clear the buffer
         self.cam.start_acquisition()
         print("Acquisition started")
@@ -845,7 +849,16 @@ class RamanCameraModel:
         print(f"num of frames: {num_frames}")
 
         print("\nAcquisition state in save_frames before wait:")
+        print(f"Is acquisition setup: {self.cam.is_acquisition_setup()}")
+        print(f"Camera status: {self.cam.get_status()}")
+        print(f"Buffer size: {self.cam.get_buffer_size()}")
+        exposure,frame_period
+        print(f"Frame timings: (exposure: {exposure}, frame_period: {frame_period})")
+        print(f"Readout time: {self.cam.get_readout_time()}")
+        acquired,unread,skipped,size = self.cam.get_frames_status()
+        print(f"Frames status: (acquired: {acquired}, unread: {unread}, skipped: {skipped}, buffer_size: {size})")
         print(f"Mode: {self.cam.get_acquisition_mode()}")
+        print(f"Trigger: {self.cam.get_trigger_mode()}")
         print(f"In progress: {self.cam.acquisition_in_progress()}")
         frames,acc = self.cam.get_acquisition_progress()
         print(f"Progress: (frames:{frames}acc:{acc})")
@@ -859,13 +872,13 @@ class RamanCameraModel:
         # else:
         #     print(f"Found {new_frames_range[0]}-{new_frames_range[1]} newmages")
         frames = self.cam.read_multiple_images(rng=None,peek=False,missing_frame="skip",return_info=False,return_rng=False)
+        self.cam.stop_acquisition()   # stop acquisition after reading the frames, just in case. THIS SHOULD BE MOVED
 
         print("\nAcquisition state in save_frames after wait:")
         print(f"Mode: {self.cam.get_acquisition_mode()}")
         print(f"In progress: {self.cam.acquisition_in_progress()}")
         frames,acc = self.cam.get_acquisition_progress()
         print(f"Progress: (frames:{frames}acc:{acc})")
-        self.cam.wait_for_frame(since='start', nframes=num_frames, timeout=20.0, error_on_stopped=False)
 
         if frames is None:
             raise RuntimeError("No images in the buffer could be obtained")
