@@ -9,6 +9,10 @@
 ) frame period?
 ) stop live when applying settings DONE
 
+
+!) fix the workflow after connecting to camera
+!) include fvb in read mode
+
 !) roi is only used in image mode!!
 
 ?) ext_trigger ?

@@ -698,9 +698,9 @@ class TestCameraModel:
         return (frame8,h,w)
 
     def generate_fake_frame(self):
-        base = np.linspace(0, 1, 256)
-        gradient = np.tile(base, (128, 1))
-        noise = np.random.normal(0, 0.05, size=(128, 256))
+        base = np.linspace(0, 1, 1024)
+        gradient = np.tile(base, (256, 1))
+        noise = np.random.normal(0, 0.05, size=(256, 1024))
         frame = gradient + noise
         frame = np.clip(frame, 0, 1)
         return frame.astype(np.float32)

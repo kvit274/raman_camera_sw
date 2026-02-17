@@ -18,8 +18,7 @@ class RamanCameraModel:
         self.busy = False
 
         # acquisiton settings
-        self.acquisiton_settings = None
-
+        self.acquisition_settings = None
         # default paths:
         self.save_path_cvs = Path("./data/cvs")
         self.save_path_cvs.mkdir(exist_ok=True)
@@ -158,6 +157,14 @@ class RamanCameraModel:
         Return last used settings before the live preview
         """
         return self.acquisition_settings
+
+    @requires_cam_connected
+    def set_acquisition_settings(self):
+        """
+        Save acquisition settings from the camera
+        """
+        self.acquisition_settings = self.cam.get_settings(include=-10)
+        return
 
     # TOD0!!
     @requires_cam_connected
@@ -399,7 +406,7 @@ class RamanCameraModel:
     @requires_cam_connected
     def setup_cont_mode(self, cycle_time:Optional[float]=0):
         # validation?
-        self.cam.setup_continuous_mode(cycle_time)
+        self.cam.setup_cont_mode(cycle_time)
         return
     
     # ===== TRIGGER MODE =====
@@ -472,7 +479,7 @@ class RamanCameraModel:
             temp = round(self.cam.get_temperature(),2)
             print(f"Cooling: {temp}, Status: {self.cam.get_temperature_status()}")
 
-            if temp <= target_temp+10:      # GET RID OF 10!!
+            if temp <= target_temp+20:      # GET RID OF 10!!
                 print(f"Temperature stabilized, Status: {self.cam.get_temperature_status()}")
                 break
             # if time.time() - t0 > time_out:
@@ -551,7 +558,7 @@ class RamanCameraModel:
     
         # self.cam.set_exposure(0.03)     # update fast
         # self.cam.start_acquisition(mode="cont")     # sets acquisition mode to "run till abort"
-        self.acquisiton_settings = self.cam.get_settings(include=-10)
+        self.set_acquisition_settings()
         self.is_live = True  
         print("Live mode started")
         return
@@ -613,10 +620,10 @@ class RamanCameraModel:
         self.cam.start_acquisition()
         print("Acquisition started")
         print(f"Mode: {self.cam.get_acquisition_mode()}")
-        print(f"Progress: {self.cam.get_acquisition_progress()}")
-        print(f"Trigger: {self.mca.get_trigger_mode()}")
-        frames,acc = self.cam.acquisition_in_progress()
-        print(f"In progress: (frames:{frames}acc:{acc})")
+        print(f"In progress: {self.cam.acquisition_in_progress()}")
+        print(f"Trigger: {self.cam.get_trigger_mode()}")
+        frames,acc = self.cam.get_acquisition_progress()
+        print(f"Progress: (frames:{frames}acc:{acc})")
         # print(f"Acquisition parameters after start: {self.cam.get_acquisition_parameters()}")
         # self.cam.wait_for_frame(since='start', nframes=1, timeout=20.0, error_on_stopped=False)
 
@@ -732,7 +739,7 @@ class RamanCameraModel:
         Validate shutter settings before applying them.
         Raises ValueError if any parameter is invalid.
         """
-        valid_modes = ["auto", "open", "close"]
+        valid_modes = ["auto", "open", "closed"]
         if mode not in valid_modes:
             raise ValueError(f"Invalid shutter mode: {mode}. Valid modes are: {valid_modes}.")
         
@@ -837,11 +844,11 @@ class RamanCameraModel:
             num_frames = self.cam.get_fast_kinetic_mode_parameters()[0]
         print(f"num of frames: {num_frames}")
 
-        print("\nAcquisition state in save_frames:")
+        print("\nAcquisition state in save_frames before wait:")
         print(f"Mode: {self.cam.get_acquisition_mode()}")
-        print(f"Progress: {self.cam.get_acquisition_progress()}")
-        frames,acc = self.cam.acquisition_in_progress()
-        print(f"In progress: (frames:{frames}acc:{acc})")
+        print(f"In progress: {self.cam.acquisition_in_progress()}")
+        frames,acc = self.cam.get_acquisition_progress()
+        print(f"Progress: (frames:{frames}acc:{acc})")
         self.cam.wait_for_frame(since='start', nframes=num_frames, timeout=20.0, error_on_stopped=False)
         # time.sleep(5)
         
@@ -850,9 +857,15 @@ class RamanCameraModel:
         #     print("No new images found :(")
         #     return
         # else:
-        #     print(f"Found {new_frames_range[0]}-{new_frames_range[1]} new images")
-        
+        #     print(f"Found {new_frames_range[0]}-{new_frames_range[1]} newmages")
         frames = self.cam.read_multiple_images(rng=None,peek=False,missing_frame="skip",return_info=False,return_rng=False)
+
+        print("\nAcquisition state in save_frames after wait:")
+        print(f"Mode: {self.cam.get_acquisition_mode()}")
+        print(f"In progress: {self.cam.acquisition_in_progress()}")
+        frames,acc = self.cam.get_acquisition_progress()
+        print(f"Progress: (frames:{frames}acc:{acc})")
+        self.cam.wait_for_frame(since='start', nframes=num_frames, timeout=20.0, error_on_stopped=False)
 
         if frames is None:
             raise RuntimeError("No images in the buffer could be obtained")

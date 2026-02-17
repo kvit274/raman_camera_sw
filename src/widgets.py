@@ -2,23 +2,35 @@ import atexit
 import sys
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QStackedWidget, QLineEdit, QPushButton, QFileDialog, QLabel, QComboBox, QMessageBox, QToolButton, QCheckBox
 from PyQt5.QtGui import QIntValidator, QDoubleValidator, QImage, QPixmap, QPainter, QPen, QColor
-from PyQt5.QtCore import pyqtSignal, QTimer, QThread, Qt
+from PyQt5.QtCore import pyqtSignal, QTimer, QThread, Qt, QRectF, QRect, QSize, QEvent
+import pyqtgraph as pg
 import os
 from controller import RamanCameraController
 from typing import Dict
 
 # ==== PAINT ON PREVIEW ====
 
+
 class PreviewWidget(QWidget):
     def __init__(self):
         super().__init__()
 
-        # fixed detector size
-        self.setFixedSize(1024, 256) # ideally not hardcoded
-        self.setStyleSheet("background-color: black;")
+        self.detector_w = 1024
+        self.detector_h = 256
+
+        self.ruler_top = 25
+        self.ruler_left = 40
+        # self.padding = 20
+        self.margin_right = 20
+        self.margin_bottom = 20
+
+        self.setMinimumSize(
+            self.detector_w + self.ruler_left + self.margin_right,
+            self.detector_h + self.ruler_top + self.margin_bottom
+        )
 
         self.overlay_enabled = False
-        self.roi = None  # (hstart, hend, vstart, vend, hbin, vbin)
+        self.roi = None
         self.frame = None
         self.show_roi = False
         self.show_grid = False
@@ -35,36 +47,103 @@ class PreviewWidget(QWidget):
         painter = QPainter(self)
         painter.fillRect(self.rect(), Qt.black)
 
+        image_rect = QRect(
+            self.ruler_left,
+            self.ruler_top,
+            self.width() - self.ruler_left - self.margin_right,
+            self.height() - self.ruler_top - self.margin_bottom
+        )
+
+        # Draw frame
         if self.frame:
             frame8, h, w = self.frame
             qimg = QImage(frame8.tobytes(), w, h, w, QImage.Format_Grayscale8)
-            painter.drawImage(0,0,qimg)
+            painter.drawImage(image_rect, qimg)
 
-        if not self.overlay_enabled or not self.roi:
-            return
+        # Draw ROI + grid (same logic, but inside image_rect)
+        if self.overlay_enabled and self.roi:
+            hstart, hend, vstart, vend, hbin, vbin = self.roi
 
-        hstart, hend, vstart, vend, hbin, vbin = self.roi
+            pen = QPen(Qt.yellow)
+            pen.setWidth(1)
+            painter.setPen(pen)
 
-        pen = QPen(Qt.yellow)
-        pen.setWidth(1)
-        painter.setPen(pen)
+            if self.show_roi:
+                painter.drawRect(hstart, vstart,
+                                hend - hstart,
+                                vend - vstart)
 
-        # Draw ROI border
-        if self.show_roi:
-            painter.drawLine(hstart, vstart, hend - 1, vstart)
-            painter.drawLine(hstart, vend - 1, hend - 1, vend - 1)
-            painter.drawLine(hstart, vstart, hstart, vend - 1)
-            painter.drawLine(hend - 1, vstart, hend - 1, vend - 1)
-
-        # Draw binning grid
-        if self.show_grid:
-            if hbin > 1:
+            if self.show_grid:
                 for x in range(hstart, hend, hbin):
-                    painter.drawLine(x, vstart, x, vend - 1)
+                    painter.drawLine(x, vstart, x, vend)
 
-            if vbin > 1:
                 for y in range(vstart, vend, vbin):
-                    painter.drawLine(hstart, y, hend - 1, y)
+                    painter.drawLine(hstart, y, hend, y)
+
+        # === DRAW RULERS ===
+        self.draw_rulers(painter, image_rect)
+    
+    def draw_rulers(self, painter, image_rect):
+        painter.setPen(QPen(Qt.white))
+
+        # ------------------ X AXIS (TOP) ------------------
+        step_x = 256
+
+        for x in range(0, self.detector_w + 1, step_x):
+            px = image_rect.left() + int(
+                x * image_rect.width() / self.detector_w
+            )
+
+            painter.drawLine(
+                px,
+                image_rect.top() - 6,
+                px,
+                image_rect.top()
+            )
+
+            text = str(x)
+
+            # Prevent right clipping
+            text_width = painter.fontMetrics().horizontalAdvance(text)
+            text_x = px - text_width // 2
+
+            if x == self.detector_w:
+                text_x = px - text_width  # anchor right
+
+            painter.drawText(
+                text_x,
+                image_rect.top() - 10,
+                text
+            )
+
+        # ------------------ Y AXIS (LEFT) ------------------
+        step_y = 64
+
+        for y in range(0, self.detector_h + 1, step_y):
+            py = image_rect.top() + int(
+                y * image_rect.height() / self.detector_h
+            )
+
+            painter.drawLine(
+                image_rect.left() - 6,
+                py,
+                image_rect.left(),
+                py
+            )
+
+            text = str(y)
+
+            text_width = painter.fontMetrics().horizontalAdvance(text)
+            text_x = image_rect.left() - 10 - text_width
+
+            if y == self.detector_h:
+                py -= 4  # lift slightly so not clipped
+
+            painter.drawText(
+                text_x,
+                py + 5,
+                text
+            )
 
 
 # ==== UNSCROLLABLE COMBO BOX ====

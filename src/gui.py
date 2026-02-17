@@ -41,7 +41,7 @@ class MainWindow(QMainWindow):
 
         # Shutter controls
         self.shutter_mode_input = QNoScrollComboBox()
-        self.shutter_mode_input.addItems(["auto", "open", "close"])
+        self.shutter_mode_input.addItems(["auto", "open", "closed"])
         self.tll_mode_input = QNoScrollComboBox()
         self.tll_mode_input.addItems(["0", "1"]) # THESE NEEDS TO BE CHANGED TO: TTL_low TTL_high for nicer ux
         self.shutter_open_time_input = QLineEdit()
@@ -321,7 +321,7 @@ class MainWindow(QMainWindow):
         self.vsspeed_input.clear()
 
         for idx,value in enumerate(vsspeeds):
-            label = f"{value} microsec."
+            label = f"{value} microseconds"
             self.vsspeed_input.addItem(label)
 
             # store index
@@ -378,6 +378,9 @@ class MainWindow(QMainWindow):
         self.preview.show_roi = show_roi
         self.preview.show_grid = show_grid
         self.preview.set_roi(roi)
+
+
+
 
 
     # ===== Functions ======

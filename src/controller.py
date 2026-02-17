@@ -10,8 +10,8 @@ class RamanCameraController:
 
     def __init__(self,view):
         self.view = view
-        # self.camera = RamanCameraModel()
-        self.camera = TestCameraModel()
+        self.camera = RamanCameraModel()
+        # self.camera = TestCameraModel()
         self.spec = TestSpectrometerModel()
 
 
@@ -90,6 +90,7 @@ class RamanCameraController:
         # self.display_used_params()
         self.display_shutter_state()
         self.cool_cam(target_temp=-85)
+        self.camera.set_acquisition_settings()
         return
     
     def isBusy_cam(self):
@@ -174,7 +175,7 @@ class RamanCameraController:
         self.set_acquisition_mode(acquisition_mode)
         self.set_trigger_mode(trigger_mode)
         self.set_exposure(exposure)
-        self.set_amp(amp)
+        self.set_amp_mode(amp)
         self.set_vsspeed(vsspeed)
         self.set_EMCCD_gain(emccd_gain)
         # self.display_used_params()
@@ -214,29 +215,30 @@ class RamanCameraController:
         self.set_trigger_mode(settings["trigger_mode"])
         self.set_exposure(settings["exposure"])
 
-        self.set_amp_mode(settings["channel"],settings["oamp"],settings["hsspeed"],settings["preamp"])
+        amp_mode = {"channel":settings["channel"],"oamp":settings["oamp"],"hsspeed":settings["hsspeed"],"preamp":settings["preamp"]}
+        self.set_amp_mode(amp_mode)
         self.set_vsspeed(settings["vsspeed"])
         # set fan mode? not sure if needed
 
         # most important below, everything above can be commented out?
         acquisition_mode = settings["acq_mode"]
         acquisition_mode_params = {"mode":acquisition_mode}
-        if mode == "accum":
+        if acquisition_mode == "accum":
             num_acc,cycle_time = settings["acq_parameters/accum"]
             acquisition_mode_params["num_acc"] = num_acc
             acquisition_mode_params["cycle_time"] = cycle_time
-        elif mode == "kinetic":
+        elif acquisition_mode == "kinetic":
             num_cycle, cycle_time, num_acc, cycle_time_acc, num_prescan = settings["acq_parameters/kinetic"]
             acquisition_mode_params["num_cycle"] = num_cycle
             acquisition_mode_params["cycle_time"] = cycle_time
             acquisition_mode_params["num_acc"] = num_acc
             acquisition_mode_params["cycle_time_acc"] = cycle_time_acc
             acquisition_mode_params["num_prescan"] = num_prescan
-        elif mode == "fast_kinetic":
+        elif acquisition_mode == "fast_kinetic":
             num_acc,cycle_time_acc = settings["acq_parameters/accum"]
             acquisition_mode_params["num_acc"] = num_acc
             acquisition_mode_params["cycle_time_acc"] = cycle_time_acc
-        elif mode == "cont":
+        elif acquisition_mode == "cont":
             cycle_time = settings["acq_parameters/cont"]
             acquisition_mode_params["cycle_time"] = cycle_time
         
@@ -266,7 +268,7 @@ class RamanCameraController:
     # ==== AMP methods =====
 
     @handle_errors
-    def set_amp(self,amp):
+    def set_amp_mode(self,amp):
         channel,oamp,hsspeed,preamp = amp["channel"],amp["oamp"],amp["hsspeed"],amp["preamp"]
         channel = None if channel == "" else int(channel)
         oamp = None if oamp == "" else int(oamp)
@@ -380,7 +382,7 @@ class RamanCameraController:
         if "cycle_time" in params:
             params["cycle_time"] = float(params["cycle_time"]) if params["cycle_time"] != "" else None
 
-        self.camera.setup_continuous_mode(**params)
+        self.camera.setup_cont_mode(**params)
         return
 
     # ==== Trigger mode methods =====    
