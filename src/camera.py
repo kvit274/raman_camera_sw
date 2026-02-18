@@ -583,7 +583,7 @@ class RamanCameraModel:
         if not self.is_live:
             print(f"Could not obtain the frame for the preview. Cam: {self.cam} | live state: {self.is_live}")
             return None
-        print(f"During live preview acquisition mode is {self.cam.get_acquisition_mode()}")
+        # print(f"During live preview acquisition mode is {self.cam.get_acquisition_mode()}")
         return self.cam.snap(timeout=5.0,return_info=False)    # temperary change to use snap instead of acquition
         # frame = self.cam.read_newest_image(peek=False)  # reads last unread image available in the buffer, peak=False marks it as read
         # return frame
@@ -856,7 +856,7 @@ class RamanCameraModel:
         print(f"Is acquisition setup: {self.cam.is_acquisition_setup()}")
         print(f"Camera status: {self.cam.get_status()}")
         print(f"Buffer size: {self.cam.get_buffer_size()}")
-        exposure,frame_period
+        exposure,frame_period = self.cam.get_frame_timings()
         print(f"Frame timings: (exposure: {exposure}, frame_period: {frame_period})")
         print(f"Readout time: {self.cam.get_readout_time()}")
         acquired,unread,skipped,size = self.cam.get_frames_status()

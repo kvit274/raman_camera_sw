@@ -83,7 +83,7 @@ class RamanCameraController:
     @handle_errors
     def connect_cam(self):
         self.camera.connect_cam()
-        self.camera.enable_frame_transfer_mode(True)    # MUST BE MOVED SOMEWHERE LATER
+        # self.camera.enable_frame_transfer_mode(True)    # MUST BE MOVED SOMEWHERE LATER
         # self.camera.get_cam_params()     # save cam defaults for later
         # self.camera.set_default_settings() !!
         self.load_amp_modes()
@@ -414,7 +414,7 @@ class RamanCameraController:
         print(f"Trying to set read mode in controller to: {mode}")
         
         dispatch = {
-            "fvb": self.set_read_mode,
+            "fvb": self.set_fvb_read_mode,
             "multi_track": self.setup_multi_track_mode,
             "single_track": self.setup_single_track_mode,
             "random_track": self.setup_random_track_mode,
@@ -431,7 +431,8 @@ class RamanCameraController:
         return
 
     @handle_errors
-    def set_read_mode(self,read_mode):
+    def set_fvb_read_mode(self,read_mode):
+        mode = read_mode["mode"]
         self.camera.set_read_mode(mode)
 
     @handle_errors

@@ -13,7 +13,7 @@
 !) fix the workflow after connecting to camera
 !) include fvb in read mode
 
-!) roi is only used in image mode!!
+!) do frame save using threads
 
 ?) ext_trigger ?
 ?) pausing_acquisition ?
@@ -50,6 +50,300 @@ handle the read mode params being sent to controller
 
 
 # they use multi track / image / fvb
+
+WHEN I TRIED TO DO LIVE AFTER SETING UP ACQUISITON SETTING EVERYTHING GOT BROKEN
+
+FVB + ACCUM:
+
+Trying to set read mode in controller to: image
+Handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x000001BB0F5117F0>>
+Entered setup_image_mode in controller
+============ EXCEPTION ============
+Traceback (most recent call last):
+  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 23, in wrapper
+    return func(self, *args, **kwargs)
+  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 482, in setup_image_mode
+    self.camera.setup_image_mode(**params)
+  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 37, in wrapper
+    return func(self, *args, **kwargs)
+  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 333, in setup_image_mode
+    self.validate_roi(hstart, hend, vstart, vend, hbin, vbin)
+  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 823, in validate_roi
+    raise ValueError(f"Horizontal ROI out of bounds: {hmin} <= hstart < hend <= {hmax}.")
+ValueError: Horizontal ROI out of bounds: 2 <= hstart < hend <= 1024.
+===================================
+Acquisition mode: cont
+acquisition mode handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x000001BB0F5117F0>>
+Trying to set read mode in controller to: fvb
+Handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x000001BB0F5117F0>>
+Read mode set to: fvb
+Acquisition mode: accum
+acquisition mode handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x000001BB0F5117F0>>
+Printing all set settings:
+{'image_indexing': 'rcb', 'frame_format': 'list', 'frame_info_format': 'namedtuple', 'frame_info_period': 1, 'roi': (0, 1024, 0, 256, 1, 1), 'temperature': -85, 'cooler': True, 'channel': 0, 'oamp': 0, 'hsspeed': 0, 'preamp': 0, 'vsspeed': 0, 'shutter': ('open', 0, 0, 0), 'fan_mode': 'full', 'trigger_mode': 'int', 'acq_parameters/accum': (3, 0), 'acq_parameters/kinetic': (1, 0.0, 1, 0, 0), 'acq_parameters/fast_kinetic': (1, 0.0), 'acq_parameters/cont': 0.0, 'acq_mode': 'accum', 'frame_transfer': None, 'read_parameters/single_track': (0, 1), 'read_parameters/multi_track': (1, 1, 0), 'read_parameters/random_track': [(0, 1)], 'read_parameters/image': (0, 1024, 0, 256, 1, 1), 'read_mode': 'fvb', 'exposure': 0.0008500000112690032, 'frame_period': 0.0025500000920146704}
+
+Acquisition parameters: {'nframes': None, 'mode': 'single'}
+Number of frames: 3
+Acquisition parameters after adjustment: {'nframes': None, 'mode': 'accum'}
+Acquisition started
+Mode: accum
+In progress: True
+Trigger: int
+Progress: (frames:0acc:0)
+num of frames: 1
+
+Acquisition state in save_frames before wait:
+Is acquisition setup: True
+Camera status: acquiring
+Buffer size: 24576
+Frame timings: (exposure: 0.0008200000156648457, frame_period: 0.0016599999507889152)
+Readout time: 0.0008598749409429729
+Frames status: (acquired: 0, unread: 0, skipped: 0, buffer_size: 22118)
+Mode: accum
+Trigger: int
+In progress: False
+Progress: (frames:0acc:0)
+
+Acquisition state in save_frames after wait:
+Mode: accum
+In progress: False
+Progress: (frames:0acc:0)
+============ EXCEPTION ============
+Traceback (most recent call last):
+  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 23, in wrapper
+    return func(self, *args, **kwargs)
+  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 160, in start_acquisition
+    self.camera.save_frames()
+  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 898, in save_frames
+    for idx,frame in enumerate(frames):
+TypeError: 'int' object is not iterable
+===================================
+
+
+tried to setup single_track, got image somehow:
+
+Trying to set read mode in controller to: image
+Handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x0000023E619727F0>>
+Entered setup_image_mode in controller
+============ EXCEPTION ============
+Traceback (most recent call last):
+  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 23, in wrapper
+    return func(self, *args, **kwargs)
+  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 481, in setup_image_mode
+    self.camera.setup_image_mode(**params)
+  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 37, in wrapper
+    return func(self, *args, **kwargs)
+  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 333, in setup_image_mode
+    self.validate_roi(hstart, hend, vstart, vend, hbin, vbin)
+  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 823, in validate_roi
+    raise ValueError(f"Horizontal ROI out of bounds: {hmin} <= hstart < hend <= {hmax}.")
+ValueError: Horizontal ROI out of bounds: 2 <= hstart < hend <= 1024.
+===================================
+Acquisition mode: cont
+acquisition mode handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x0000023E619727F0>>
+Trying to set read mode in controller to: single_track
+Handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x0000023E619727F0>>
+Acquisition mode: single
+acquisition mode handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x0000023E619727F0>>
+Got to setup_single_mode in controller
+Trying to change acquisition mode to single.. Actual: single
+Printing all set settings:
+{'image_indexing': 'rcb', 'frame_format': 'list', 'frame_info_format': 'namedtuple', 'frame_info_period': 1, 'roi': (2, 1024, 2, 256, 1, 1), 'temperature': -85, 'cooler': True, 'channel': 0, 'oamp': 0, 'hsspeed': 0, 'preamp': 0, 'vsspeed': 0, 'shutter': ('open', 0, 0, 0), 'fan_mode': 'full', 'trigger_mode': 'int', 'acq_parameters/accum': (1, 0), 'acq_parameters/kinetic': (1, 0.0, 1, 0, 0), 'acq_parameters/fast_kinetic': (1, 0.0), 'acq_parameters/cont': 0.0, 'acq_mode': 'single', 'frame_transfer': None, 'read_parameters/single_track': (0, 1), 'read_parameters/multi_track': (1, 1, 0), 'read_parameters/random_track': [(0, 1)], 'read_parameters/image': (2, 1024, 2, 256, 1, 1), 'read_mode': 'single_track', 'exposure': 9.999999747378752e-06, 'frame_period': 0.001970000099390745}
+
+Acquisition parameters: {'nframes': None, 'mode': 'single'}
+Number of frames: 1
+Acquisition parameters after adjustment: {'nframes': None, 'mode': 'single'}
+Acquisition started
+Mode: single
+In progress: True
+Trigger: int
+Progress: (frames:0acc:0)
+num of frames: 1
+
+Acquisition state in save_frames before wait:
+Is acquisition setup: True
+Camera status: acquiring
+Buffer size: 24576
+Frame timings: (exposure: 9.999999747378752e-06, frame_period: 0.001970000099390745)
+Readout time: 0.0011639251606538892
+Frames status: (acquired: 0, unread: 0, skipped: 0, buffer_size: 22118)
+Mode: single
+Trigger: int
+In progress: False
+Progress: (frames:0acc:0)
+
+Acquisition state in save_frames after wait:
+Mode: single
+In progress: False
+Progress: (frames:0acc:0)
+============ EXCEPTION ============
+Traceback (most recent call last):
+  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 23, in wrapper
+    return func(self, *args, **kwargs)
+  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 160, in start_acquisition
+    self.camera.save_frames()
+  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 898, in save_frames
+    for idx,frame in enumerate(frames):
+TypeError: 'int' object is not iterable
+===================================
+Trying to set read mode in controller to: image
+Handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x0000023E619727F0>>
+Entered setup_image_mode in controller
+============ EXCEPTION ============
+Traceback (most recent call last):
+  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 23, in wrapper
+    return func(self, *args, **kwargs)
+  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 481, in setup_image_mode
+    self.camera.setup_image_mode(**params)
+  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 37, in wrapper
+    return func(self, *args, **kwargs)
+  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 333, in setup_image_mode
+    self.validate_roi(hstart, hend, vstart, vend, hbin, vbin)
+  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 823, in validate_roi
+    raise ValueError(f"Horizontal ROI out of bounds: {hmin} <= hstart < hend <= {hmax}.")
+ValueError: Horizontal ROI out of bounds: 2 <= hstart < hend <= 1024.
+===================================
+Acquisition mode: cont
+acquisition mode handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x0000023E619727F0>>
+Trying to set read mode in controller to: single_track
+Handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x0000023E619727F0>>
+Acquisition mode: single
+acquisition mode handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x0000023E619727F0>>
+Got to setup_single_mode in controller
+Trying to change acquisition mode to single.. Actual: single
+Printing all set settings:
+{'image_indexing': 'rcb', 'frame_format': 'list', 'frame_info_format': 'namedtuple', 'frame_info_period': 1, 'roi': (2, 1024, 2, 256, 1, 1), 'temperature': -85, 'cooler': True, 'channel': 0, 'oamp': 0, 'hsspeed': 0, 'preamp': 0, 'vsspeed': 0, 'shutter': ('open', 0, 0, 0), 'fan_mode': 'full', 'trigger_mode': 'int', 'acq_parameters/accum': (1, 0), 'acq_parameters/kinetic': (1, 0.0, 1, 0, 0), 'acq_parameters/fast_kinetic': (1, 0.0), 'acq_parameters/cont': 0.0, 'acq_mode': 'single', 'frame_transfer': None, 'read_parameters/single_track': (0, 1), 'read_parameters/multi_track': (1, 1, 0), 'read_parameters/random_track': [(0, 1)], 'read_parameters/image': (2, 1024, 2, 256, 1, 1), 'read_mode': 'single_track', 'exposure': 9.999999747378752e-06, 'frame_period': 0.001970000099390745}
+
+Acquisition parameters: {'nframes': None, 'mode': 'single'}
+Number of frames: 1
+Acquisition parameters after adjustment: {'nframes': None, 'mode': 'single'}
+Acquisition started
+Mode: single
+In progress: True
+Trigger: int
+Progress: (frames:0acc:0)
+num of frames: 1
+
+Acquisition state in save_frames before wait:
+Is acquisition setup: True
+Camera status: acquiring
+Buffer size: 24576
+Frame timings: (exposure: 9.999999747378752e-06, frame_period: 0.001970000099390745)
+Readout time: 0.0011639251606538892
+Frames status: (acquired: 0, unread: 0, skipped: 0, buffer_size: 22118)
+Mode: single
+Trigger: int
+In progress: False
+Progress: (frames:0acc:0)
+
+Acquisition state in save_frames after wait:
+Mode: single
+In progress: False
+Progress: (frames:0acc:0)
+============ EXCEPTION ============
+Traceback (most recent call last):
+  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 23, in wrapper
+    return func(self, *args, **kwargs)
+  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 160, in start_acquisition
+    self.camera.save_frames()
+  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 898, in save_frames
+    for idx,frame in enumerate(frames):
+TypeError: 'int' object is not iterable
+===================================
+
+why acquisition_mode is cont in between? i didnt set it
+
+
+last log:
+
+Trying to set read mode in controller to: image
+Handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x0000023E619727F0>>
+Entered setup_image_mode in controller
+============ EXCEPTION ============
+Traceback (most recent call last):
+  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 23, in wrapper
+    return func(self, *args, **kwargs)
+  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 481, in setup_image_mode
+    self.camera.setup_image_mode(**params)
+  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 37, in wrapper
+    return func(self, *args, **kwargs)
+  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 333, in setup_image_mode
+    self.validate_roi(hstart, hend, vstart, vend, hbin, vbin)
+  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 823, in validate_roi
+    raise ValueError(f"Horizontal ROI out of bounds: {hmin} <= hstart < hend <= {hmax}.")
+ValueError: Horizontal ROI out of bounds: 2 <= hstart < hend <= 1024.
+===================================
+Acquisition mode: cont
+acquisition mode handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x0000023E619727F0>>
+Trying to set read mode in controller to: image
+Handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x0000023E619727F0>>
+Entered setup_image_mode in controller
+Setting up image mode... Real mode:image
+Acquisition mode: single
+acquisition mode handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x0000023E619727F0>>
+Got to setup_single_mode in controller
+Trying to change acquisition mode to single.. Actual: single
+Printing all set settings:
+{'image_indexing': 'rcb', 'frame_format': 'list', 'frame_info_format': 'namedtuple', 'frame_info_period': 1, 'roi': (2, 1024, 2, 256, 1, 1), 'temperature': -85, 'cooler': True, 'channel': 0, 'oamp': 0, 'hsspeed': 0, 'preamp': 0, 'vsspeed': 0, 'shutter': ('open', 0, 0, 0), 'fan_mode': 'full', 'trigger_mode': 'int', 'acq_parameters/accum': (1, 0), 'acq_parameters/kinetic': (1, 0.0, 1, 0, 0), 'acq_parameters/fast_kinetic': (1, 0.0), 'acq_parameters/cont': 0.0, 'acq_mode': 'single', 'frame_transfer': None, 'read_parameters/single_track': (0, 1), 'read_parameters/multi_track': (1, 1, 0), 'read_parameters/random_track': [(0, 1)], 'read_parameters/image': (2, 1024, 2, 256, 1, 1), 'read_mode': 'image', 'exposure': 9.999999747378752e-06, 'frame_period': 0.09498000144958496}
+
+Acquisition parameters: None
+Number of frames: 1
+Acquisition parameters after adjustment: {'nframes': None, 'mode': 'single'}
+Acquisition started
+Mode: single
+In progress: True
+Trigger: int
+Progress: (frames:0acc:0)
+num of frames: 1
+
+Acquisition state in save_frames before wait:
+Is acquisition setup: True
+Camera status: acquiring
+Buffer size: 96
+Frame timings: (exposure: 9.999999747378752e-06, frame_period: 0.09498000144958496)
+Readout time: 0.09417392313480377
+Frames status: (acquired: 0, unread: 0, skipped: 0, buffer_size: 86)
+Mode: single
+Trigger: int
+In progress: True
+Progress: (frames:0acc:0)
+============ EXCEPTION ============
+Traceback (most recent call last):
+  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 23, in wrapper
+    return func(self, *args, **kwargs)
+  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 160, in start_acquisition
+    self.camera.save_frames()
+  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 869, in save_frames
+    self.cam.wait_for_frame(since='start', nframes=num_frames, timeout=20.0, error_on_stopped=False)
+  File "C:\Users\aberdin\AppData\Roaming\Python\Python39\site-packages\pylablib\core\devio\interface.py", line 666, in wrapped
+    res=func(**all_args)
+  File "C:\Users\aberdin\AppData\Roaming\Python\Python39\site-packages\pylablib\devices\interface\camera.py", line 262, in wait_for_frame
+    raise self.TimeoutError
+pylablib.devices.Andor.base.AndorTimeoutError
+===================================
+
+
+ENABLE FRAME TRANSFER LOG:
+
+Found 1 camera
+Connected to: USB | DU920P_BX2DD | SN 29728
+============ EXCEPTION ============
+Traceback (most recent call last):
+  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 23, in wrapper
+    return func(self, *args, **kwargs)
+  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 86, in connect_cam
+    self.camera.enable_frame_transfer_mode(True)    # MUST BE MOVED SOMEWHERE LATER
+  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 37, in wrapper
+    return func(self, *args, **kwargs)
+  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 79, in enable_frame_transfer_mode
+    self.cam.enable_frame_transfer_mode(mode)
+  File "C:\Users\aberdin\AppData\Roaming\Python\Python39\site-packages\pylablib\devices\Andor\AndorSDK2.py", line 70, in wrapped
+    if not self._check_option(*opt):
+  File "C:\Users\aberdin\AppData\Roaming\Python\Python39\site-packages\pylablib\devices\Andor\AndorSDK2.py", line 237, in _check_option
+    raise AndorNotSupportedError("option {}.{} is not supported by {}".format(kind,getattr(option,"name",option),self.device_info.head_model))
+pylablib.devices.Andor.base.AndorNotSupportedError: option acq.AC_ACQMODE_FRAMETRANSFER is not supported by DU920P_BX2DD
+===================================
+
 
 
 new log:
