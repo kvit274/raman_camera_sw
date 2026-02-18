@@ -29,6 +29,7 @@ class MainWindow(QMainWindow):
         self.btn_connect_cam = QPushButton("Connect Camera")
         self.btn_live = QPushButton("Start Live")
         self.btn_stop = QPushButton("Stop Live")
+        self.btn_preview = QPushButton("Preview")
         self.btn_acquire = QPushButton("Acquire")
         self.btn_disconnect_cam = QPushButton("Disconnect Camera")
         self.temp = QLabel("Temp: -- °C")
@@ -139,6 +140,7 @@ class MainWindow(QMainWindow):
         control_layout.addWidget(self.btn_connect_cam)
         control_layout.addWidget(self.btn_live)
         control_layout.addWidget(self.btn_stop)
+        control_layout.addWidget(self.btn_preview)
         control_layout.addWidget(self.btn_acquire)
         control_layout.addWidget(self.btn_disconnect_cam)
         control_layout.addWidget(self.save_frame_path_button)
@@ -289,6 +291,7 @@ class MainWindow(QMainWindow):
         self.btn_connect_cam.clicked.connect(self.connect_cam)
         self.btn_live.clicked.connect(self.start_live)
         self.btn_stop.clicked.connect(self.stop_live)
+        self.btn_preview.clicled.connect(self.show_preview)
         self.btn_acquire.clicked.connect(self.start_acquisition)
         self.btn_disconnect_cam.clicked.connect(self.disconnect_cam)
         self.set_settings_button.clicked.connect(self.set_settings)
@@ -410,11 +413,11 @@ class MainWindow(QMainWindow):
         self.controller.disconnect_cam()
 
     def disable_buttons(self):
-        for b in [self.btn_connect_cam, self.btn_live, self.btn_stop, self.btn_acquire]:
+        for b in [self.btn_connect_cam, self.btn_live, self.btn_stop, self.btn_preview self.btn_acquire]:
             b.setEnabled(False)
     
     def enable_buttons(self):
-        for b in [self.btn_connect_cam, self.btn_live, self.btn_stop, self.btn_acquire]:
+        for b in [self.btn_connect_cam, self.btn_live, self.btn_stop, self.btn_preview self.btn_acquire]:
             b.setEnabled(True)
 
     def apply_roi_preset(self, text):
@@ -498,6 +501,11 @@ class MainWindow(QMainWindow):
 
         self.controller.apply_cam_settings(shutter, read_mode_params, acquisition_mode_params, trigger_mode, exposure, amp, vsspeed, emccd_gain)
 
+    def show_preview(self):
+        frame = self.controller.single_preview()
+        is frame:
+            self.display_image(frame)
+
     def start_live(self):
         self.controller.start_live()
     
@@ -512,9 +520,8 @@ class MainWindow(QMainWindow):
 
     def update_preview(self):
         frame = self.controller.get_live_frame()
-        if frame is None:
-            return
-        self.display_image(frame)
+        if frame:
+            self.display_image(frame)
 
     def display_image(self,frame):
         # !!! this needs to be fixed

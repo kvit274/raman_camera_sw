@@ -12,6 +12,7 @@
 
 !) fix the workflow after connecting to camera
 !) include fvb in read mode
+!!!!) use snap for single acquisition
 
 !) do frame save using threads
 

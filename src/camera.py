@@ -41,7 +41,7 @@ class RamanCameraModel:
         @wraps(func)
         def wrapper(self, *args, **kwargs):
             if self.is_live:
-                self.end_live()
+                self.stop_live()
             return func(self, *args, **kwargs)
         return wrapper
 
@@ -156,14 +156,14 @@ class RamanCameraModel:
         return
 
     @requires_cam_connected
-    def get_acquisition_settings(self):
+    def restore_acquisition_settings(self):
         """
         Return last used settings before the live preview
         """
         return self.acquisition_settings
 
     @requires_cam_connected
-    def set_acquisition_settings(self):
+    def save_acquisition_settings(self):
         """
         Save acquisition settings from the camera
         """
@@ -562,16 +562,21 @@ class RamanCameraModel:
     
         # self.cam.set_exposure(0.03)     # update fast
         # self.cam.start_acquisition(mode="cont")     # sets acquisition mode to "run till abort"
-        self.set_acquisition_settings()
+        self.save_acquisition_settings()
+        h_limits, v_limits = self.get_roi_limits(hbin=1,vbin=1)   # get full ROI
+        hmin,hmax,_,_,_ = h_limits
+        vmin,vmax,_,_,_ = v_limits
+        self.setup_image_mode(hmin,hmax,vmin,vmax,1,1)
+        self.cam.set_exposure(0.01)
         self.is_live = True  
         print("Live mode started")
         return
 
     @requires_cam_connected
-    def end_live(self):
+    def stop_live(self):
         if not self.is_live:
             return
-        self.cam.stop_acquisition()
+        self.restore_acquisition_settings()
         self.is_live=False
         print("Live mode stopped")
         # if self.acquisiton_settings:
@@ -604,46 +609,64 @@ class RamanCameraModel:
 
     @requires_cam_connected
     @requires_live_stopped
+    def single_preview(self):
+        """
+        Perform single snap to preview the result
+        """
+        frame = self.cam.snap(timeout=5,return_info=False)
+        if not frame:
+            raise RunTimeError("Could not obtain frame for single preview")
+            return
+        return frame
+
+    @requires_cam_connected
+    @requires_live_stopped
     def start_acquisition(self):
         if self.is_live:
-            self.end_live()
+            self.stop_live()
 
         print(f"Acquisition parameters: {self.cam.get_acquisition_parameters()}")
         acquisition_mode = self.cam.get_acquisition_mode()
-        num_frames = 1
-        if acquisition_mode == "accum":
+        frames = None
+        if acquisition_mode == "single":
+            frames = [self.cam.snap(timeout=5,return_info=False)]
+        elif acquisition_mode == "accum":
             num_frames = self.cam.get_accum_mode_parameters()[0]
-        if acquisition_mode == "kinetic":
+            frames = self.cam.grab(nframes=num_frames, frame_timeout=5.0, missing_frame='skip', return_info=False, buff_size=None)
+        elif acquisition_mode == "kinetic":
             num_frames = self.cam.get_kinetic_mode_parameters()[0]
-        if acquisition_mode == "fast_kinetic":
+            frames = self.cam.grab(nframes=num_frames, frame_timeout=5.0, missing_frame='skip', return_info=False, buff_size=None)
+        elif acquisition_mode == "fast_kinetic":
             num_frames = self.cam.get_fast_kinetic_mode_parameters()[0]
-        print(f"Number of frames: {num_frames}")
-        self.cam.setup_acquisition(mode=acquisition_mode,nframes=num_frames)
-        print(f"Acquisition parameters after adjustment: {self.cam.get_acquisition_parameters()}")
+            frames = self.cam.grab(nframes=num_frames, frame_timeout=5.0, missing_frame='skip', return_info=False, buff_size=None)
+        elif acquisition_mode == "cont":
+            raise RunTimeError("Continuous mode cannot be used for save acquisition")
+        if not frames:
+            raise RunTimeError("No frames were obtained")
 
 
-        if self.cam.acquisition_in_progress():
-            self.cam.stop_acquisition()      # stop acquisition if it is already in progress, just in case
-        self.cam.clear_acquisition()    # clear the buffer
-        self.cam.start_acquisition()
-        print("Acquisition started")
-        print(f"Mode: {self.cam.get_acquisition_mode()}")
-        print(f"In progress: {self.cam.acquisition_in_progress()}")
-        print(f"Trigger: {self.cam.get_trigger_mode()}")
-        frames,acc = self.cam.get_acquisition_progress()
-        print(f"Progress: (frames:{frames}acc:{acc})")
-        # print(f"Acquisition parameters after start: {self.cam.get_acquisition_parameters()}")
-        # self.cam.wait_for_frame(since='start', nframes=1, timeout=20.0, error_on_stopped=False)
 
-        return
-        # return self.cam.grab(nframes=1)[0]
+        # if self.cam.acquisition_in_progress():
+        #     self.cam.stop_acquisition()      # stop acquisition if it is already in progress, just in case
+        # self.cam.clear_acquisition()    # clear the buffer
+        # self.cam.start_acquisition()
+        # print("Acquisition started")
+        # print(f"Mode: {self.cam.get_acquisition_mode()}")
+        # print(f"In progress: {self.cam.acquisition_in_progress()}")
+        # print(f"Trigger: {self.cam.get_trigger_mode()}")
+        # frames,acc = self.cam.get_acquisition_progress()
+        # print(f"Progress: (frames:{frames}acc:{acc})")
+        # # print(f"Acquisition parameters after start: {self.cam.get_acquisition_parameters()}")
+        # # self.cam.wait_for_frame(since='start', nframes=1, timeout=20.0, error_on_stopped=False)
+
+        return frames
 
     @requires_cam_connected
     @requires_live_stopped
     def simple_acq(self,num_frames:int=0):
         
         if self.is_live:
-            self.end_live()
+            self.stop_live()
 
         if num_frames == 0:
             frame = self.cam.snap()   # grab single frame
@@ -791,38 +814,31 @@ class RamanCameraModel:
         Check if the given ROI parameters are valid.
         Raises ValueError if any parameter is invalid.
         """
+        if hbin < 1 or hbin is None:
+            hbin = 1
+        if vbin < 1 or vbin is None:
+            vbin = 1
+
+        if hbin > hmaxbin:
+            hbin = hmaxbin
+        if vbin > vmaxbin:
+            vbin = vmaxbin
+
         h_limits, v_limits = self.get_roi_limits(hbin=hbin,vbin=vbin)   # get limits for current binning
         hmin,hmax,hpstep,hsstep,hmaxbin = h_limits
         vmin,vmax,vpstep,vsstep,vmaxbin = v_limits
 
-        if hstart is None:
+        if hstart < hmin or hstart is None:
             hstart = hmin
-        if vstart is None:
+        if vstart < vmin or vstart is None:
             vstart = vmin
-        if hstart < 0 or vstart < 0:
-            raise ValueError("ROI start positions must be non-negative integers.")
-        if hend is None:
-            hend = self.cam.get_detector_size()[0]
-        if vend is None:
-            vend = self.cam.get_detector_size()[1]
+        if hend > hmax or hend is None:
+            hend = hmax
+        if vend > vmax or vend is None:
+            vend = vmax
+
         if hend <= hstart or vend <= vstart:
             raise ValueError("ROI end positions must be greater than start positions.")
-        if hbin is None:
-            hbin = 1
-        if vbin is None:
-            vbin = 1
-        if hbin <= 0 or vbin <= 0:
-            raise ValueError("Binning factors must be positive integers.")
-        
-        
-
-        if hbin > hmaxbin or vbin > vmaxbin:
-            raise ValueError(f"Binning factors exceed maximum allowed: hbin <= {hmaxbin}, vbin <= {vmaxbin}.") 
-        
-        if hstart < hmin or hend > hmax:
-            raise ValueError(f"Horizontal ROI out of bounds: {hmin} <= hstart < hend <= {hmax}.")
-        if vstart < vmin or vend > vmax:
-            raise ValueError(f"Vertical ROI out of bounds: {vmin} <= vstart < vend <= {vmax}.")
         
         if hstart % hpstep != 0 or (hend - hstart) % hsstep != 0:
             raise ValueError(f"Horizontal ROI positions must align with steps: hstart step {hpstep}, width step {hsstep}.")
@@ -834,65 +850,18 @@ class RamanCameraModel:
         return True
 
 
-
     # ===== FILE MANAGEMENT =====
 
-    def save_frames(self):
+    def save_frames(self,frames):
         """
         Save a single acquired frame as PNG + raw CSV
         """
 
-        acquisition_mode = self.cam.get_acquisition_mode()
-        num_frames = 1
-        # if acquisition_mode == "accum":
-        #     num_frames = 1
-        if acquisition_mode == "kinetic":
-            num_frames = self.cam.get_kinetic_mode_parameters()[0]
-        if acquisition_mode == "fast_kinetic":
-            num_frames = self.cam.get_fast_kinetic_mode_parameters()[0]
-        print(f"num of frames: {num_frames}")
-
-        print("\nAcquisition state in save_frames before wait:")
-        print(f"Is acquisition setup: {self.cam.is_acquisition_setup()}")
-        print(f"Camera status: {self.cam.get_status()}")
-        print(f"Buffer size: {self.cam.get_buffer_size()}")
-        exposure,frame_period = self.cam.get_frame_timings()
-        print(f"Frame timings: (exposure: {exposure}, frame_period: {frame_period})")
-        print(f"Readout time: {self.cam.get_readout_time()}")
-        acquired,unread,skipped,size = self.cam.get_frames_status()
-        print(f"Frames status: (acquired: {acquired}, unread: {unread}, skipped: {skipped}, buffer_size: {size})")
-        print(f"Mode: {self.cam.get_acquisition_mode()}")
-        print(f"Trigger: {self.cam.get_trigger_mode()}")
-        print(f"In progress: {self.cam.acquisition_in_progress()}")
-        frames,acc = self.cam.get_acquisition_progress()
-        print(f"Progress: (frames:{frames}acc:{acc})")
-        self.cam.wait_for_frame(since='start', nframes=num_frames, timeout=20.0, error_on_stopped=False)
-        # time.sleep(5)
-        
-        # new_frames_range = self.cam.get_new_images_range()  # (first,last) first inclusive
-        # if not new_frames_range:
-        #     print("No new images found :(")
-        #     return
-        # else:
-        #     print(f"Found {new_frames_range[0]}-{new_frames_range[1]} newmages")
-        frames = self.cam.read_multiple_images(rng=None,peek=False,missing_frame="skip",return_info=False,return_rng=False)
-        self.cam.stop_acquisition()   # stop acquisition after reading the frames, just in case. THIS SHOULD BE MOVED
-
-        print("\nAcquisition state in save_frames after wait:")
-        print(f"Mode: {self.cam.get_acquisition_mode()}")
-        print(f"In progress: {self.cam.acquisition_in_progress()}")
-        frames,acc = self.cam.get_acquisition_progress()
-        print(f"Progress: (frames:{frames}acc:{acc})")
-
         if frames is None:
-            raise RuntimeError("No images in the buffer could be obtained")
+            raise RuntimeError("No frames to save")
 
         if isinstance(frames,np.ndarray):
             frames = [frames]
-
-        # if len(frames)==0:
-        #     print("No frames found")
-        #     return
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         for idx,frame in enumerate(frames):

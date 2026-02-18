@@ -83,7 +83,6 @@ class RamanCameraController:
     @handle_errors
     def connect_cam(self):
         self.camera.connect_cam()
-        # self.camera.enable_frame_transfer_mode(True)    # MUST BE MOVED SOMEWHERE LATER
         # self.camera.get_cam_params()     # save cam defaults for later
         # self.camera.set_default_settings() !!
         self.load_amp_modes()
@@ -91,7 +90,7 @@ class RamanCameraController:
         # self.display_used_params()
         self.display_shutter_state()
         self.cool_cam(target_temp=-85)
-        self.camera.set_acquisition_settings()
+        self.camera.save_acquisition_settings()     # DOUBTFUL
         return
     
     def isBusy_cam(self):
@@ -136,9 +135,9 @@ class RamanCameraController:
     
     @handle_errors
     def stop_live(self):
-        self.camera.end_live()
+        self.camera.stop_live()
         self.view.stop_live_timer()
-        self.return_settings()
+        self.restore_settings()
         return
     
     def get_temp(self):
@@ -155,9 +154,16 @@ class RamanCameraController:
         return frame
 
     @handle_errors
+    def single_preview(self):
+        frame = self.camera.single_preview()
+        return frame
+        # FINISH THIS, display frame
+
+    @handle_errors
     def start_acquisition(self):
-        self.camera.start_acquisition()
-        self.camera.save_frames()
+        frames = self.camera.start_acquisition()
+        if frames:
+            self.camera.save_frames(frames)
         return
     
     @handle_errors
@@ -184,8 +190,8 @@ class RamanCameraController:
         return
 
     @handle_errors
-    def return_settings(self):
-        settings = self.camera.get_acquisition_settings()
+    def restore_settings(self):
+        settings = self.camera.restore_acquisition_settings()
 
         read_mode = settings["read_mode"]
         read_mode_params = {"mode": read_mode}
