@@ -10,8 +10,8 @@ class RamanCameraController:
 
     def __init__(self,view):
         self.view = view
-        # self.camera = RamanCameraModel()
-        self.camera = TestCameraModel()
+        self.camera = RamanCameraModel()
+        # self.camera = TestCameraModel()
         self.spec = TestSpectrometerModel()
 
 
@@ -155,12 +155,14 @@ class RamanCameraController:
 
     @handle_errors
     def single_preview(self):
+        self.camera.restore_acquisition_settings()      # not sure
         frame = self.camera.single_preview()
         return frame
         # FINISH THIS, display frame
 
     @handle_errors
     def start_acquisition(self):
+        self.camera.restore_acquisition_settings()      # not sure
         frames = self.camera.start_acquisition()
         if frames:
             self.camera.save_frames(frames)
@@ -185,6 +187,7 @@ class RamanCameraController:
         self.set_amp_mode(amp)
         self.set_vsspeed(vsspeed)
         self.set_EMCCD_gain(emccd_gain)
+        self.camera.save_acquisition_settings()     # not sure
         # self.display_used_params()
         print(f"Printing all set settings:\n{self.camera.cam.get_settings(include=-10)}\n")
         return

@@ -291,7 +291,7 @@ class MainWindow(QMainWindow):
         self.btn_connect_cam.clicked.connect(self.connect_cam)
         self.btn_live.clicked.connect(self.start_live)
         self.btn_stop.clicked.connect(self.stop_live)
-        self.btn_preview.clicled.connect(self.show_preview)
+        self.btn_preview.clicked.connect(self.show_preview)
         self.btn_acquire.clicked.connect(self.start_acquisition)
         self.btn_disconnect_cam.clicked.connect(self.disconnect_cam)
         self.set_settings_button.clicked.connect(self.set_settings)
@@ -413,11 +413,11 @@ class MainWindow(QMainWindow):
         self.controller.disconnect_cam()
 
     def disable_buttons(self):
-        for b in [self.btn_connect_cam, self.btn_live, self.btn_stop, self.btn_preview self.btn_acquire]:
+        for b in [self.btn_connect_cam, self.btn_live, self.btn_stop, self.btn_preview, self.btn_acquire]:
             b.setEnabled(False)
     
     def enable_buttons(self):
-        for b in [self.btn_connect_cam, self.btn_live, self.btn_stop, self.btn_preview self.btn_acquire]:
+        for b in [self.btn_connect_cam, self.btn_live, self.btn_stop, self.btn_preview, self.btn_acquire]:
             b.setEnabled(True)
 
     def apply_roi_preset(self, text):
@@ -503,8 +503,8 @@ class MainWindow(QMainWindow):
 
     def show_preview(self):
         frame = self.controller.single_preview()
-        is frame:
-            self.display_image(frame)
+        # if frame:
+        self.display_image(frame)
 
     def start_live(self):
         self.controller.start_live()
@@ -520,8 +520,8 @@ class MainWindow(QMainWindow):
 
     def update_preview(self):
         frame = self.controller.get_live_frame()
-        if frame:
-            self.display_image(frame)
+        # if frame:
+        self.display_image(frame)
 
     def display_image(self,frame):
         # !!! this needs to be fixed
@@ -539,8 +539,9 @@ class MainWindow(QMainWindow):
     def acquisition_preview(self):
         frame = self.controller.acquire_single()
         # frame = self.controller.start_acquisition()
-        if frame is None:
-            return
+        
+        # if frame is None:
+        #     return
         self.display_image(frame)
 
     def start_acquisition(self):

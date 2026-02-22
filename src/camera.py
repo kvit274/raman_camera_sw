@@ -20,8 +20,8 @@ class RamanCameraModel:
         # acquisiton settings
         self.acquisition_settings = None
         # default paths:
-        self.save_path_cvs = Path("./data/cvs")
-        self.save_path_cvs.mkdir(exist_ok=True)
+        self.save_path_csv = Path("./data/cvs")
+        self.save_path_csv.mkdir(exist_ok=True)
         self.save_path_image = Path("./data/images")
         self.save_path_image.mkdir(exist_ok=True)
         self.save_path = Path("./data")
@@ -614,9 +614,9 @@ class RamanCameraModel:
         Perform single snap to preview the result
         """
         frame = self.cam.snap(timeout=5,return_info=False)
-        if not frame:
-            raise RunTimeError("Could not obtain frame for single preview")
-            return
+        # if not frame:     # replace following to frame.any() or frame.all() ??
+        #     raise RuntimeError("Could not obtain frame for single preview")
+        #     return
         return frame
 
     @requires_cam_connected
@@ -631,8 +631,9 @@ class RamanCameraModel:
         if acquisition_mode == "single":
             frames = [self.cam.snap(timeout=5,return_info=False)]
         elif acquisition_mode == "accum":
-            num_frames = self.cam.get_accum_mode_parameters()[0]
-            frames = self.cam.grab(nframes=num_frames, frame_timeout=5.0, missing_frame='skip', return_info=False, buff_size=None)
+            # num_frames = self.cam.get_accum_mode_parameters()[0]
+            # frames = self.cam.grab(nframes=num_frames, frame_timeout=5.0, missing_frame='skip', return_info=False, buff_size=None)
+            frames = [self.cam.snap(timeout=5,return_info=False)]       # since 1 frame produced
         elif acquisition_mode == "kinetic":
             num_frames = self.cam.get_kinetic_mode_parameters()[0]
             frames = self.cam.grab(nframes=num_frames, frame_timeout=5.0, missing_frame='skip', return_info=False, buff_size=None)
@@ -640,9 +641,9 @@ class RamanCameraModel:
             num_frames = self.cam.get_fast_kinetic_mode_parameters()[0]
             frames = self.cam.grab(nframes=num_frames, frame_timeout=5.0, missing_frame='skip', return_info=False, buff_size=None)
         elif acquisition_mode == "cont":
-            raise RunTimeError("Continuous mode cannot be used for save acquisition")
+            raise RuntimeError("Continuous mode cannot be used for save acquisition")
         if not frames:
-            raise RunTimeError("No frames were obtained")
+            raise RuntimeError("No frames were obtained")
 
 
 
@@ -818,15 +819,15 @@ class RamanCameraModel:
             hbin = 1
         if vbin < 1 or vbin is None:
             vbin = 1
-
-        if hbin > hmaxbin:
-            hbin = hmaxbin
-        if vbin > vmaxbin:
-            vbin = vmaxbin
-
+        
         h_limits, v_limits = self.get_roi_limits(hbin=hbin,vbin=vbin)   # get limits for current binning
         hmin,hmax,hpstep,hsstep,hmaxbin = h_limits
         vmin,vmax,vpstep,vsstep,vmaxbin = v_limits
+
+        if hbin > hmaxbin:      # what?
+            hbin = hmaxbin
+        if vbin > vmaxbin:
+            vbin = vmaxbin
 
         if hstart < hmin or hstart is None:
             hstart = hmin
@@ -871,7 +872,7 @@ class RamanCameraModel:
                 return
 
             png_path = self.save_path_image / f"{idx+1}.{timestamp}.png"
-            csv_path = self.save_path_cvs / f"{idx+1}.{timestamp}.csv"
+            csv_path = self.save_path_csv / f"{idx+1}.{timestamp}.csv"
 
             plt.imsave(png_path, frame,cmap="gray")
             np.savetxt(csv_path,frame,delimiter=",",fmt="%d")
@@ -888,7 +889,7 @@ class RamanCameraModel:
     #     # frame_uint16 = frame.astype("unit16")
 
     #     png_path = self.save_path_image / f"{timestamp}.png"
-    #     csv_path = self.save_path_cvs / f"{timestamp}.csv"
+    #     csv_path = self.save_path_csv / f"{timestamp}.csv"
 
     #     plt.imsave(png_path, frame,cmap="gray")
     #     np.savetxt(csv_path,frame,delimiter=",",fmt="%d")
@@ -899,6 +900,8 @@ class RamanCameraModel:
     def set_save_frame_path(self,path):
         # validation TOD0
         self.save_path = path
+        self.save_path_image = path
+        self.save_path_csv = path
     
     def set_dlls_path(self,dlls_path):
         pll.par["devices/dll/andor_sdk2"] = dlls_path
@@ -937,6 +940,10 @@ class RamanCameraModel:
     # ==== MATH =====
 
     def adjust_frame(self,frame):
-        frame8 = (frame / frame.max() * 255).astype(np.uint8)   # 8bit grayscale
+        m = frame.max()
+        if m == 0:
+            frame8 = np.zeros_like(frame,dtype=np.unit8)
+        else:
+            frame8 = (frame / frame.max() * 255).astype(np.uint8)   # 8bit grayscale
         h, w = frame8.shape
         return (frame8,h,w)
