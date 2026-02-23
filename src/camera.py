@@ -45,6 +45,13 @@ class RamanCameraModel:
             return func(self, *args, **kwargs)
         return wrapper
 
+    # def requires_stopped_acquisition(func):
+    #     @wraps(func)
+    #     def wrapper(self, *args, **kwargs):
+    #         if self.cam.acquisition_in_progress():
+    #             self.cam.stop_acquistion()
+    #         return func(self, *args, **kwargs)
+    #     return wrapper
 
     # ===== CAMERA SETTINGS =====
 
@@ -74,9 +81,9 @@ class RamanCameraModel:
         except:
             raise ConnectionError("Could not connect to device")
 
-    @requires_cam_connected
-    def enable_frame_transfer_mode(self,mode:bool=True):
-        self.cam.enable_frame_transfer_mode(mode)
+    # @requires_cam_connected
+    # def enable_frame_transfer_mode(self,mode:bool=True):
+    #     self.cam.enable_frame_transfer_mode(mode)
     
     @requires_cam_connected
     def get_cam_params(self,save_path=Path("./cam_params.txt")):
@@ -269,7 +276,7 @@ class RamanCameraModel:
     # ==== READ MODE ====
 
     @requires_cam_connected
-    def set_read_mode(self, read_mode:str):
+    def set_read_mode(self, read_mode:Optional[str]="fvb"):
         self.validate_read_mode(read_mode)
         self.cam.set_read_mode(read_mode)
         print(f"Read mode set to: {read_mode}")
@@ -281,7 +288,7 @@ class RamanCameraModel:
         return self.cam.get_read_mode()
 
     @requires_cam_connected
-    def setup_single_track_mode(self, center:int=0, width:int=1):
+    def setup_single_track_mode(self,center:int=0, width:int=1, mode:Optional[str]="single"):
         self.validate_single_track_mode(center, width)
         # do smth with center and width
         self.cam.setup_single_track_mode(center,width)
@@ -295,7 +302,7 @@ class RamanCameraModel:
         return self.cam.get_single_track_mode_parameters()
 
     @requires_cam_connected
-    def setup_multi_track_mode(self, number:int=1, height:int=1, offset:int=0):
+    def setup_multi_track_mode(self, number:int=1, height:int=1, offset:int=0, mode:Optional[str]="multi_track"):
         self.validate_multi_track_mode(number, height, offset)
         # do smth with number, height, offset
         self.cam.setup_multi_track_mode(number,height,offset)
@@ -309,7 +316,7 @@ class RamanCameraModel:
         return self.cam.get_multi_track_mode_parameters()
 
     @requires_cam_connected
-    def setup_random_track_mode(self, tracks=None):
+    def setup_random_track_mode(self, tracks=None, mode:Optional[str]="random_track"):
         """
         tracks is a list of tuples (start, stop) specifying track span (start are inclusive, stop are exclusive, starting from 0). 
         Note that it does not affect the current read mode, which should be set using set_read_mode()
@@ -326,11 +333,11 @@ class RamanCameraModel:
         return self.cam.get_random_track_mode_parameters()
     
     @requires_cam_connected
-    def setup_image_mode(self,hstart:int=0, hend:Optional[int]=None, vstart:int=0, vend:Optional[int]=None, hbin:int=1, vbin:int=1):
+    def setup_image_mode(self, hstart:int=0, hend:Optional[int]=None, vstart:int=0, vend:Optional[int]=None, hbin:int=1, vbin:int=1, mode:Optional[str]="image"):
         """
         
         """
-        self.validate_roi(hstart, hend, vstart, vend, hbin, vbin)
+        hstart,hend,vstart,vend,hbin,vbin = self.validate_roi(hstart, hend, vstart, vend, hbin, vbin)
         self.cam.setup_image_mode(hstart,hend,vstart,vend,hbin,vbin)
         print(f"Setting up image mode... Real mode:{self.cam.get_read_mode()}")
         return
@@ -390,25 +397,25 @@ class RamanCameraModel:
         return
 
     @requires_cam_connected
-    def setup_accum_mode(self,num_acc:int, cycle_time_acc:Optional[float]=0):
+    def setup_accum_mode(self, num_acc:int, cycle_time_acc:Optional[float]=0, mode:Optional[str]="accum"):
         # validation?
         self.cam.setup_accum_mode(num_acc, cycle_time_acc)
         return
 
     @requires_cam_connected
-    def setup_kinetic_mode(self, num_cycle:int, cycle_time:Optional[float]=0, num_acc:Optional[int]=1, cycle_time_acc:Optional[float]=0, num_prescan:Optional[int]=0):
+    def setup_kinetic_mode(self, num_cycle:int, cycle_time:Optional[float]=0, num_acc:Optional[int]=1, cycle_time_acc:Optional[float]=0, num_prescan:Optional[int]=0, mode:Optional[str]="kinetic"):
         # validation?
         self.cam.setup_kinetic_mode(num_cycle, cycle_time, num_acc, cycle_time_acc, num_prescan)
         return
 
     @requires_cam_connected
-    def setup_fast_kinetic_mode(self, num_acc:int, cycle_time_acc:Optional[float]=0):
+    def setup_fast_kinetic_mode(self, num_acc:int, cycle_time_acc:Optional[float]=0, mode:Optional[str]="fast_kinetic"):
         # validation?
         self.cam.setup_fast_kinetic_mode(num_acc, cycle_time_acc)
         return
     
     @requires_cam_connected
-    def setup_cont_mode(self, cycle_time:Optional[float]=0):
+    def setup_cont_mode(self, cycle_time:Optional[float]=0, mode:Optional[str]="cont"):
         # validation?
         self.cam.setup_cont_mode(cycle_time)
         return
@@ -563,10 +570,13 @@ class RamanCameraModel:
         # self.cam.set_exposure(0.03)     # update fast
         # self.cam.start_acquisition(mode="cont")     # sets acquisition mode to "run till abort"
         self.save_acquisition_settings()
+        self.cam.set_acquisition_mode("single",setup_params=True)    # not sure
         h_limits, v_limits = self.get_roi_limits(hbin=1,vbin=1)   # get full ROI
+        print(f"ROI limits for live preview: h_limits={h_limits}, v_limits={v_limits}")
         hmin,hmax,_,_,_ = h_limits
         vmin,vmax,_,_,_ = v_limits
         self.setup_image_mode(hmin,hmax,vmin,vmax,1,1)
+        # self.setup_image_mode(0,1024,0,256,1,1)
         self.cam.set_exposure(0.01)
         self.is_live = True  
         print("Live mode started")
@@ -576,7 +586,7 @@ class RamanCameraModel:
     def stop_live(self):
         if not self.is_live:
             return
-        self.restore_acquisition_settings()
+        # self.restore_acquisition_settings()
         self.is_live=False
         print("Live mode stopped")
         # if self.acquisiton_settings:
@@ -815,27 +825,28 @@ class RamanCameraModel:
         Check if the given ROI parameters are valid.
         Raises ValueError if any parameter is invalid.
         """
-        if hbin < 1 or hbin is None:
+        if hbin is None or hbin < 1:
             hbin = 1
-        if vbin < 1 or vbin is None:
+        if vbin is None or vbin < 1:
             vbin = 1
         
         h_limits, v_limits = self.get_roi_limits(hbin=hbin,vbin=vbin)   # get limits for current binning
         hmin,hmax,hpstep,hsstep,hmaxbin = h_limits
         vmin,vmax,vpstep,vsstep,vmaxbin = v_limits
-
+        print(f"horizontal limits: hmin={hmin}, hmax={hmax}, hpstep={hpstep}, hsstep={hsstep}, hmaxbin={hmaxbin}")
+        print(f"vertical limits: vmin={vmin}, vmax={vmax}, vpstep={vpstep}, vsstep={vsstep}, vmaxbin={vmaxbin}")
         if hbin > hmaxbin:      # what?
             hbin = hmaxbin
         if vbin > vmaxbin:
             vbin = vmaxbin
 
-        if hstart < hmin or hstart is None:
+        if hstart is None or hstart < hmin:
             hstart = hmin
-        if vstart < vmin or vstart is None:
+        if vstart is None or vstart < vmin:
             vstart = vmin
-        if hend > hmax or hend is None:
+        if hend is None or hend > hmax:
             hend = hmax
-        if vend > vmax or vend is None:
+        if vend is None or vend > vmax:
             vend = vmax
 
         if hend <= hstart or vend <= vstart:
@@ -848,7 +859,7 @@ class RamanCameraModel:
         
         if (hend - hstart) % hbin != 0 or (vend - vstart) % vbin != 0:
             raise ValueError("ROI width and height must be divisible by binning factors.")
-        return True
+        return hstart, hend, vstart, vend, hbin, vbin
 
 
     # ===== FILE MANAGEMENT =====
