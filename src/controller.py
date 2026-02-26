@@ -178,8 +178,20 @@ class RamanCameraController:
         # self.restore_settings()
         self.restore_user_config()
         frames = self.camera.start_acquisition()
+        result_mode = self.user_config.get("result_mode","sum")
         if frames:
             self.camera.save_frames(frames)
+        acq_mode = self.user_config.get("acquisition_mode")["mode"]
+        if acq_mode in ["kinetic","fast_kinetic"]:
+            num_frames = len(frames)
+        if acq_mode == "accum":
+            num_frames = self.user_config.get("acquisition_mode")["num_acc"]
+
+        shifted_frames = self.bit_shift(frames)
+
+        combined_frame = self.camera.combine_frames(shifted_frames,acq_mode,num_frames,result_mode)
+        spectrum = self.camera.convert_to_spectrum(combined_frame)
+        self.view.show_calibration_result(combined_frame, spectrum)
         return
     
     @handle_errors
@@ -190,7 +202,7 @@ class RamanCameraController:
     # ==== SETTINGS METHODS =====
 
     @handle_errors
-    def apply_cam_settings(self,shutter,read_mode,acquisition_mode,trigger_mode,exposure,amp,vsspeed, emccd_gain):
+    def apply_cam_settings(self,shutter,read_mode,acquisition_mode,trigger_mode,exposure,result_mode,amp,vsspeed,emccd_gain):
         if acquisition_mode["mode"] == "cont":
             raise RuntimeError("Cannot apply settings while in continuous acquisition mode. Please stop live mode or continuous acquisition before applying new settings.")
         self.stop_live()
@@ -211,6 +223,7 @@ class RamanCameraController:
             "acquisition_mode": acquisition_mode,
             "trigger_mode": trigger_mode,
             "exposure": exposure,
+            "result_mode":result_mode,
             "amp": amp,
             "vsspeed": vsspeed,
             "emccd_gain": emccd_gain

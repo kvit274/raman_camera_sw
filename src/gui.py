@@ -2,9 +2,10 @@ import atexit
 import traceback
 from pathlib import Path
 import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QStackedWidget, QLineEdit, QPushButton, QFileDialog, QLabel, QComboBox, QMessageBox, QScrollArea, QGroupBox, QSizePolicy, QSplitter
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QStackedWidget, QLineEdit, QPushButton, QFileDialog, QLabel, QComboBox, QMessageBox, QScrollArea, QGroupBox, QSizePolicy, QSplitter, QTabWidget
 from PyQt5.QtGui import QIntValidator, QDoubleValidator, QImage, QPixmap
 from PyQt5.QtCore import pyqtSignal, QTimer, QThread, Qt
+import pyqtgraph as pg
 import os
 from controller import RamanCameraController
 from widgets import MultiTrackWidget, SingleTrackWidget, FVBWidget, ImageWidget, RandomTrackWidget, SingleWidget, AccumWidget, KineticWidget, FastKineticWidget, ContinuousWidget, CollapsibleSection, QNoScrollComboBox, PreviewWidget, RulerContainer
@@ -100,6 +101,10 @@ class MainWindow(QMainWindow):
         self.exposure_input.setPlaceholderText("Exposure time (s)")
         self.exposure_input.setValidator(QDoubleValidator())
 
+        # Result mode (avg or sum of frames)
+        self.result_mode_input = QNoScrollComboBox()
+        self.result_mode_input.addItems(["sum", "avg"])
+
         # Amp
         self.amp_mode_input = QNoScrollComboBox()
 
@@ -192,6 +197,9 @@ class MainWindow(QMainWindow):
         acq_layout.addWidget(QLabel("Exposure (s)"))
         acq_layout.addWidget(self.exposure_input)
 
+        acq_layout.addWidget(QLabel("Result Processing"))
+        acq_layout.addWidget(self.result_mode_input)
+
         section_acq.setContentLayout(acq_layout)
         left_layout.addWidget(section_acq)
 
@@ -220,14 +228,18 @@ class MainWindow(QMainWindow):
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
         # ============================================================
-        # RIGHT PREVIEW (FULL HEIGHT)
+        # ---- RIGHT SIDE TABS ----
         # ============================================================
 
-        preview_container = QWidget()
-        preview_layout = QVBoxLayout(preview_container)
+        self.right_tabs = QTabWidget()
+
+        # ---- PREVIEW ----
+        
+        preview_tab = QWidget()
+        preview_layout = QVBoxLayout(preview_tab)
         preview_layout.setContentsMargins(0, 0, 0, 0)
 
-        preview_container.setStyleSheet("""
+        preview_tab.setStyleSheet("""
             QWidget {
                 background-color: #3c3f41;
                 border-left: 1px solid #555555;
@@ -235,10 +247,20 @@ class MainWindow(QMainWindow):
         """)
 
         self.preview.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        # self.preview.setAlignment(Qt.AlignRight |Qt.AlignVCenter)
+        preview_layout.addWidget(self.preview_tab, alignment = Qt.AlignRight)
 
-        # preview_layout.addWidget(self.preview, alignment = Qt.AlignRight)
-        preview_layout.addWidget(self.preview_container, alignment = Qt.AlignRight)
+        # ---- SPECTROGRAM ----
+
+        self.calibration_plot = pg.PlotWidget()
+        self.calibration_plot.setLabel('left', 'Intensity')
+        self.calibration_plot.setLabel('bottom', 'Pixels')
+
+        calibration_tab = QWidget()
+        cal_layout = QVBoxLayout(calibration_tab)
+        cal_layout.setContentsMargins(0,0,0,0)
+        cal_layout.addWidget(self.calibration_plot)
+
+        self.right_tabs.addTab(calibration_tab, "Calibration")
 
         # ============================================================
         # SPLITTER (DRAGGABLE)
@@ -246,7 +268,7 @@ class MainWindow(QMainWindow):
 
         splitter = QSplitter(Qt.Horizontal)
         splitter.addWidget(scroll)
-        splitter.addWidget(preview_container)
+        splitter.addWidget(self.right_tabs)
         splitter.setStretchFactor(0, 0)
         splitter.setStretchFactor(1, 1)
         splitter.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding)
@@ -479,6 +501,8 @@ class MainWindow(QMainWindow):
 
         exposure = self.exposure_input.text()
 
+        result_mode = self.result_mode_input.currentText()
+
         amp_mode = self.amp_mode_input.currentData(Qt.UserRole)
         if amp_mode is not None:
             amp = {
@@ -499,7 +523,7 @@ class MainWindow(QMainWindow):
 
         emccd_gain = self.emccd_gain_input.text()
 
-        self.controller.apply_cam_settings(shutter, read_mode_params, acquisition_mode_params, trigger_mode, exposure, amp, vsspeed, emccd_gain)
+        self.controller.apply_cam_settings(shutter, read_mode_params, acquisition_mode_params, trigger_mode, exposure, result_mode, amp, vsspeed, emccd_gain)
 
     def show_preview(self):
         frame = self.controller.single_preview()
@@ -524,16 +548,16 @@ class MainWindow(QMainWindow):
         self.display_image(frame)
 
     def display_image(self,frame):
-        # !!! this needs to be fixed
-        # Normalize to 8-bit
         frame8, h, w = self.controller.adjust_frame(frame)
         self.preview.set_frame((frame8,h,w))
-        # qimg = QImage(frame8.data, w, h, w, QImage.Format_Grayscale8)
-        # pix = QPixmap.fromImage(qimg)
-        # self.preview.setPixmap(pix.scaled(
-        #     self.preview.width(),
-        #     self.preview.height()
-        # ))
+
+    def show_calibration_result(self, frame, spectrum):
+        # Switch to calibration tab
+        self.right_tabs.setCurrentIndex(1)
+
+        # Plot spectrum
+        self.calibration_plot.clear()
+        self.calibration_plot.plot(spectrum)
     
     # use for preview of acquisition
     def acquisition_preview(self):

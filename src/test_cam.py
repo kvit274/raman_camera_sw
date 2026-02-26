@@ -693,6 +693,19 @@ class TestCameraModel:
 
     # ==== DISPLAY DATA =====
 
+    def display_spectrogram(self, frames):
+        if frames:
+            frame = frames[-1]
+
+            # Sum rows → 1D spectrum
+            if frame.ndim == 2:
+                spectrum = frame.sum(axis=0)
+            else:
+                spectrum = frame
+
+            # Send to GUI
+            self.view.show_calibration_result(frame, spectrum)
+
     def plot_spec(self,spectrum,exp_time):
         self.save_path.mkdir(parents=True, exist_ok=True)
         plt.figure()
@@ -702,6 +715,53 @@ class TestCameraModel:
 
 
     # ==== MATH =====
+
+    def combine_frames(self,frames,acq_mode,num_frames,result_mode):
+        # --- Normalize frames to list ---
+        if isinstance(frames, np.ndarray):
+            frames = [frames]
+
+        # --- Combine frames correctly ---
+        if acq_mode in ["kinetic", "fast_kinetic"]:
+            # multiple independent frames
+            combined = np.sum(frames, axis=0)
+
+            if result_mode == "avg":
+                combined = combined / num_frames
+
+        else:
+            # single OR accum
+            frame = frames[-1]
+
+            if acq_mode == "accum":
+
+                if result_mode == "avg":
+                    frame = frame / num_frames
+
+            combined = frame
+
+        return combined
+    
+    def convert_to_spectrum(self,frame):
+        if frame.ndim == 2:
+            spectrum = frame.sum(axis=0)
+        else:
+            spectrum = frame
+        return spectrum
+
+    def bit_shift(self, frames):
+        shifted_frames = []
+
+        for frame in frames:
+            if frame.ndim == 2:
+                frame_copy = frame.copy()
+                frame_copy[-1, :] = np.roll(frame_copy[-1, :], -2)
+                shifted_frames.append(frame_copy)
+            else:
+                shifted_frames.append(frame)
+
+        return shifted_frames
+
     def adjust_frame(self,frame):
         frame8 = (frame / frame.max() * 255).astype(np.uint8)   # 8bit grayscale
         h, w = frame8.shape
