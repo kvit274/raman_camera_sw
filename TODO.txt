@@ -57,6 +57,63 @@ handle the read mode params being sent to controller
 
 # they use multi track / image / fvb
 
+
+super last logs:
+
+Acquisition mode: single
+acquisition mode handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x000001C1E383E760>>
+Got to setup_single_mode in controller
+Trying to change acquisition mode to single.. Actual: single
+Trying to set read mode in controller to: image
+Handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x000001C1E383E760>>
+Entered setup_image_mode in controller
+horizontal limits: hmin=2, hmax=1024, hpstep=1, hsstep=1, hmaxbin=32
+vertical limits: vmin=2, vmax=256, vpstep=1, vsstep=1, vmaxbin=32
+Setting up image mode... Real mode:image
+Printing all set settings:
+{'image_indexing': 'rcb', 'frame_format': 'list', 'frame_info_format': 'namedtuple', 'frame_info_period': 1, 'roi': (2, 1024, 2, 256, 1, 1), 'temperature': -85, 'cooler': True, 'channel': 0, 'oamp': 0, 'hsspeed': 0, 'preamp': 1, 'vsspeed': 1, 'shutter': ('open', 0, 0, 0), 'fan_mode': 'full', 'trigger_mode': 'int', 'acq_parameters/accum': (1, 0), 'acq_parameters/kinetic': (1, 0.0, 1, 0, 0), 'acq_parameters/fast_kinetic': (1, 0.0), 'acq_parameters/cont': 0, 'acq_mode': 'single', 'frame_transfer': None, 'read_parameters/single_track': (0, 1), 'read_parameters/multi_track': (1, 1, 0), 'read_parameters/random_track': [(0, 1)], 'read_parameters/image': (2, 1024, 2, 256, 1, 1), 'read_mode': 'image', 'exposure': 0.05000000074505806, 'frame_period': 0.1457899957895279}
+
+User config: {'shutter': {'mode': 'open', 'tll_mode': '0', 'open_time': '', 'close_time': ''}, 'read_mode': {'mode': 'image', 'hstart': 0, 'hend': 1024, 'vstart': 0, 'vend': 256, 'hbin': 1, 'vbin': 1}, 'acquisition_mode': {'mode': 'single'}, 'trigger_mode': 'int', 'exposure': '0.05', 'amp': {'channel': 0, 'oamp': 0, 'hsspeed': 0, 'preamp': 1}, 'vsspeed': 1, 'emccd_gain': ''}
+Acquisition mode: single
+acquisition mode handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x000001C1E383E760>>
+Got to setup_single_mode in controller
+Trying to change acquisition mode to single.. Actual: single
+Trying to set read mode in controller to: image
+Handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x000001C1E383E760>>
+Entered setup_image_mode in controller
+horizontal limits: hmin=2, hmax=1024, hpstep=1, hsstep=1, hmaxbin=32
+vertical limits: vmin=2, vmax=256, vpstep=1, vsstep=1, vmaxbin=32
+Setting up image mode... Real mode:image
+Printing all set settings:
+{'image_indexing': 'rcb', 'frame_format': 'list', 'frame_info_format': 'namedtuple', 'frame_info_period': 1, 'roi': (2, 1024, 2, 256, 1, 1), 'temperature': -85, 'cooler': True, 'channel': 0, 'oamp': 0, 'hsspeed': 0, 'preamp': 1, 'vsspeed': 1, 'shutter': ('open', 0, 0, 0), 'fan_mode': 'full', 'trigger_mode': 'int', 'acq_parameters/accum': (1, 0), 'acq_parameters/kinetic': (1, 0.0, 1, 0, 0), 'acq_parameters/fast_kinetic': (1, 0.0), 'acq_parameters/cont': 0, 'acq_mode': 'single', 'frame_transfer': None, 'read_parameters/single_track': (0, 1), 'read_parameters/multi_track': (1, 1, 0), 'read_parameters/random_track': [(0, 1)], 'read_parameters/image': (2, 1024, 2, 256, 1, 1), 'read_mode': 'image', 'exposure': 0.05000000074505806, 'frame_period': 0.1457899957895279}
+
+User config: {'shutter': {'mode': 'open', 'tll_mode': '0', 'open_time': '', 'close_time': ''}, 'read_mode': {'mode': 'image', 'hstart': 0, 'hend': 1024, 'vstart': 0, 'vend': 256, 'hbin': 1, 'vbin': 1}, 'acquisition_mode': {'mode': 'single'}, 'trigger_mode': 'int', 'exposure': '0.05', 'amp': {'channel': 0, 'oamp': 0, 'hsspeed': 0, 'preamp': 1}, 'vsspeed': 1, 'emccd_gain': ''}
+Acquisition parameters: None
+Acquisition mode: single
+Status before start: idle
+Acquisition parameters after enforcing: None
+[SAVE] Frames saved to C:\Users\aberdin\Downloads\1.20260223_170128.png
+Acquisition mode: single
+acquisition mode handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x000001C1E383E760>>
+Got to setup_single_mode in controller
+Trying to change acquisition mode to single.. Actual: single
+Trying to set read mode in controller to: image
+Handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x000001C1E383E760>>
+Entered setup_image_mode in controller
+horizontal limits: hmin=2, hmax=1024, hpstep=1, hsstep=1, hmaxbin=32
+vertical limits: vmin=2, vmax=256, vpstep=1, vsstep=1, vmaxbin=32
+Setting up image mode... Real mode:image
+Printing all set settings:
+{'image_indexing': 'rcb', 'frame_format': 'list', 'frame_info_format': 'namedtuple', 'frame_info_period': 1, 'roi': (2, 1024, 2, 256, 1, 1), 'temperature': -85, 'cooler': True, 'channel': 0, 'oamp': 0, 'hsspeed': 0, 'preamp': 1, 'vsspeed': 1, 'shutter': ('open', 0, 0, 0), 'fan_mode': 'full', 'trigger_mode': 'int', 'acq_parameters/accum': (1, 0), 'acq_parameters/kinetic': (1, 0.0, 1, 0, 0), 'acq_parameters/fast_kinetic': (1, 0.0), 'acq_parameters/cont': 0, 'acq_mode': 'single', 'frame_transfer': None, 'read_parameters/single_track': (0, 1), 'read_parameters/multi_track': (1, 1, 0), 'read_parameters/random_track': [(0, 1)], 'read_parameters/image': (2, 1024, 2, 256, 1, 1), 'read_mode': 'image', 'exposure': 0.05000000074505806, 'frame_period': 0.1457899957895279}
+
+User config: {'shutter': {'mode': 'open', 'tll_mode': '0', 'open_time': '', 'close_time': ''}, 'read_mode': {'mode': 'image', 'hstart': 0, 'hend': 1024, 'vstart': 0, 'vend': 256, 'hbin': 1, 'vbin': 1}, 'acquisition_mode': {'mode': 'single'}, 'trigger_mode': 'int', 'exposure': '0.05', 'amp': {'channel': 0, 'oamp': 0, 'hsspeed': 0, 'preamp': 1}, 'vsspeed': 1, 'emccd_gain': ''}
+Acquisition parameters: {'nframes': None, 'mode': 'cont'}
+Acquisition mode: single
+Status before start: idle
+Acquisition parameters after enforcing: {'nframes': None, 'mode': 'cont'}
+
+
+
 New logs:
 
 3) still cont somehow

@@ -189,7 +189,7 @@ class MainWindow(QMainWindow):
         acq_layout.addWidget(QLabel("Trigger Mode"))
         acq_layout.addWidget(self.trigger_mode_input)
 
-        acq_layout.addWidget(QLabel("Exposure (ms)"))
+        acq_layout.addWidget(QLabel("Exposure (s)"))
         acq_layout.addWidget(self.exposure_input)
 
         section_acq.setContentLayout(acq_layout)

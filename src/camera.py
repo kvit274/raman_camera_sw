@@ -586,6 +586,8 @@ class RamanCameraModel:
     def stop_live(self):
         if not self.is_live:
             return
+        self.cam.stop_acquisition()      # stop acquisition if it is already in progress
+        self.cam.clear_acquisition()    # clear the buffer
         # self.restore_acquisition_settings()
         self.is_live=False
         print("Live mode stopped")
@@ -623,7 +625,13 @@ class RamanCameraModel:
         """
         Perform single snap to preview the result
         """
-        frame = self.cam.snap(timeout=5,return_info=False)
+        self.cam.stop_acquisition()      # stop acquisition if it is already in progress
+        try:
+            frame = self.cam.snap(timeout=5,return_info=False)
+        finally:
+            self.cam.stop_acquisition()      # stop acquisition after grabbing frames
+            self.cam.clear_acquisition()    # clear the buffer
+
         # if not frame:     # replace following to frame.any() or frame.all() ??
         #     raise RuntimeError("Could not obtain frame for single preview")
         #     return
@@ -636,22 +644,35 @@ class RamanCameraModel:
             self.stop_live()
 
         print(f"Acquisition parameters: {self.cam.get_acquisition_parameters()}")
+        print(f"Acquisition mode: {self.cam.get_acquisition_mode()}")
+        print(f"Status before start: {self.cam.get_status()}")
+        self.cam.stop_acquisition()      # stop acquisition if it is already in progress, just in case
         acquisition_mode = self.cam.get_acquisition_mode()
         frames = None
-        if acquisition_mode == "single":
-            frames = [self.cam.snap(timeout=5,return_info=False)]
-        elif acquisition_mode == "accum":
-            # num_frames = self.cam.get_accum_mode_parameters()[0]
-            # frames = self.cam.grab(nframes=num_frames, frame_timeout=5.0, missing_frame='skip', return_info=False, buff_size=None)
-            frames = [self.cam.snap(timeout=5,return_info=False)]       # since 1 frame produced
-        elif acquisition_mode == "kinetic":
-            num_frames = self.cam.get_kinetic_mode_parameters()[0]
-            frames = self.cam.grab(nframes=num_frames, frame_timeout=5.0, missing_frame='skip', return_info=False, buff_size=None)
-        elif acquisition_mode == "fast_kinetic":
-            num_frames = self.cam.get_fast_kinetic_mode_parameters()[0]
-            frames = self.cam.grab(nframes=num_frames, frame_timeout=5.0, missing_frame='skip', return_info=False, buff_size=None)
-        elif acquisition_mode == "cont":
-            raise RuntimeError("Continuous mode cannot be used for save acquisition")
+
+        try:
+            if acquisition_mode == "single":
+                self.cam.set_acquisition_mode("single",setup_params=True)    # testing this
+                print(f"Acquisition parameters after enforcing: {self.cam.get_acquisition_parameters()}")
+                frames = [self.cam.snap(timeout=5,return_info=False)]
+            elif acquisition_mode == "accum":
+                # num_frames = self.cam.get_accum_mode_parameters()[0]
+                # frames = self.cam.grab(nframes=num_frames, frame_timeout=5.0, missing_frame='skip', return_info=False, buff_size=None)
+                self.cam.set_acquisition_mode("accum",setup_params=True)    # testing this
+                frames = [self.cam.snap(timeout=5,return_info=False)]       # since 1 frame produced
+            elif acquisition_mode == "kinetic":
+                self.cam.set_acquisition_mode("kinetic",setup_params=True)    # testing this
+                num_frames = self.cam.get_kinetic_mode_parameters()[0]
+                frames = self.cam.grab(nframes=num_frames, frame_timeout=5.0, missing_frame='skip', return_info=False, buff_size=None)
+            elif acquisition_mode == "fast_kinetic":
+                self.cam.set_acquisition_mode("fast_kinetic",setup_params=True)    # testing this
+                num_frames = self.cam.get_fast_kinetic_mode_parameters()[0]
+                frames = self.cam.grab(nframes=num_frames, frame_timeout=5.0, missing_frame='skip', return_info=False, buff_size=None)
+            elif acquisition_mode == "cont":
+                raise RuntimeError("Continuous mode cannot be used for save acquisition")
+        finally:
+            self.cam.stop_acquisition()      # stop acquisition after grabbing frames
+            self.cam.clear_acquisition()    # clear the buffer
         if not frames:
             raise RuntimeError("No frames were obtained")
 

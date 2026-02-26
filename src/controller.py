@@ -130,6 +130,7 @@ class RamanCameraController:
 
     @handle_errors
     def start_live(self):
+        self.camera.cam.stop_acquisition()   # just in case, might not be needed
         self.camera.start_live()
         self.view.start_live_timer()
         return
@@ -138,7 +139,7 @@ class RamanCameraController:
     def stop_live(self):
         self.camera.stop_live()
         self.view.stop_live_timer()
-        self.restore_user_config()
+        # self.restore_user_config()
         # self.restore_settings()
         return
 
@@ -190,6 +191,8 @@ class RamanCameraController:
 
     @handle_errors
     def apply_cam_settings(self,shutter,read_mode,acquisition_mode,trigger_mode,exposure,amp,vsspeed, emccd_gain):
+        if acquisition_mode["mode"] == "cont":
+            raise RuntimeError("Cannot apply settings while in continuous acquisition mode. Please stop live mode or continuous acquisition before applying new settings.")
         self.stop_live()
         self.camera.cam.stop_acquisition()
         # self.set_roi(**roi)
@@ -220,7 +223,7 @@ class RamanCameraController:
     @handle_errors
     def restore_settings(self):
         if self.camera.cam.acquistion_in_progress():    # temperary
-            self.cam.stop_acquisition()
+            self.camera.cam.stop_acquisition()
 
         settings = self.camera.restore_acquisition_settings()
 
@@ -505,12 +508,12 @@ class RamanCameraController:
     def setup_image_mode(self,params):
         print(f"Entered setup_image_mode in controller")
         # del params["mode"]
-        params["hstart"] = int(params["hstart"]) if params["hstart"] != "" else None
-        params["hend"] = int(params["hend"]) if params["hend"] != "" else None
-        params["vstart"] = int(params["vstart"]) if params["vstart"] != "" else None
-        params["vend"] = int(params["vend"]) if params["vend"] != "" else None
-        params["hbin"] = int(params["hbin"]) if params["hbin"] != "" else None
-        params["vbin"] = int(params["vbin"]) if params["vbin"] != "" else None
+        params["hstart"] = int(params["hstart"]) if params.get("hstart") not in ("", None) else None
+        params["hend"] = int(params["hend"]) if params.get("hend") not in ("", None) else None
+        params["vstart"] = int(params["vstart"]) if params.get("vstart") not in ("", None) else None
+        params["vend"] = int(params["vend"]) if params.get("vend") not in ("", None) else None
+        params["hbin"] = int(params["hbin"]) if params.get("hbin") not in ("", None) else None
+        params["vbin"] = int(params["vbin"]) if params.get("vbin") not in ("", None) else None
 
         self.camera.setup_image_mode(**params)
         return
