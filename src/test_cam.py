@@ -171,17 +171,17 @@ class TestCameraModel:
         return (self.shutter_mode, self.ttl_mode, self.open_time, self.close_time)
 
     @requires_cam_connected
-    def setup_shutter(self, mode:str, tll_mode:int=0, open_time:Optional[float]=None, close_time:Optional[float]=None):
+    def setup_shutter(self, mode:str, ttl_mode:int=0, open_time:Optional[float]=None, close_time:Optional[float]=None):
         """
         Set shutter parameters.
-        tll_mode: 0 - low is open, 1 - high is open
+        ttl_mode: 0 - low is open, 1 - high is open
         mode: "auto", "open", "close"
         open_time, close_time: in ms???????
         """
-        self.validate_shutter_settings(mode, tll_mode, open_time, close_time)
+        self.validate_shutter_settings(mode, ttl_mode, open_time, close_time)
         self.shutter_mode = mode
         print(f"model: {mode}")
-        self.ttl_mode = tll_mode
+        self.ttl_mode = ttl_mode
         self.open_time = open_time
         self.close_time = close_time
         return
@@ -225,7 +225,7 @@ class TestCameraModel:
         return self.read_mode
 
     @requires_cam_connected
-    def setup_single_track_mode(self, center:int=0, width:int=1):
+    def setup_single_track_mode(self, mode,center:int=0, width:int=1):
         self.validate_single_track_mode(center, width)
         # do smth with center and width
         self.set_read_mode("single_track")
@@ -239,7 +239,7 @@ class TestCameraModel:
         return (0, 1)
 
     @requires_cam_connected
-    def setup_multi_track_mode(self, number:int=1, height:int=1, offset:int=0):
+    def setup_multi_track_mode(self,mode, number:int=1, height:int=1, offset:int=0):
         self.validate_multi_track_mode(number, height, offset)
         # do smth with number, height, offset
         print("Trying to set multi-track mode")
@@ -254,7 +254,7 @@ class TestCameraModel:
         return (1, 1, 0)
 
     @requires_cam_connected
-    def setup_random_track_mode(self, tracks=None):
+    def setup_random_track_mode(self,mode, tracks=None):
         """
         tracks is a list of tuples (start, stop) specifying track span (start are inclusive, stop are exclusive, starting from 0). 
         Note that it does not affect the current read mode, which should be set using set_read_mode()
@@ -270,7 +270,7 @@ class TestCameraModel:
         return (10,20)
 
     @requires_cam_connected
-    def setup_image_mode(self,hstart:int=0, hend:Optional[int]=None, vstart:int=0, vend:Optional[int]=None, hbin:int=1, vbin:int=1):
+    def setup_image_mode(self,mode,hstart:int=0, hend:Optional[int]=None, vstart:int=0, vend:Optional[int]=None, hbin:int=1, vbin:int=1):
         """
         
         """
@@ -304,25 +304,25 @@ class TestCameraModel:
         return
 
     @requires_cam_connected
-    def setup_accum_mode(self,num_acc:int, cycle_time_acc:Optional[float]=0):
+    def setup_accum_mode(self,mode,num_acc:int, cycle_time_acc:Optional[float]=0):
         # validation?
         self.acquisition_mode = "accum"
         return
 
     @requires_cam_connected
-    def setup_kinetic_mode(self, num_cycle:int, cycle_time:Optional[float]=0, num_acc:Optional[int]=1, cycle_time_acc:Optional[float]=0, num_prescan:Optional[int]=0):
+    def setup_kinetic_mode(self,mode, num_cycle:int, cycle_time:Optional[float]=0, num_acc:Optional[int]=1, cycle_time_acc:Optional[float]=0, num_prescan:Optional[int]=0):
         # validation?
         self.acquisition_mode = "kinetic"
         return
 
     @requires_cam_connected
-    def setup_fast_kinetic_mode(self, num_acc:int, cycle_time_acc:Optional[float]=0):
+    def setup_fast_kinetic_mode(self, mode,num_acc:int, cycle_time_acc:Optional[float]=0):
         # validation?
         self.acquisition_mode = "fast_kinetic"
         return
     
     @requires_cam_connected
-    def setup_cont_mode(self, cycle_time:Optional[float]=0):
+    def setup_cont_mode(self,mode, cycle_time:Optional[float]=0):
         # validation?
         self.acquisition_mode = "cont"
         return
@@ -475,7 +475,7 @@ class TestCameraModel:
         return
 
     @requires_cam_connected
-    def end_live(self):
+    def stop_live(self):
         if not self.cam or not self.is_live:
             return
 
@@ -524,12 +524,12 @@ class TestCameraModel:
         #TOD0
         return
 
-    def validate_shutter_settings(self, mode:str, tll_mode:int, open_time:Optional[float], close_time:Optional[float]):
+    def validate_shutter_settings(self, mode:str, ttl_mode:int, open_time:Optional[float], close_time:Optional[float]):
         valid_modes = ["auto", "open", "close"]
         if mode not in valid_modes:
             raise ValueError(f"Invalid shutter mode: {mode}. Valid modes are: {valid_modes}")
 
-        if tll_mode not in [0, 1]:
+        if ttl_mode not in [0, 1]:
             raise ValueError("TTL mode must be 0 (low is open) or 1 (high is open)")
 
         min_open_time, min_close_time = self.get_min_shutter_times()
@@ -563,29 +563,29 @@ class TestCameraModel:
         return True
 
     def validate_roi_settings(self, hstart:int, hend:Optional[int], vstart:int, vend:Optional[int], hbin:int, vbin:int):
-        if hstart < 0 or hstart >= self.detect_cam_size()[0]:
-            raise ValueError("Invalid horizontal start value")
+        # if hstart < 0 or hstart >= self.detect_cam_size()[0]:
+        #     raise ValueError("Invalid horizontal start value")
         
-        if vstart < 0 or vstart >= self.detect_cam_size()[1]:
-            raise ValueError("Invalid vertical start value")
+        # if vstart < 0 or vstart >= self.detect_cam_size()[1]:
+        #     raise ValueError("Invalid vertical start value")
 
-        if hend is not None:
-            if hend <= hstart or hend > self.detect_cam_size()[0]:
-                raise ValueError("Invalid horizontal end value")
+        # if hend is not None:
+        #     if hend <= hstart or hend > self.detect_cam_size()[0]:
+        #         raise ValueError("Invalid horizontal end value")
         
-        if vend is not None:
-            if vend <= vstart or vend > self.detect_cam_size()[1]:
-                raise ValueError("Invalid vertical end value")
+        # if vend is not None:
+        #     if vend <= vstart or vend > self.detect_cam_size()[1]:
+        #         raise ValueError("Invalid vertical end value")
 
-        if hbin < 1 or hbin > self.get_max_binning()[0]:
-            raise ValueError("Invalid horizontal binning value")
+        # if hbin < 1 or hbin > self.get_max_binning()[0]:
+        #     raise ValueError("Invalid horizontal binning value")
 
-        if vbin < 1 or vbin > self.get_max_binning()[1]:
-            raise ValueError("Invalid vertical binning value")
-            
+        # if vbin < 1 or vbin > self.get_max_binning()[1]:
+        #     raise ValueError("Invalid vertical binning value")
+
         # except ValueError as ve:
         #     print(f"Error setting ROI: {ve}")
-        #     return
+        return
         
 
 
@@ -640,28 +640,34 @@ class TestCameraModel:
 
 
     @requires_cam_connected
-    def start_acquistion(self):
-        return self.generate_fake_frame()
+    def start_acquisition(self):
+        return [self.generate_fake_frame()]
 
+
+    @requires_cam_connected
+    def stop_acquisition(self):
+        return 
 
     # ===== FILE MANAGEMENT =====
     
     # import imageio.v2 as imageio
-    def save_frame(self,frame):
+    def save_frames(self,frames):
         """
         Save a single acquired frame as PNG + raw CSV
         """
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        # timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-        # frame_uint16 = frame.astype("unit16")
+        # # frame_uint16 = frame.astype("unit16")
 
-        png_path = self.save_path_image / f"{timestamp}.png"
-        csv_path = self.save_path_cvs / f"{timestamp}.csv"
+        # png_path = self.save_path_image / f"{timestamp}.png"
+        # csv_path = self.save_path_cvs / f"{timestamp}.csv"
 
-        plt.imsave(png_path, frame,cmap="gray")
-        np.savetxt(csv_path,frame,delimiter=",",fmt="%d")
+        # plt.imsave(png_path, frame,cmap="gray")
+        # np.savetxt(csv_path,frame,delimiter=",",fmt="%d")
 
-        print(f"[SAVE] Frame saved to {png_path}")
+        # print(f"[SAVE] Frame saved to {png_path}")
+        print("Image saved")
+        return
 
     def set_save_frame_path(self,path):
         # validation TOD0

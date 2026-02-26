@@ -51,7 +51,7 @@ class RamanCameraController:
     #     shutter = self.camera.get_shutter_parameters()
     #     shutter_dict = {
     #         'mode': str(shutter[0]),
-    #         'tll_mode': str(shutter[1]),
+    #         'ttl_mode': str(shutter[1]),
     #         'open_time': str(shutter[2]),
     #         'close_time': str(shutter[3])
     #     }
@@ -130,7 +130,7 @@ class RamanCameraController:
 
     @handle_errors
     def start_live(self):
-        self.camera.cam.stop_acquisition()   # just in case, might not be needed
+        self.camera.stop_acquisition()   # just in case, might not be needed
         self.camera.start_live()
         self.view.start_live_timer()
         return
@@ -146,6 +146,7 @@ class RamanCameraController:
     @handle_errors
     def restore_user_config(self):
         if not self.user_config:
+            raise RuntimeError("You must set parameters before acquistion")
             return
 
         self.apply_cam_settings(**self.user_config)
@@ -179,17 +180,20 @@ class RamanCameraController:
         self.restore_user_config()
         frames = self.camera.start_acquisition()
         result_mode = self.user_config.get("result_mode","sum")
+
+        shifted_frames = self.camera.bit_shift(frames)
+
         if frames:
             self.camera.save_frames(frames)
+
         acq_mode = self.user_config.get("acquisition_mode")["mode"]
+        num_frames = 1
         if acq_mode in ["kinetic","fast_kinetic"]:
             num_frames = len(frames)
         if acq_mode == "accum":
             num_frames = self.user_config.get("acquisition_mode")["num_acc"]
-
-        shifted_frames = self.bit_shift(frames)
-
         combined_frame = self.camera.combine_frames(shifted_frames,acq_mode,num_frames,result_mode)
+
         spectrum = self.camera.convert_to_spectrum(combined_frame)
         self.view.show_calibration_result(combined_frame, spectrum)
         return
@@ -206,7 +210,7 @@ class RamanCameraController:
         if acquisition_mode["mode"] == "cont":
             raise RuntimeError("Cannot apply settings while in continuous acquisition mode. Please stop live mode or continuous acquisition before applying new settings.")
         self.stop_live()
-        self.camera.cam.stop_acquisition()
+        self.camera.stop_acquisition()
         # self.set_roi(**roi)
         self.set_acquisition_mode(acquisition_mode)
         self.set_read_mode(read_mode)
@@ -229,14 +233,14 @@ class RamanCameraController:
             "emccd_gain": emccd_gain
         }
         # self.display_used_params()
-        print(f"Printing all set settings:\n{self.camera.cam.get_settings(include=-10)}\n")
+        # print(f"Printing all set settings:\n{self.camera.cam.get_settings(include=-10)}\n")
         print(f"User config: {self.user_config}")
         return
 
     @handle_errors
     def restore_settings(self):
         if self.camera.cam.acquistion_in_progress():    # temperary
-            self.camera.cam.stop_acquisition()
+            self.camera.stop_acquisition()
 
         settings = self.camera.restore_acquisition_settings()
 
@@ -534,12 +538,12 @@ class RamanCameraController:
     # ==== Shutter methods =====
 
     @handle_errors
-    def setup_shutter(self,mode,tll_mode,open_time,close_time):
+    def setup_shutter(self,mode,ttl_mode,open_time,close_time):
         mode = str(mode).lower()
-        tll_mode = int(tll_mode)
+        ttl_mode = int(ttl_mode)
         open_time = None if open_time == "" else float(open_time)       # get back to this! changed "" -> None
         close_time = None if close_time == "" else float(close_time)
-        self.camera.setup_shutter(mode,tll_mode,open_time,close_time)
+        self.camera.setup_shutter(mode,ttl_mode,open_time,close_time)
         self.display_shutter_state()
         return
 

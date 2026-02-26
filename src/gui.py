@@ -1,6 +1,7 @@
 import atexit
 import traceback
 from pathlib import Path
+import numpy as np
 import sys
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QStackedWidget, QLineEdit, QPushButton, QFileDialog, QLabel, QComboBox, QMessageBox, QScrollArea, QGroupBox, QSizePolicy, QSplitter, QTabWidget
 from PyQt5.QtGui import QIntValidator, QDoubleValidator, QImage, QPixmap
@@ -45,8 +46,8 @@ class MainWindow(QMainWindow):
         # Shutter controls
         self.shutter_mode_input = QNoScrollComboBox()
         self.shutter_mode_input.addItems(["auto", "open", "closed"])
-        self.tll_mode_input = QNoScrollComboBox()
-        self.tll_mode_input.addItems(["0", "1"]) # THESE NEEDS TO BE CHANGED TO: TTL_low TTL_high for nicer ux
+        self.ttl_mode_input = QNoScrollComboBox()
+        self.ttl_mode_input.addItems(["0", "1"]) # THESE NEEDS TO BE CHANGED TO: TTL_low TTL_high for nicer ux
         self.shutter_open_time_input = QLineEdit()
         self.shutter_open_time_input.setPlaceholderText("Shutter Open Time (ms)")
         self.shutter_open_time_input.setValidator(QDoubleValidator())
@@ -62,11 +63,11 @@ class MainWindow(QMainWindow):
         self.read_mode_input.setCurrentText("image")
         self.read_mode_stack = QStackedWidget()
         self.read_mode_stack.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
-        image_widget = ImageWidget()
-        image_widget.roi_visual_changed.connect(self.update_image_preview_overlay)  # connect to draw on preview
+        self.image_widget = ImageWidget()
+        self.image_widget.roi_visual_changed.connect(self.update_image_preview_overlay)  # connect to draw on preview
         self.read_mode_widgets = {
             "fvb": FVBWidget(),
-            "image": image_widget,
+            "image": self.image_widget,
             "single_track": SingleTrackWidget(),
             "multi_track": MultiTrackWidget(),
             "random_track": RandomTrackWidget()
@@ -127,119 +128,120 @@ class MainWindow(QMainWindow):
         # ==== LEFT PANEL (FULL HEIGHT) ====
         
 
-        left_container = QWidget()
-        left_layout = QVBoxLayout(left_container)
-        left_layout.setSpacing(10)
-        left_layout.setContentsMargins(10, 10, 10, 10)
+        self.left_container = QWidget()
+        self.left_layout = QVBoxLayout(self.left_container)
+        self.left_layout.setSpacing(10)
+        self.left_layout.setContentsMargins(10, 10, 10, 10)
 
-        left_container.setStyleSheet("""
+        self.left_container.setStyleSheet("""
             QWidget {
                 background-color: #2b2b2b;
             }
         """)
 
         # -------- Camera Control (NOT collapsible) --------
-        control_layout = QVBoxLayout()
+        self.control_layout = QVBoxLayout()
 
-        control_layout.addWidget(QLabel("Camera Control"))
-        control_layout.addWidget(self.btn_connect_cam)
-        control_layout.addWidget(self.btn_live)
-        control_layout.addWidget(self.btn_stop)
-        control_layout.addWidget(self.btn_preview)
-        control_layout.addWidget(self.btn_acquire)
-        control_layout.addWidget(self.btn_disconnect_cam)
-        control_layout.addWidget(self.save_frame_path_button)
-        control_layout.addWidget(self.save_frame_path_label)
+        self.control_layout.addWidget(QLabel("Camera Control"))
+        self.control_layout.addWidget(self.btn_connect_cam)
+        self.control_layout.addWidget(self.btn_live)
+        self.control_layout.addWidget(self.btn_stop)
+        self.control_layout.addWidget(self.btn_preview)
+        self.control_layout.addWidget(self.btn_acquire)
+        self.control_layout.addWidget(self.btn_disconnect_cam)
+        self.control_layout.addWidget(self.save_frame_path_button)
+        self.control_layout.addWidget(self.save_frame_path_label)
 
-        left_layout.addLayout(control_layout)
+        self.left_layout.addLayout(self.control_layout)
 
         # -------- Shutter --------
-        section_shutter = CollapsibleSection("Shutter")
-        shutter_layout = QVBoxLayout()
+        self.section_shutter = CollapsibleSection("Shutter")
+        self.shutter_layout = QVBoxLayout()
 
-        shutter_layout.addWidget(QLabel("Mode"))
-        shutter_layout.addWidget(self.shutter_mode_input)
+        self.shutter_layout.addWidget(QLabel("Mode"))
+        self.shutter_layout.addWidget(self.shutter_mode_input)
 
-        shutter_layout.addWidget(QLabel("TTL Mode"))
-        shutter_layout.addWidget(self.tll_mode_input)
+        self.shutter_layout.addWidget(QLabel("TTL Mode"))
+        self.shutter_layout.addWidget(self.ttl_mode_input)
 
-        shutter_layout.addWidget(QLabel("Open Time (ms)"))
-        shutter_layout.addWidget(self.shutter_open_time_input)
+        self.shutter_layout.addWidget(QLabel("Open Time (ms)"))
+        self.shutter_layout.addWidget(self.shutter_open_time_input)
 
-        shutter_layout.addWidget(QLabel("Close Time (ms)"))
-        shutter_layout.addWidget(self.shutter_close_time_input)
+        self.shutter_layout.addWidget(QLabel("Close Time (ms)"))
+        self.shutter_layout.addWidget(self.shutter_close_time_input)
 
-        section_shutter.setContentLayout(shutter_layout)
-        left_layout.addWidget(section_shutter)
+        self.section_shutter.setContentLayout(self.shutter_layout)
+        self.left_layout.addWidget(self.section_shutter)
 
         # -------- Read Mode --------
-        section_read = CollapsibleSection("Read Mode")
-        read_layout = QVBoxLayout()
+        self.section_read = CollapsibleSection("Read Mode")
+        self.read_layout = QVBoxLayout()
 
-        read_layout.addWidget(self.read_mode_input)
-        read_layout.addWidget(self.read_mode_stack)
+        self.read_layout.addWidget(self.read_mode_input)
+        self.read_layout.addWidget(self.read_mode_stack)
 
-        section_read.setContentLayout(read_layout)
-        left_layout.addWidget(section_read)
+        self.section_read.setContentLayout(self.read_layout)
+        self.left_layout.addWidget(self.section_read)
 
         # -------- Acquisition --------
-        section_acq = CollapsibleSection("Acquisition")
-        acq_layout = QVBoxLayout()
+        self.section_acq = CollapsibleSection("Acquisition")
+        self.acq_layout = QVBoxLayout()
 
-        acq_layout.addWidget(QLabel("Acquisition Mode"))
-        acq_layout.addWidget(self.acquisition_mode_input)
+        self.acq_layout.addWidget(QLabel("Acquisition Mode"))
+        self.acq_layout.addWidget(self.acquisition_mode_input)
 
-        acq_layout.addWidget(self.acquisition_mode_stack)
+        self.acq_layout.addWidget(self.acquisition_mode_stack)
 
-        acq_layout.addWidget(QLabel("Trigger Mode"))
-        acq_layout.addWidget(self.trigger_mode_input)
+        self.acq_layout.addWidget(QLabel("Trigger Mode"))
+        self.acq_layout.addWidget(self.trigger_mode_input)
 
-        acq_layout.addWidget(QLabel("Exposure (s)"))
-        acq_layout.addWidget(self.exposure_input)
+        self.acq_layout.addWidget(QLabel("Exposure (s)"))
+        self.acq_layout.addWidget(self.exposure_input)
 
-        acq_layout.addWidget(QLabel("Result Processing"))
-        acq_layout.addWidget(self.result_mode_input)
+        self.acq_layout.addWidget(QLabel("Result Processing"))
+        self.acq_layout.addWidget(self.result_mode_input)
 
-        section_acq.setContentLayout(acq_layout)
-        left_layout.addWidget(section_acq)
+        self.section_acq.setContentLayout(self.acq_layout)
+        self.left_layout.addWidget(self.section_acq)
 
         # -------- Amplifier --------
-        section_amp = CollapsibleSection("Amplifier / Speed")
-        amp_layout = QVBoxLayout()
+        self.section_amp = CollapsibleSection("Amplifier / Speed")
+        self.amp_layout = QVBoxLayout()
 
-        amp_layout.addWidget(QLabel("Amp Mode"))
-        amp_layout.addWidget(self.amp_mode_input)
+        self.amp_layout.addWidget(QLabel("Amp Mode"))
+        self.amp_layout.addWidget(self.amp_mode_input)
 
-        amp_layout.addWidget(QLabel("Vertical Shift Speed"))
-        amp_layout.addWidget(self.vsspeed_input)
+        self.amp_layout.addWidget(QLabel("Vertical Shift Speed"))
+        self.amp_layout.addWidget(self.vsspeed_input)
 
-        amp_layout.addWidget(QLabel("EMCCD Gain"))
-        amp_layout.addWidget(self.emccd_gain_input)
+        self.amp_layout.addWidget(QLabel("EMCCD Gain"))
+        self.amp_layout.addWidget(self.emccd_gain_input)
 
-        section_amp.setContentLayout(amp_layout)
-        left_layout.addWidget(section_amp)
+        self.section_amp.setContentLayout(self.amp_layout)
+        self.left_layout.addWidget(self.section_amp)
 
-        left_layout.addWidget(self.set_settings_button)
-        left_layout.addStretch()
+        self.left_layout.addWidget(self.set_settings_button)
+        self.left_layout.addStretch()
 
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setWidget(left_container)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.scroll = QScrollArea()
+        self.scroll.setWidgetResizable(True)
+        self.scroll.setWidget(self.left_container)
+        self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
         # ============================================================
         # ---- RIGHT SIDE TABS ----
         # ============================================================
 
         self.right_tabs = QTabWidget()
+        self.right_tabs.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding)
 
         # ---- PREVIEW ----
         
-        preview_tab = QWidget()
-        preview_layout = QVBoxLayout(preview_tab)
-        preview_layout.setContentsMargins(0, 0, 0, 0)
+        self.preview_tab = QWidget()
+        self.preview_layout = QVBoxLayout(self.preview_tab)
+        self.preview_layout.setContentsMargins(0, 0, 0, 0)
 
-        preview_tab.setStyleSheet("""
+        self.preview_tab.setStyleSheet("""
             QWidget {
                 background-color: #3c3f41;
                 border-left: 1px solid #555555;
@@ -247,7 +249,9 @@ class MainWindow(QMainWindow):
         """)
 
         self.preview.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        preview_layout.addWidget(self.preview_tab, alignment = Qt.AlignRight)
+        self.preview_layout.addWidget(self.preview_container, alignment = Qt.AlignRight)
+
+        self.right_tabs.addTab(self.preview_tab, "Preview")
 
         # ---- SPECTROGRAM ----
 
@@ -255,58 +259,62 @@ class MainWindow(QMainWindow):
         self.calibration_plot.setLabel('left', 'Intensity')
         self.calibration_plot.setLabel('bottom', 'Pixels')
 
-        calibration_tab = QWidget()
-        cal_layout = QVBoxLayout(calibration_tab)
-        cal_layout.setContentsMargins(0,0,0,0)
-        cal_layout.addWidget(self.calibration_plot)
+        cal_vb = self.calibration_plot.getViewBox()
+        # cal_vb.disableAutoRange()
+        cal_vb.setMouseEnabled(x=False,y=False)
 
-        self.right_tabs.addTab(calibration_tab, "Calibration")
+        self.calibration_tab = QWidget()
+        self.cal_layout = QVBoxLayout(self.calibration_tab)
+        self.cal_layout.setContentsMargins(0,0,0,0)
+        self.cal_layout.addWidget(self.calibration_plot)
+
+        self.right_tabs.addTab(self.calibration_tab, "Calibration")
 
         # ============================================================
         # SPLITTER (DRAGGABLE)
         # ============================================================
 
-        splitter = QSplitter(Qt.Horizontal)
-        splitter.addWidget(scroll)
-        splitter.addWidget(self.right_tabs)
-        splitter.setStretchFactor(0, 0)
-        splitter.setStretchFactor(1, 1)
-        splitter.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding)
+        self.splitter = QSplitter(Qt.Horizontal)
+        self.splitter.addWidget(self.scroll)
+        self.splitter.addWidget(self.right_tabs)
+        self.splitter.setStretchFactor(0, 0)
+        self.splitter.setStretchFactor(1, 1)
+        self.splitter.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding)
 
         # ============================================================
         # STATUS BAR (BOTTOM STRIP)
         # ============================================================
 
-        status_container = QWidget()
-        status_container.setObjectName("statusBarContainer")
-        status_layout = QHBoxLayout(status_container)
-        status_layout.setContentsMargins(10, 5, 10, 5)
+        self.status_container = QWidget()
+        self.status_container.setObjectName("statusBarContainer")
+        self.status_layout = QHBoxLayout(self.status_container)
+        self.status_layout.setContentsMargins(10, 5, 10, 5)
 
         # self.status = QLabel("")
         self.status.setStyleSheet("color: red;")
 
-        status_layout.addWidget(self.temp)
-        status_layout.addWidget(self._separator())
-        status_layout.addWidget(self.shutter_current_state)
-        status_layout.addWidget(self._separator())
-        status_layout.addWidget(self.acquisition_state)
-        status_layout.addWidget(self._separator())
-        status_layout.addStretch()
-        status_layout.addWidget(self.status)
+        self.status_layout.addWidget(self.temp)
+        self.status_layout.addWidget(self._separator())
+        self.status_layout.addWidget(self.shutter_current_state)
+        self.status_layout.addWidget(self._separator())
+        self.status_layout.addWidget(self.acquisition_state)
+        self.status_layout.addWidget(self._separator())
+        self.status_layout.addStretch()
+        self.status_layout.addWidget(self.status)
 
-        status_container.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Fixed)
+        self.status_container.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Fixed)
 
         # ============================================================
         # FINAL MAIN LAYOUT
         # ============================================================
 
-        main_layout = QVBoxLayout()
-        main_layout.addWidget(splitter,1)
-        main_layout.addWidget(status_container)
+        self.main_layout = QVBoxLayout()
+        self.main_layout.addWidget(self.splitter,1)
+        self.main_layout.addWidget(self.status_container)
 
-        central = QWidget()
-        central.setLayout(main_layout)
-        self.setCentralWidget(central)
+        self.central = QWidget()
+        self.central.setLayout(self.main_layout)
+        self.setCentralWidget(self.central)
 
 
         # Connect buttons to controller cam
@@ -486,7 +494,7 @@ class MainWindow(QMainWindow):
 
         shutter = {
             "mode": self.shutter_mode_input.currentText(),
-            "tll_mode": self.tll_mode_input.currentText(),
+            "ttl_mode": self.ttl_mode_input.currentText(),
             "open_time": self.shutter_open_time_input.text(),
             "close_time": self.shutter_close_time_input.text()
         }
@@ -557,7 +565,13 @@ class MainWindow(QMainWindow):
 
         # Plot spectrum
         self.calibration_plot.clear()
-        self.calibration_plot.plot(spectrum)
+
+        pixels = np.arange(len(spectrum))
+
+        self.calibration_plot.plot(pixels,spectrum,pen="y")
+
+        self.calibration_plot.enableAutoRange(x=True,y=True)
+        
     
     # use for preview of acquisition
     def acquisition_preview(self):
@@ -800,6 +814,28 @@ def main():
 
         QWidget#rulerContainer {
             background-color: #555555;
+        }
+
+        QTabWidget::pane {
+            border: 1px solid #444444;
+            background: #3c3f41;
+        }
+
+        QTabBar::tab {
+            background: #2b2b2b;
+            color: white;
+            border: 1px solid #444444;
+            padding: 5px;
+            min-width: 120px;
+        }
+
+        QTabBar::tab:selected {
+            background: #444444;
+            color: #00ffcc;
+        }
+
+        QTabBar::tab:hover {
+            background: #555555;
         }
 
     """)

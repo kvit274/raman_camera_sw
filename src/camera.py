@@ -360,15 +360,15 @@ class RamanCameraModel:
         return self.cam.get_shutter_parameters()
 
     @requires_cam_connected
-    def setup_shutter(self, mode:str, tll_mode:int=0, open_time:Optional[float]=None, close_time:Optional[float]=None):
+    def setup_shutter(self, mode:str, ttl_mode:int=0, open_time:Optional[float]=None, close_time:Optional[float]=None):
         """
         Set shutter parameters.
-        tll_mode: 0 - low is open, 1 - high is open
+        ttl_mode: 0 - low is open, 1 - high is open
         mode: "auto", "open", "close"
         open_time, close_time: in ms???????
         """
-        self.validate_shutter_settings(mode, tll_mode, open_time, close_time)
-        self.cam.setup_shutter(mode, tll_mode, open_time, close_time)
+        self.validate_shutter_settings(mode, ttl_mode, open_time, close_time)
+        self.cam.setup_shutter(mode, ttl_mode, open_time, close_time)
         return
 
     @requires_cam_connected
@@ -694,6 +694,12 @@ class RamanCameraModel:
         return frames
 
     @requires_cam_connected
+    def stop_acquisition(self):
+        self.cam.stop_acquisition()
+        return
+
+
+    @requires_cam_connected
     @requires_live_stopped
     def simple_acq(self,num_frames:int=0):
         
@@ -797,7 +803,7 @@ class RamanCameraModel:
         if read_mode not in valid_modes:
             raise ValueError(f"Invalid read mode: {read_mode}. Valid modes are: {valid_modes}")
 
-    def validate_shutter_settings(self, mode:str, tll_mode:int, open_time:Optional[float], close_time:Optional[float]):
+    def validate_shutter_settings(self, mode:str, ttl_mode:int, open_time:Optional[float], close_time:Optional[float]):
         """
         Validate shutter settings before applying them.
         Raises ValueError if any parameter is invalid.
@@ -806,7 +812,7 @@ class RamanCameraModel:
         if mode not in valid_modes:
             raise ValueError(f"Invalid shutter mode: {mode}. Valid modes are: {valid_modes}.")
         
-        if tll_mode not in [0, 1]:
+        if ttl_mode not in [0, 1]:
             raise ValueError("TTL mode must be 0 (low is open) or 1 (high is open).")
         
         min_open, min_close = self.get_min_shutter_times()
