@@ -639,6 +639,9 @@ class TestCameraModel:
     #     pass
 
 
+    @requires_cam_connected
+    def start_acquistion(self):
+        return self.generate_fake_frame()
 
 
     # ===== FILE MANAGEMENT =====

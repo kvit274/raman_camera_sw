@@ -10,8 +10,8 @@ class RamanCameraController:
 
     def __init__(self,view):
         self.view = view
-        self.camera = RamanCameraModel()
-        # self.camera = TestCameraModel()
+        # self.camera = RamanCameraModel()
+        self.camera = TestCameraModel()
         self.spec = TestSpectrometerModel()
         self.user_config = None     # should be moved to model?
 
@@ -91,7 +91,7 @@ class RamanCameraController:
         # self.display_used_params()
         self.display_shutter_state()
         self.cool_cam(target_temp=-85)
-        self.camera.save_acquisition_settings()     # DOUBTFUL
+        # self.camera.save_acquisition_settings()     # DOUBTFUL
         return
     
     def isBusy_cam(self):
