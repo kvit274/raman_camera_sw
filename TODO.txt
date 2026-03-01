@@ -15,8 +15,8 @@
 !!!) controller should stop live, no self stopping in model.
 
 !!!!) do acquisition using threads
-!) seems like roi is drawing not form the center but from the edge?
-!!!) fix defaults on roi when nothing is passed when apply settings clicked
+!!!!!!!!!!!) do display of acquisition state in threads
+!!!!!) handle unplug of the camera.
 !!) add stop acquistion decorator
 !!) user config must live in model
 

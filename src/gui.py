@@ -54,7 +54,6 @@ class MainWindow(QMainWindow):
         self.shutter_close_time_input = QLineEdit()
         self.shutter_close_time_input.setPlaceholderText("Shutter Close Time (ms)")
         self.shutter_close_time_input.setValidator(QDoubleValidator())
-        # self.btn_set_shutter = QPushButton("Set Shutter")
         self.shutter_current_state = QLabel("Shutter State: --")
 
         # Read mode
@@ -260,7 +259,6 @@ class MainWindow(QMainWindow):
         self.calibration_plot.setLabel('bottom', 'Pixels')
 
         cal_vb = self.calibration_plot.getViewBox()
-        # cal_vb.disableAutoRange()
         cal_vb.setMouseEnabled(x=False,y=False)
 
         self.calibration_tab = QWidget()
@@ -290,7 +288,6 @@ class MainWindow(QMainWindow):
         self.status_layout = QHBoxLayout(self.status_container)
         self.status_layout.setContentsMargins(10, 5, 10, 5)
 
-        # self.status = QLabel("")
         self.status.setStyleSheet("color: red;")
 
         self.status_layout.addWidget(self.temp)
@@ -378,24 +375,6 @@ class MainWindow(QMainWindow):
 
         self.acquisition_mode_stack.setFixedHeight(widget.sizeHint().height())
 
-    # def display_used_params(self, roi:Dict[str,str], shutter:Dict[str,str], read_mode:str):
-    #     """Display used parameters in the GUI fields."""
-
-    #     self.roi_hstart_input.setText(roi["hstart"])
-    #     self.roi_hend_input.setText(roi["hend"])
-    #     self.roi_vstart_input.setText(roi["vstart"])
-    #     self.roi_vend_input.setText(roi["vend"])
-    #     self.roi_hbin_input.setText(roi["hbin"])
-    #     self.roi_vbin_input.setText(roi["vbin"])
-
-    #     self.shutter_mode_input.setCurrentText(shutter["mode"])
-    #     self.tll_mode_input.setCurrentText(shutter["tll_mode"])
-    #     self.shutter_open_time_input.setText(shutter["open_time"])
-    #     self.shutter_close_time_input.setText(shutter["close_time"])
-
-    #     self.read_mode_input.setCurrentText(read_mode)
-
-
     def display_msg(self, message:str):
         self.status.showMessage(message, 5000)  # display for 5 seconds
 
@@ -423,9 +402,6 @@ class MainWindow(QMainWindow):
         self.preview.set_roi(roi)
 
 
-
-
-
     # ===== Functions ======
 
     # ==== Camera methods =====
@@ -433,10 +409,6 @@ class MainWindow(QMainWindow):
     def connect_cam(self):
         self.controller.connect_cam()
         self.timer_acquisition.start(500)
-        # self.disable_buttons()
-        # self.worker = CoolingWorker(self.controller,target_temp=-80)
-        # self.worker.finished.connect(self.enable_buttons)
-        # self.worker.start()
 
     def disconnect_cam(self):
         self.timer_acquisition.stop()
@@ -483,14 +455,6 @@ class MainWindow(QMainWindow):
 
 
     def set_settings(self):
-        # roi = {
-        #     "hstart": self.roi_hstart_input.text(),
-        #     "hend": self.roi_hend_input.text(),
-        #     "vstart": self.roi_vstart_input.text(),
-        #     "vend": self.roi_vend_input.text(),
-        #     "hbin": self.roi_hbin_input.text(),
-        #     "vbin": self.roi_vbin_input.text()
-        # }
 
         shutter = {
             "mode": self.shutter_mode_input.currentText(),
@@ -552,10 +516,11 @@ class MainWindow(QMainWindow):
 
     def update_preview(self):
         frame = self.controller.get_live_frame()
-        # if frame:
         self.display_image(frame)
 
     def display_image(self,frame):
+        if frame is None:
+            return
         frame8, h, w = self.controller.adjust_frame(frame)
         self.preview.set_frame((frame8,h,w))
 
@@ -576,14 +541,9 @@ class MainWindow(QMainWindow):
     # use for preview of acquisition
     def acquisition_preview(self):
         frame = self.controller.acquire_single()
-        # frame = self.controller.start_acquisition()
-        
-        # if frame is None:
-        #     return
         self.display_image(frame)
 
     def start_acquisition(self):
-        # frame = self.controller.acquire_single()
         self.controller.start_acquisition()
 
     def toggle_accum_input(self, mode):
@@ -612,65 +572,6 @@ class MainWindow(QMainWindow):
         sep.setFixedWidth(1)
         sep.setObjectName("statusSeparator")
         return sep
-
-    # def run_exp(self):
-    #     params = {
-    #         "save_path": self.save_path,
-    #         "dlls_path": self.dlls_path,
-    #         "temp": self.temp_input.text(),
-    #         "exposure_time": self.exposure_input.text(),
-    #         "hbin": self.hbin_input.text(),
-    #         "vbin": self.vbin_input.text(),
-    #         "read_mode": self.read_mode_input.text(),
-    #         "acq_mode": self.acq_mode_input.text(),
-    #         "accum_n": self.accum_n_input.text() if self.accum_n_input.text() else None,
-    #         "roi": self.roi_input.text() if self.roi_input.text() else None
-    #     }
-
-    #     self.run_clicked.emit(params)
-
-
-    # def show_info(self, message: str):
-    #     QMessageBox.information(self, "Info", message)
-
-    # def show_error(self, message: str):
-    #     QMessageBox.critical(self, "Error", message)
-
-
-    # ==== Spectrometer methods (unused) =====
-
-    # def connect_spec(self):
-    #     self.controller.connect_spec()
-    
-    # def disconnect_spec(self):
-    #     self.controller.disconnect_spec()
-    
-    # def update_spec_settings(self):
-    #     wavelength_text = self.wavelength_input.text()
-    #     grating_text = self.grating_input.text()
-    #     slit_width_text = self.slit_width_input.text()
-
-    #     if wavelength_text:
-    #         try:
-    #             wavelength = float(wavelength_text)
-    #             self.controller.set_wavelength_spec(wavelength)
-    #         except ValueError:
-    #             self.show_error("Invalid wavelength value")
-
-    #     if grating_text:
-    #         try:
-    #             grating = int(grating_text)
-    #             self.controller.set_grating_spec(grating)
-    #         except ValueError:
-    #             self.show_error("Invalid grating value")
-
-    #     if slit_width_text:
-    #         try:
-    #             slit_width = float(slit_width_text)
-    #             self.controller.set_slit_width_spec("input_side", slit_width)  # Example for input_side
-    #         except ValueError:
-    #             self.show_error("Invalid slit width value")
-        
 
     # Override closeEvent to ensure safe shutdown
 
@@ -705,12 +606,6 @@ class MainWindow(QMainWindow):
                 print("Camera disconnected safely due to shutdown.")
             except Exception as e:
                 print("Camera disconnect failed:", e)
-
-            # Disconnect spectrometer safely
-            # try:
-            #     self.controller.disconnect_spec()
-            # except Exception as e:
-            #     print("Spectrometer disconnect failed:", e)
 
         except Exception as e:
             print("[GUI] Unexpected error during closeEvent:", e)
