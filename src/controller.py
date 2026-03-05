@@ -161,6 +161,10 @@ class RamanCameraController():
         return
 
     @handle_errors
+    def acquisition_in_progress(self):
+        return self.camera.acquisition_in_progress()
+
+    @handle_errors
     def restore_user_config(self):
         if not self.user_config:
             raise RuntimeError("You must set parameters before acquistion")
@@ -212,7 +216,12 @@ class RamanCameraController():
         combined_frame = self.camera.combine_frames(shifted_frames,acq_mode,num_frames,result_mode)
 
         spectrum = self.camera.convert_to_spectrum(combined_frame)
-        self.view.show_calibration_result(combined_frame, spectrum)
+        # self.view.show_calibration_result(combined_frame, spectrum)
+        return combined_frame, spectrum
+
+    @handle_errors
+    def stop_acquisition(self):
+        self.camera.stop_acquisition()
         return
     
     @handle_errors

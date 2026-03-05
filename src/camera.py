@@ -419,7 +419,7 @@ class RamanCameraModel:
                 break
 
             time.sleep(1)
-            
+
         self.busy = False
 
     @requires_cam_connected
@@ -524,13 +524,14 @@ class RamanCameraModel:
 
     @requires_cam_connected
     def acquisition_in_progress(self):
-        """
-        Returns tuple (frames done, acc done)
-        """
+        """ Return True if acquisition is in progress, False otherwise. """
         return self.cam.acquisition_in_progress()
 
     @requires_cam_connected
     def get_acquisition_progress(self):
+        """
+        Returns tuple (frames done, acc done)
+        """
         return self.cam.get_acquisition_progress()
 
     @requires_cam_connected
@@ -595,6 +596,7 @@ class RamanCameraModel:
     @requires_cam_connected
     def stop_acquisition(self):
         self.cam.stop_acquisition()
+        self.cam.clear_acquisition()
         return
 
     @requires_cam_connected

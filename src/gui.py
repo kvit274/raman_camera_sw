@@ -22,6 +22,8 @@ class MainWindow(QMainWindow):
         self.temp_popup = TemperaturePopUp(self)
         self.status.setSizeGripEnabled(False)
 
+        self.acq_worker = None
+
         # attach controller
         self.controller = RamanCameraController(view=self)
 
@@ -33,7 +35,8 @@ class MainWindow(QMainWindow):
         self.btn_live = QPushButton("Start Live")
         self.btn_stop = QPushButton("Stop Live")
         self.btn_preview = QPushButton("Preview")
-        self.btn_acquire = QPushButton("Acquire")
+        self.btn_acquire = QPushButton("Start Acquisition")
+        self.btn_stop_acq = QPushButton("Stop Acquisition")
         self.btn_disconnect_cam = QPushButton("Disconnect Camera")
         self.temp = QLabel("Temp: -- °C")
         self.btn_set_temp = QPushButton("Set to")
@@ -150,6 +153,7 @@ class MainWindow(QMainWindow):
         self.control_layout.addWidget(self.btn_stop)
         self.control_layout.addWidget(self.btn_preview)
         self.control_layout.addWidget(self.btn_acquire)
+        self.control_layout.addWidget(self.btn_stop_acq)
         self.control_layout.addWidget(self.btn_disconnect_cam)
         self.control_layout.addWidget(self.save_frame_path_button)
         self.control_layout.addWidget(self.save_frame_path_label)
@@ -326,6 +330,7 @@ class MainWindow(QMainWindow):
         self.btn_stop.clicked.connect(self.stop_live)
         self.btn_preview.clicked.connect(self.show_preview)
         self.btn_acquire.clicked.connect(self.start_acquisition)
+        self.btn_stop_acq.clicked.connect(self.stop_acquisition)
         self.btn_disconnect_cam.clicked.connect(self.disconnect_cam)
         self.set_settings_button.clicked.connect(self.set_settings)
         self.read_mode_input.currentTextChanged.connect(self.on_read_mode_changed)
@@ -430,11 +435,15 @@ class MainWindow(QMainWindow):
         self.controller.disconnect_cam()
 
     def disable_buttons(self):
-        for b in [self.btn_connect_cam, self.btn_live, self.btn_stop, self.btn_preview, self.btn_acquire]:
+        for b in [self.btn_connect_cam, self.btn_live, self.btn_stop, self.btn_preview, self.btn_acquire, self.btn_stop_acq]:
+            b.setEnabled(False)
+    
+    def disable_acq_buttons(self):
+        for b in [self.btn_acquire, self.btn_connect_cam, self.btn_live, self.btn_stop, self.btn_preview, self.btn_acquire, self.btn_set_temp,self.set_settings_button]:
             b.setEnabled(False)
     
     def enable_buttons(self):
-        for b in [self.btn_connect_cam, self.btn_live, self.btn_stop, self.btn_preview, self.btn_acquire]:
+        for b in [self.btn_connect_cam, self.btn_live, self.btn_stop, self.btn_preview, self.btn_acquire, self.btn_stop_acq, self.btn_set_temp, self.set_settings_button]:
             b.setEnabled(True)
 
     def apply_temperature(self):
@@ -549,6 +558,9 @@ class MainWindow(QMainWindow):
         frame8, h, w = self.controller.adjust_frame(frame)
         self.preview.set_frame((frame8,h,w))
 
+    def handle_acq_result(self, frame, spectrum):
+        self.show_calibration_result(frame, spectrum)
+
     def show_calibration_result(self, frame, spectrum):
         # Switch to calibration tab
         self.right_tabs.setCurrentIndex(1)
@@ -569,7 +581,20 @@ class MainWindow(QMainWindow):
         self.display_image(frame)
 
     def start_acquisition(self):
-        self.controller.start_acquisition()
+        # self.controller.start_acquisition()
+        self.acq_worker = AcquisitionWorker(self.controller)
+        self.acq_worker.finished.connect(self.handle_acq_result)
+        # self.acq_worker.camera_lost.connect(self.handle_camera_loss)
+        self.acq_worker.start()
+
+    def stop_acquisition(self):
+        if self.controller.acquisition_in_progress():
+            if self.acq_worker and self.acq_worker.isRunning():
+                self.acq_worker.stop()
+                self.acq_worker.wait()
+
+            self.controller.stop_acquisition()
+        return
 
     def toggle_accum_input(self, mode):
         if mode == "accumulate":
@@ -641,6 +666,10 @@ class MainWindow(QMainWindow):
 
         self.display_msg("Camera connection lost!")
         self.disable_buttons()
+
+        if hasattr(self.controller, "acq_worker") and self.controller.acq_worker.isRunning():
+            self.acq_worker.terminate()
+            self.acq_worker.wait()
 
         if hasattr(self.controller, "cooling_worker") and self.controller.cooling_worker.isRunning():
             self.controller.camera.cancel = True
