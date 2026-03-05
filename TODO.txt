@@ -20,6 +20,8 @@
 !!) add stop acquistion decorator
 !!) user config must live in model
 
+!!!!!!!!!!) ask them if cont is not needed at all?
+
 
 ?) ext_trigger ?
 ?) pausing_acquisition ?

@@ -100,7 +100,7 @@ class RamanCameraController():
         try:
             if not self.camera.cam:
                 return False
-            self.camera.cam.get_device_info()
+            self.camera.get_device_info()
             return True
         except:
             return False
@@ -147,15 +147,33 @@ class RamanCameraController():
 
     @handle_errors
     def start_live(self):
-        self.camera.stop_acquisition()   # just in case, might not be needed
-        self.camera.start_live()
-        self.view.start_live_timer()
-        return
+        # self.camera.stop_acquisition()   # just in case, might not be needed
+        # self.camera.start_live()
+        # self.view.start_live_timer()
+        # self.camera.restore_acquisition_settings()      # not sure
+        # self.restore_settings()
+        self.restore_user_config()
+        frames = self.camera.start_acquisition()
+        result_mode = self.user_config.get("result_mode","sum")
+
+        shifted_frames = self.camera.bit_shift(frames)
+
+        acq_mode = self.user_config.get("acquisition_mode")["mode"]
+        num_frames = 1
+        if acq_mode in ["kinetic","fast_kinetic"]:
+            num_frames = len(frames)
+        if acq_mode == "accum":
+            num_frames = self.user_config.get("acquisition_mode")["num_acc"]
+        combined_frame = self.camera.combine_frames(shifted_frames,acq_mode,num_frames,result_mode)
+
+        spectrum = self.camera.convert_to_spectrum(combined_frame)
+        # self.view.show_calibration_result(combined_frame, spectrum)
+        return combined_frame, spectrum, frames[0]
     
     @handle_errors
     def stop_live(self):
         self.camera.stop_live()
-        self.view.stop_live_timer()
+        # self.view.stop_live_timer()
         # self.restore_user_config()
         # self.restore_settings()
         return
@@ -217,7 +235,7 @@ class RamanCameraController():
 
         spectrum = self.camera.convert_to_spectrum(combined_frame)
         # self.view.show_calibration_result(combined_frame, spectrum)
-        return combined_frame, spectrum
+        return combined_frame, spectrum, frames[0]
 
     @handle_errors
     def stop_acquisition(self):

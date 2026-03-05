@@ -48,8 +48,33 @@ class AcquisitionWorker(QThread):
 
     def run(self):
         try:
-            frame,spectrum = self.controller.start_acquisition()
+            combined_frame,spectrum,frame = self.controller.start_acquisition()
             self.finished.emit(frame,spectrum)
         except:
             # self.camera_lost.emit()
             pass
+
+class LiveWorker(QThread):
+    finished = pyqtSignal()
+    frame_ready = pyqtSignal(object, object)
+
+    def __init__(self, controller):
+        super().__init__()
+        self.controller = controller
+        self.running = True
+
+    def stop(self):
+        self.running = False
+
+    def run(self):
+        
+        while self.running:
+            try:
+                combined_frame,spectrum,frame = self.controller.start_live()
+            except Exception:
+                break
+            
+            if frame is not None:
+                self.frame_ready.emit(frame,spectrum)
+
+        self.finished.emit()

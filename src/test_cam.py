@@ -83,6 +83,9 @@ class TestCameraModel:
 
     # ===== CAMERA SETTINGS =====
 
+    def get_device_info(self):
+        return "Andor Newton, Serial: 12345, Firmware: 1.0.0"
+
     def connect_cam(self):
         """
         When connecting all the parameters are usually set in the slowest mode (amplifier,vertical/horizontal scan speed, etc.)

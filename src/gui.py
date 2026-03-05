@@ -11,6 +11,7 @@ import os
 from controller import RamanCameraController
 from widgets import MultiTrackWidget, SingleTrackWidget, FVBWidget, ImageWidget, RandomTrackWidget, SingleWidget, AccumWidget, KineticWidget, FastKineticWidget, ContinuousWidget, CollapsibleSection, QNoScrollComboBox, PreviewWidget, RulerContainer, TemperaturePopUp
 from typing import Dict
+from threads import AcquisitionWorker, LiveWorker
 
 class MainWindow(QMainWindow):
 
@@ -23,6 +24,7 @@ class MainWindow(QMainWindow):
         self.status.setSizeGripEnabled(False)
 
         self.acq_worker = None
+        self.live_worker = None
 
         # attach controller
         self.controller = RamanCameraController(view=self)
@@ -340,8 +342,8 @@ class MainWindow(QMainWindow):
         self.save_frame_path_button.clicked.connect(self.select_save_frame_path)
 
         # Live preview updates
-        self.timer_live = QTimer()
-        self.timer_live.timeout.connect(self.update_preview)
+        # self.timer_live = QTimer()
+        # self.timer_live.timeout.connect(self.update_preview)
 
         # Display temperature
         self.timer_temp = QTimer()
@@ -441,6 +443,10 @@ class MainWindow(QMainWindow):
     def disable_acq_buttons(self):
         for b in [self.btn_acquire, self.btn_connect_cam, self.btn_live, self.btn_stop, self.btn_preview, self.btn_acquire, self.btn_set_temp,self.set_settings_button]:
             b.setEnabled(False)
+
+    def disable_live_buttons(self):
+        for b in [self.btn_acquire, self.btn_connect_cam, self.btn_live, self.btn_preview, self.btn_acquire, self.btn_set_temp,self.set_settings_button,self.btn_stop_acq]:
+            b.setEnabled(False)
     
     def enable_buttons(self):
         for b in [self.btn_connect_cam, self.btn_live, self.btn_stop, self.btn_preview, self.btn_acquire, self.btn_stop_acq, self.btn_set_temp, self.set_settings_button]:
@@ -537,20 +543,34 @@ class MainWindow(QMainWindow):
         self.display_image(frame)
 
     def start_live(self):
-        self.controller.start_live()
+        
+        self.disable_live_buttons()
+
+        self.live_worker = LiveWorker(self.controller)
+        self.live_worker.frame_ready.connect(self.handle_live_results)
+        self.live_worker.finished.connect(self.disable_live_buttons)
+
+        self.live_worker.start()
     
-    def start_live_timer(self):
-        self.timer_live.start(30)    # 30 is FPS, we might change it
+    # def start_live_timer(self):
+    #     self.timer_live.start(30)    # 30 is FPS, we might change it
 
     def stop_live(self):
+        
+        if self.live_worker and self.live_worker.isRunning():
+            self.live_worker.stop()
+            self.controller.stop_live()
+            self.live_worker.wait()
+
         self.controller.stop_live()
+        self.enable_buttons()
 
-    def stop_live_timer(self):
-        self.timer_live.stop()
+    # def stop_live_timer(self):
+    #     self.timer_live.stop()
 
-    def update_preview(self):
-        frame = self.controller.get_live_frame()
-        self.display_image(frame)
+    # def update_preview(self):
+    #     frame = self.controller.get_live_frame()
+    #     self.display_image(frame)
 
     def display_image(self,frame):
         if frame is None:
@@ -558,12 +578,16 @@ class MainWindow(QMainWindow):
         frame8, h, w = self.controller.adjust_frame(frame)
         self.preview.set_frame((frame8,h,w))
 
-    def handle_acq_result(self, frame, spectrum):
-        self.show_calibration_result(frame, spectrum)
+    def handle_acq_result(self, spectrum):
+        self.show_calibration_result(spectrum)
 
-    def show_calibration_result(self, frame, spectrum):
+    def handle_live_results(self, frame, spectrum):
+        self.display_image(frame)
+        self.show_calibration_result(spectrum)
+
+    def show_calibration_result(self, spectrum):
         # Switch to calibration tab
-        self.right_tabs.setCurrentIndex(1)
+        # self.right_tabs.setCurrentIndex(1)
 
         # Plot spectrum
         self.calibration_plot.clear()
