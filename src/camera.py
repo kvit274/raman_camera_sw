@@ -406,19 +406,20 @@ class RamanCameraModel:
         print(f"Fan mode set to: {self.cam.get_fan_mode()}")
         # t0 = time.time()
 
-        while True:
-            if self.cancel_cooling:
-                print("Cooling cancel_coolinged")
+        while not self.cancel:
+            
+            try:
+                temp = round(self.cam.get_temperature(),2)
+                print(f"Cooling: {temp}, Status: {self.cam.get_temperature_status()}")
+            except:
                 break
-
-            temp = round(self.cam.get_temperature(),2)
-            print(f"Cooling: {temp}, Status: {self.cam.get_temperature_status()}")
 
             if temp <= target_temp:      # GET RID OF 20!!
                 print(f"Temperature stabilized, Status: {self.cam.get_temperature_status()}")
                 break
 
             time.sleep(1)
+            
         self.busy = False
 
     @requires_cam_connected

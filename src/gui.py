@@ -637,6 +637,28 @@ class MainWindow(QMainWindow):
 
         event.accept()
 
+    def handle_camera_loss(self):
+
+        self.display_msg("Camera connection lost!")
+        self.disable_buttons()
+
+        if hasattr(self.controller, "cooling_worker") and self.controller.cooling_worker.isRunning():
+            self.controller.camera.cancel = True
+            self.controller.cooling_worker.wait()
+
+        # stop live timer
+        self.stop_live_timer()
+
+        # reset controller state
+        try:
+            self.controller.disconnect_cam()
+        except:
+            pass
+        
+        self.temp.setText("Temp: -- °C")
+        self.shutter_current_state.setText("Shutter State: --")
+        self.acquisition_state.setText("Acquisition in progress: False")
+
 
 def _safe_exit_close():
     """Extra safety: runs even if an exception kills the app."""

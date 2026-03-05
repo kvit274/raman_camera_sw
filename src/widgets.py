@@ -18,7 +18,7 @@ class TemperaturePopUp(QWidget):
 
         layout = QVBoxLayout(self)
         
-        self.label = QLabel("-20 C")
+        self.label = QLabel("-20 °C")
         self.label.setAlignment(Qt.AlignCenter)
 
         self.slider = QSlider(Qt.Horizontal)
@@ -35,7 +35,7 @@ class TemperaturePopUp(QWidget):
         self.slider.valueChanged.connect(self.update_label)
 
     def update_label(self,value):
-        self.label.setText(f"{value} C")
+        self.label.setText(f"{value} °C")
     
     def get_value(self):
         return self.slider.value()

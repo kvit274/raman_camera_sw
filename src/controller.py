@@ -6,7 +6,8 @@ from test_spec import TestSpectrometerModel
 import time
 from threads import CoolingWorker, WarmUpCloseWorker
 import traceback
-class RamanCameraController:
+
+class RamanCameraController():
 
     def __init__(self,view):
         self.view = view
@@ -27,6 +28,9 @@ class RamanCameraController:
                 print("============ EXCEPTION ============")
                 traceback.print_exc()
                 print("===================================")
+                if not self.is_camera_alive():
+                    self.view.handle_camera_lost()
+                    return
                 self.view.display_msg(str(e))
         return wrapper
 
@@ -91,6 +95,15 @@ class RamanCameraController:
         self.cool_cam(target_temp=-85)
         # self.camera.save_acquisition_settings()     # DOUBTFUL
         return
+
+    def is_camera_alive(self):
+        try:
+            if not self.camera.cam:
+                return False
+            self.camera.cam.get_device_info()
+            return True
+        except:
+            return False
     
     def isBusy_cam(self):
         return self.camera.busy
@@ -109,7 +122,7 @@ class RamanCameraController:
             self.cooling_worker.wait()
 
         self.view.disable_buttons()
-        
+
         self.cooling_worker = CoolingWorker(self.camera, target_temp)
         self.cooling_worker.finished.connect(self.view.enable_buttons)
         self.cooling_worker.start()
