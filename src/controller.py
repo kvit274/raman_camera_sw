@@ -14,6 +14,7 @@ class RamanCameraController:
         self.camera = TestCameraModel()
         self.spec = TestSpectrometerModel()
         self.user_config = None     # should be moved to model?
+        self.cooling_worker = None
 
 
     # ==== Decorators =====
@@ -27,9 +28,6 @@ class RamanCameraController:
                 traceback.print_exc()
                 print("===================================")
                 self.view.display_msg(str(e))
-                # class_name = self.__class__.__name__
-                # print(f"Error in {class_name}.{func.__name__}: {str(e)}")
-                # self.view.display_msg(f"Error: {str(e)}")
         return wrapper
 
 
@@ -104,8 +102,14 @@ class RamanCameraController:
 
     @handle_errors
     def cool_cam(self,target_temp):
-        # self.camera.cool_cam(target_temp)
+        
+        # if already cooling
+        if self.cooling_worker and self.cooling_worker.isRunning():
+            self.camera.cancel = True
+            self.cooling_worker.wait()
+
         self.view.disable_buttons()
+        
         self.cooling_worker = CoolingWorker(self.camera, target_temp)
         self.cooling_worker.finished.connect(self.view.enable_buttons)
         self.cooling_worker.start()
@@ -340,20 +344,8 @@ class RamanCameraController:
             self.camera.set_exposure(exposure)
         return
 
+
     # ==== Acquisition mode methods ====
-
-    # @handle_errors
-    # def get_read_mode_params(self, read_mode):
-        
-    #     dispatch = {
-    #         "multi_track": self.camera.get_multi_track_mode_params,
-    #         "single_track": self.camera.get_single_track_mode_params,
-    #         "random_track": self.camera.get_random_track_mode_params,
-    #         "image": self.camera.get_image_mode_params
-    #     }
-
-    #     handler = dispatch.get(read_mode)
-    #     return handler()
 
     @handle_errors
     def set_acquisition_mode(self,acquisition_mode):
@@ -379,18 +371,17 @@ class RamanCameraController:
 
     @handle_errors
     def setup_single_mode(self,params):
-        # del params["mode"]
         print("Got to setup_single_mode in controller")
         self.camera.setup_single_mode()
         return
 
     @handle_errors
     def setup_accum_mode(self,params):
-        # del params["mode"]
-
         if "num_acc" not in params:
             raise ValueError("num_acc parameter is required for accumulation mode")
+
         params["num_acc"] = int(params["num_acc"])
+
         if "cycle_time_acc" in params:
             params["cycle_time_acc"] = float(params["cycle_time_acc"])
 
@@ -399,11 +390,11 @@ class RamanCameraController:
 
     @handle_errors
     def setup_kinetic_mode(self,params):
-        # del params["mode"]
-        
         if "num_cycle" not in params:
             raise ValueError("num_cycle parameter is required for kinetic mode")
+
         params["num_cycle"] = int(params["num_cycle"])
+
         if "cycle_time" in params:
             params["cycle_time"] = float(params["cycle_time"])
         if "num_acc" in params:
@@ -418,11 +409,11 @@ class RamanCameraController:
 
     @handle_errors
     def setup_fast_kinetic_mode(self,params):
-        # del params["mode"]
-
         if "num_acc" not in params:
             raise ValueError("num_acc parameter is required for fast kinetic mode")
+
         params["num_acc"] = int(params["num_acc"])
+
         if "cycle_time_acc" in params:
             params["cycle_time_acc"] = float(params["cycle_time_acc"])
 
@@ -431,8 +422,6 @@ class RamanCameraController:
 
     @handle_errors
     def setup_cont_mode(self,params):
-        # del params["mode"]
-
         if "cycle_time" in params:
             params["cycle_time"] = float(params["cycle_time"]) if params["cycle_time"] != "" else None
 
@@ -480,7 +469,6 @@ class RamanCameraController:
             raise ValueError(f"Invalid read mode: {mode}")
 
         handler(read_mode)
-        # self.camera.set_read_mode(read_mode)
         return
 
     @handle_errors
@@ -490,7 +478,6 @@ class RamanCameraController:
 
     @handle_errors
     def setup_single_track_mode(self,params):
-        # del params["mode"]
 
         if "center" in params:
             params["center"] = int(params["center"])
@@ -516,15 +503,12 @@ class RamanCameraController:
 
     @handle_errors
     def setup_random_track_mode(self,params):
-        # del params["mode"]
-        # this one is not clear yet
         self.camera.setup_random_track_mode(**params)
         return
 
     @handle_errors
     def setup_image_mode(self,params):
         print(f"Entered setup_image_mode in controller")
-        # del params["mode"]
         params["hstart"] = int(params["hstart"]) if params.get("hstart") not in ("", None) else None
         params["hend"] = int(params["hend"]) if params.get("hend") not in ("", None) else None
         params["vstart"] = int(params["vstart"]) if params.get("vstart") not in ("", None) else None

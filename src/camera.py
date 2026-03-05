@@ -16,16 +16,17 @@ class RamanCameraModel:
         self.cam = None
         self.is_live = False    # if camera is capturing live images
         self.busy = False
+        self.cancel_cooling = False
 
         # acquisiton settings
         self.acquisition_settings = None
         # default paths:
-        self.save_path_csv = Path("./data/cvs")
-        self.save_path_csv.mkdir(exist_ok=True)
+        self.save_path_csv = Path("./data/csv")
+        self.save_path_csv.mkdir(parents=True,exist_ok=True)
         self.save_path_image = Path("./data/images")
-        self.save_path_image.mkdir(exist_ok=True)
+        self.save_path_image.mkdir(parents=True,exist_ok=True)
         self.save_path = Path("./data")
-        self.save_path.mkdir(exist_ok=True)
+        self.save_path.mkdir(parents=True,exist_ok=True)
 
 
     # ==== DECORATORS =====
@@ -399,15 +400,15 @@ class RamanCameraModel:
     @requires_cam_connected
     def cool_cam(self,target_temp:float=-85.0):
         self.busy = True
-        self.cancel = False
+        self.cancel_cooling = False
         self.cam.set_temperature(target_temp, enable_cooler=True)
         self.cam.set_fan_mode("full")
         print(f"Fan mode set to: {self.cam.get_fan_mode()}")
         # t0 = time.time()
 
         while True:
-            if self.cancel:
-                print("Cooling canceled")
+            if self.cancel_cooling:
+                print("Cooling cancel_coolinged")
                 break
 
             temp = round(self.cam.get_temperature(),2)
@@ -424,7 +425,7 @@ class RamanCameraModel:
     def warm_cam(self,safe_temp:float=-20):
         self.cam.set_fan_mode("off")
         self.busy = True
-        self.cancel = True
+        self.cancel_cooling = True
 
         self.cam.set_cooler(on=False)
         print("Warming (cooler OFF)")
@@ -456,7 +457,7 @@ class RamanCameraModel:
         if not self.cam:
             return
         
-        self.cancel=True
+        self.cancel_cooling=True
         
         try:
             if self.cam.acquisition_in_progress():

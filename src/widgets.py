@@ -1,12 +1,45 @@
 import atexit
 import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QStackedWidget, QLineEdit, QPushButton, QFileDialog, QLabel, QComboBox, QMessageBox, QToolButton, QCheckBox
+from PyQt5.QtWidgets import QSlider, QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QStackedWidget, QLineEdit, QPushButton, QFileDialog, QLabel, QComboBox, QMessageBox, QToolButton, QCheckBox
 from PyQt5.QtGui import QIntValidator, QDoubleValidator, QImage, QPixmap, QPainter, QPen, QColor
 from PyQt5.QtCore import pyqtSignal, QTimer, QThread, Qt, QRectF, QRect, QSize, QEvent
 import pyqtgraph as pg
 import os
 from controller import RamanCameraController
 from typing import Dict
+
+# Temperature pop up
+
+class TemperaturePopUp(QWidget):
+    def __init__(self,parent=None):
+        super().__init__(parent,Qt.Popup)
+
+        self.setFixedSize(250,120)
+
+        layout = QVBoxLayout(self)
+        
+        self.label = QLabel("-20 C")
+        self.label.setAlignment(Qt.AlignCenter)
+
+        self.slider = QSlider(Qt.Horizontal)
+        self.slider.setMinimum(-90)
+        self.slider.setMaximum(0)
+        self.slider.setValue(-20)
+
+        self.apply_btn = QPushButton("Apply")
+
+        layout.addWidget(self.label)
+        layout.addWidget(self.slider)
+        layout.addWidget(self.apply_btn)
+
+        self.slider.valueChanged.connect(self.update_label)
+
+    def update_label(self,value):
+        self.label.setText(f"{value} C")
+    
+    def get_value(self):
+        return self.slider.value()
+
 
 # ==== PAINT ON PREVIEW ====
 

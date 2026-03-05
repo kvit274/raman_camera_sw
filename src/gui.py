@@ -9,7 +9,7 @@ from PyQt5.QtCore import pyqtSignal, QTimer, QThread, Qt
 import pyqtgraph as pg
 import os
 from controller import RamanCameraController
-from widgets import MultiTrackWidget, SingleTrackWidget, FVBWidget, ImageWidget, RandomTrackWidget, SingleWidget, AccumWidget, KineticWidget, FastKineticWidget, ContinuousWidget, CollapsibleSection, QNoScrollComboBox, PreviewWidget, RulerContainer
+from widgets import MultiTrackWidget, SingleTrackWidget, FVBWidget, ImageWidget, RandomTrackWidget, SingleWidget, AccumWidget, KineticWidget, FastKineticWidget, ContinuousWidget, CollapsibleSection, QNoScrollComboBox, PreviewWidget, RulerContainer, TemperaturePopUp
 from typing import Dict
 
 class MainWindow(QMainWindow):
@@ -19,6 +19,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("Raman Camera GUI")
         self.status = self.statusBar()
+        self.temp_popup = TemperaturePopUp(self)
         self.status.setSizeGripEnabled(False)
 
         # attach controller
@@ -35,6 +36,8 @@ class MainWindow(QMainWindow):
         self.btn_acquire = QPushButton("Acquire")
         self.btn_disconnect_cam = QPushButton("Disconnect Camera")
         self.temp = QLabel("Temp: -- °C")
+        self.btn_set_temp = QPushButton("Set to")
+        self.btn_set_temp.setFixedWidth(70)
 
         # Save path directories
         self.save_frame_path_button = QPushButton("Save frames to:")
@@ -291,6 +294,7 @@ class MainWindow(QMainWindow):
         self.status.setStyleSheet("color: red;")
 
         self.status_layout.addWidget(self.temp)
+        self.status_layout.insertWidget(1,self.btn_set_temp)
         self.status_layout.addWidget(self._separator())
         self.status_layout.addWidget(self.shutter_current_state)
         self.status_layout.addWidget(self._separator())
@@ -315,6 +319,8 @@ class MainWindow(QMainWindow):
 
 
         # Connect buttons to controller cam
+        self.btn_set_temp.clicked.connect(self.show_temp_popup)
+        self.temp_popup.apply_btn.clicked.connect(self.apply_temperature)
         self.btn_connect_cam.clicked.connect(self.connect_cam)
         self.btn_live.clicked.connect(self.start_live)
         self.btn_stop.clicked.connect(self.stop_live)
@@ -402,6 +408,15 @@ class MainWindow(QMainWindow):
         self.preview.set_roi(roi)
 
 
+    def show_temp_popup(self):
+        if not self.controller.camera.cam:
+            return
+        
+        btn_pos = self.btn_set_temp.mapToGlobal(self.btn_set_temp.rect().topLeft())
+        self.temp_popup.move(btn_pos.x(), btn_pos.y() - self.temp_popup.height())
+        self.temp_popup.show()
+
+
     # ===== Functions ======
 
     # ==== Camera methods =====
@@ -421,6 +436,16 @@ class MainWindow(QMainWindow):
     def enable_buttons(self):
         for b in [self.btn_connect_cam, self.btn_live, self.btn_stop, self.btn_preview, self.btn_acquire]:
             b.setEnabled(True)
+
+    def apply_temperature(self):
+        target_temp = self.temp_popup.get_value()
+
+        try:
+            self.controller.cool_cam(target_temp)
+        except Exception as e:
+            self.display_msg(str(e))
+        
+        self.temp_popup.hide()
 
     def apply_roi_preset(self, text):
         try:
