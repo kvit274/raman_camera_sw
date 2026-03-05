@@ -118,7 +118,7 @@ class RamanCameraController():
         
         # if already cooling
         if self.cooling_worker and self.cooling_worker.isRunning():
-            self.camera.cancel = True
+            self.camera.cancel_cooling = True
             self.cooling_worker.wait()
 
         self.view.disable_buttons()

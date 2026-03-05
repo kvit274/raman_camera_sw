@@ -582,9 +582,10 @@ class MainWindow(QMainWindow):
 
     def start_acquisition(self):
         # self.controller.start_acquisition()
+        self.disable_acq_buttons()
         self.acq_worker = AcquisitionWorker(self.controller)
         self.acq_worker.finished.connect(self.handle_acq_result)
-        # self.acq_worker.camera_lost.connect(self.handle_camera_loss)
+        self.acq_worker.finished.connect(self.enable_buttons)
         self.acq_worker.start()
 
     def stop_acquisition(self):
@@ -594,6 +595,7 @@ class MainWindow(QMainWindow):
                 self.acq_worker.wait()
 
             self.controller.stop_acquisition()
+            self.enable_buttons()
         return
 
     def toggle_accum_input(self, mode):
@@ -667,12 +669,12 @@ class MainWindow(QMainWindow):
         self.display_msg("Camera connection lost!")
         self.disable_buttons()
 
-        if hasattr(self.controller, "acq_worker") and self.controller.acq_worker.isRunning():
-            self.acq_worker.terminate()
+        if self.acq_worker and self.controller.acq_worker.isRunning():
+            self.acq_worker.stop()
             self.acq_worker.wait()
 
         if hasattr(self.controller, "cooling_worker") and self.controller.cooling_worker.isRunning():
-            self.controller.camera.cancel = True
+            self.controller.camera.cancel_cooling = True
             self.controller.cooling_worker.wait()
 
         # stop live timer

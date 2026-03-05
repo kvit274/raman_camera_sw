@@ -406,7 +406,7 @@ class RamanCameraModel:
         print(f"Fan mode set to: {self.cam.get_fan_mode()}")
         # t0 = time.time()
 
-        while not self.cancel:
+        while not self.cancel_cooling:
             
             try:
                 temp = round(self.cam.get_temperature(),2)
