@@ -5,6 +5,7 @@ from test_cam import TestCameraModel
 from test_spec import TestSpectrometerModel
 import time
 from threads import CoolingWorker, WarmUpCloseWorker
+from PyQt5.QtCore import QMetaObject, Qt, Q_ARG
 import traceback
 
 class RamanCameraController():
@@ -14,7 +15,7 @@ class RamanCameraController():
         # self.camera = RamanCameraModel()
         self.camera = TestCameraModel()
         self.spec = TestSpectrometerModel()
-        self.user_config = None     # should be moved to model?
+        self.user_config = {}     # should be moved to model?
         self.cooling_worker = None
 
 
@@ -29,9 +30,9 @@ class RamanCameraController():
                 traceback.print_exc()
                 print("===================================")
                 if not self.is_camera_alive():
-                    self.view.handle_camera_lost()
+                    QMetaObject.invokeMethod(self.view, "handle_camera_lost", Qt.QueuedConnection)   # thread safe signal to gui
                     return
-                self.view.display_msg(str(e))
+                QMetaObject.invokeMethod(self.view, "display_msg", Qt.QueuedConnection, Q_ARG(str, str(e)))
         return wrapper
 
 
@@ -153,17 +154,20 @@ class RamanCameraController():
         # self.camera.restore_acquisition_settings()      # not sure
         # self.restore_settings()
         self.restore_user_config()
-        frames = self.camera.start_acquisition()
+        frames = self.camera.start_live()
         result_mode = self.user_config.get("result_mode","sum")
 
         shifted_frames = self.camera.bit_shift(frames)
 
-        acq_mode = self.user_config.get("acquisition_mode")["mode"]
         num_frames = 1
-        if acq_mode in ["kinetic","fast_kinetic"]:
-            num_frames = len(frames)
-        if acq_mode == "accum":
-            num_frames = self.user_config.get("acquisition_mode")["num_acc"]
+        if self.user_config is not None:
+            acq_cfg = self.user_config.get("acquisition_mode",{})
+            acq_mode = acq_cfg.get("mode","single")
+            if acq_mode in ["kinetic","fast_kinetic"]:
+                num_frames = len(frames)
+            if acq_mode == "accum":
+                num_frames = acq_cfg.get("num_acc",1)
+        
         combined_frame = self.camera.combine_frames(shifted_frames,acq_mode,num_frames,result_mode)
 
         spectrum = self.camera.convert_to_spectrum(combined_frame)
@@ -234,6 +238,7 @@ class RamanCameraController():
         combined_frame = self.camera.combine_frames(shifted_frames,acq_mode,num_frames,result_mode)
 
         spectrum = self.camera.convert_to_spectrum(combined_frame)
+        self.camera.save_npz(spectrum, metadata=self.user_config)
         # self.view.show_calibration_result(combined_frame, spectrum)
         return combined_frame, spectrum, frames[0]
 

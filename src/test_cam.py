@@ -473,7 +473,7 @@ class TestCameraModel:
         if self.is_live:
             return
         self.is_live = True
-    
+
         print("Live mode started")
         return
 
@@ -670,6 +670,20 @@ class TestCameraModel:
 
         # print(f"[SAVE] Frame saved to {png_path}")
         print("Image saved")
+        return
+
+    def save_npz(self,spectrum, metadata=None):
+        """
+        Save spectrogram + metadata to NPZ format
+        """
+        if spectrum is None:
+            raise RuntimeError("No spectrogram to save")
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        spe_path = self.save_path / f"{timestamp}.npz"
+
+        np.savez(spe_path, spectrum=spectrum, metadata=metadata if metadata else {})
+        print(f"[SAVE] Spectrogram saved to {spe_path}")
         return
 
     def set_save_frame_path(self,path):

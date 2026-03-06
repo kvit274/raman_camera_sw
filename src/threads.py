@@ -40,7 +40,7 @@ class WarmUpCloseWorker(QThread):
 #         self.finished.emit()
 
 class AcquisitionWorker(QThread):
-    finished = pyqtSignal(object,object)
+    finished = pyqtSignal(object)
 
     def __init__(self, controller):
         super().__init__()
@@ -49,10 +49,10 @@ class AcquisitionWorker(QThread):
     def run(self):
         try:
             combined_frame,spectrum,frame = self.controller.start_acquisition()
-            self.finished.emit(frame,spectrum)
+            self.finished.emit(spectrum)
         except:
             # self.camera_lost.emit()
-            pass
+            self.finished.emit(None)    # still notify
 
 class LiveWorker(QThread):
     finished = pyqtSignal()
@@ -72,6 +72,7 @@ class LiveWorker(QThread):
             try:
                 combined_frame,spectrum,frame = self.controller.start_live()
             except Exception:
+                self.running = False
                 break
             
             if frame is not None:

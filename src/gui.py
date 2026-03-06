@@ -48,6 +48,19 @@ class MainWindow(QMainWindow):
         self.save_frame_path_button = QPushButton("Save frames to:")
         self.save_frame_path_label = QLabel("Frames saved to: ./data")
 
+
+        self.filename_input = QLineEdit()
+        self.filename_input.setPlaceholderText("Filename (without extension)")
+        # self.filename_input.setText("spectrum")
+
+        self.file_index_input = QLineEdit()
+        self.file_index_input.setPlaceholderText("Starting index")
+        self.file_index_input.setValidator(QIntValidator())
+        self.file_index_input.setText("1")
+        self.file_index_input.setFixedWidth(60)
+
+        self.btn_open_npz = QPushButton("Open NPZ")
+
         # Camera settings
 
 
@@ -159,6 +172,9 @@ class MainWindow(QMainWindow):
         self.control_layout.addWidget(self.btn_disconnect_cam)
         self.control_layout.addWidget(self.save_frame_path_button)
         self.control_layout.addWidget(self.save_frame_path_label)
+        self.control_layout.addWidget(self.filename_input)
+        self.control_layout.addWidget(self.file_index_input)
+        self.control_layout.addWidget(self.btn_open_npz)
 
         self.left_layout.addLayout(self.control_layout)
 
@@ -261,21 +277,29 @@ class MainWindow(QMainWindow):
 
         self.right_tabs.addTab(self.preview_tab, "Preview")
 
-        # ---- SPECTROGRAM ----
+        # ---- SPECTROGRAMS ----
 
-        self.calibration_plot = pg.PlotWidget()
-        self.calibration_plot.setLabel('left', 'Intensity')
-        self.calibration_plot.setLabel('bottom', 'Pixels')
+        # self.calibration_plot = pg.PlotWidget()
+        # self.calibration_plot.setLabel('left', 'Intensity')
+        # self.calibration_plot.setLabel('bottom', 'Pixels')
 
-        cal_vb = self.calibration_plot.getViewBox()
-        cal_vb.setMouseEnabled(x=False,y=False)
+        # cal_vb = self.calibration_plot.getViewBox()
+        # cal_vb.setMouseEnabled(x=False,y=False)
 
         self.calibration_tab = QWidget()
         self.cal_layout = QVBoxLayout(self.calibration_tab)
         self.cal_layout.setContentsMargins(0,0,0,0)
-        self.cal_layout.addWidget(self.calibration_plot)
+
+        self.calibration_tabs = QTabWidget()
+        self.calibration_tabs.setTabsClosable(True)
+        self.calibration_tabs.tabCloseRequested.connect(lambda i: self.close_calibration_tab(i))
+
+        self.cal_layout.addWidget(self.calibration_tabs)
 
         self.right_tabs.addTab(self.calibration_tab, "Calibration")
+
+        self.live_plot = None       # to display live mode spectrogram
+        self.live_tab_index = None
 
         # ============================================================
         # SPLITTER (DRAGGABLE)
@@ -340,18 +364,19 @@ class MainWindow(QMainWindow):
         self.acquisition_mode_input.currentTextChanged.connect(self.on_acquisition_mode_changed)
         self.on_acquisition_mode_changed("single")
         self.save_frame_path_button.clicked.connect(self.select_save_frame_path)
+        self.btn_open_npz.clicked.connect(self.open_npz)
 
         # Live preview updates
         # self.timer_live = QTimer()
         # self.timer_live.timeout.connect(self.update_preview)
 
         # Display temperature
-        self.timer_temp = QTimer()
+        self.timer_temp = QTimer(self)
         self.timer_temp.timeout.connect(self.display_temp)
         self.timer_temp.start(1000)
 
         # Display acquisition status
-        self.timer_acquisition = QTimer()
+        self.timer_acquisition = QTimer(self)
         self.timer_acquisition.timeout.connect(self.display_acquisition_state)
 
     def load_amp_modes(self,amp_modes):
@@ -434,6 +459,7 @@ class MainWindow(QMainWindow):
 
     def disconnect_cam(self):
         self.timer_acquisition.stop()
+        self.timer_temp.stop()
         self.controller.disconnect_cam()
 
     def disable_buttons(self):
@@ -548,7 +574,7 @@ class MainWindow(QMainWindow):
 
         self.live_worker = LiveWorker(self.controller)
         self.live_worker.frame_ready.connect(self.handle_live_results)
-        self.live_worker.finished.connect(self.disable_live_buttons)
+        self.live_worker.finished.connect(self.enable_buttons)
 
         self.live_worker.start()
     
@@ -579,24 +605,66 @@ class MainWindow(QMainWindow):
         self.preview.set_frame((frame8,h,w))
 
     def handle_acq_result(self, spectrum):
+
+        self.enable_buttons()
+
+        if spectrum is None:
+            self.display_msg("Acquisition failed or camera lost during acquisition.")
+            return
+
         self.show_calibration_result(spectrum)
 
     def handle_live_results(self, frame, spectrum):
-        self.display_image(frame)
-        self.show_calibration_result(spectrum)
+        if frame is not None:
+            self.display_image(frame)
 
-    def show_calibration_result(self, spectrum):
-        # Switch to calibration tab
-        # self.right_tabs.setCurrentIndex(1)
+        if spectrum is not None:
+            if self.live_plot is None:
+                self.live_plot = pg.PlotWidget()
+                self.live_plot.setLabel('left', 'Intensity')
+                self.live_plot.setLabel('bottom', 'Pixels')
+                self.live_tab_index = self.calibration_tabs.addTab(self.live_plot, "Live")
 
-        # Plot spectrum
-        self.calibration_plot.clear()
+            self.live_plot.clear()
+            pixels = np.arange(len(spectrum))
+            self.live_plot.plot(pixels,spectrum,pen="y")
+
+    def show_calibration_result(self, spectrum, title="Acquisition"):
+
+        plot = pg.PlotWidget()
+
+        plot.setLabel('left', 'Intensity')
+        plot.setLabel('bottom', 'Pixels')
+
+        vb = plot.getViewBox()
+        vb.setMouseEnabled(x=True,y=True)
 
         pixels = np.arange(len(spectrum))
 
-        self.calibration_plot.plot(pixels,spectrum,pen="y")
+        plot.plot(pixels,spectrum,pen="y")
+        plot.enableAutoRange(x=True,y=True)
 
-        self.calibration_plot.enableAutoRange(x=True,y=True)
+        self.calibration_tabs.addTab(plot, f"{title}{self.calibration_tabs.count()+1}")
+
+        # Plot spectrum
+        # self.calibration_plot.clear()
+
+        # pixels = np.arange(len(spectrum))
+
+        # self.calibration_plot.plot(pixels,spectrum,pen="y")
+
+        # self.calibration_plot.enableAutoRange(x=True,y=True)
+
+    def close_calibration_tab(self, index):
+
+        widget = self.calibration_tabs.widget(index)
+        # if user closed live tab - reset
+        if widget is self.live_plot:
+            self.live_plot = None
+            self.live_tab_index = None
+        
+        self.calibration_tabs.removeTab(index)
+        widget.deleteLater()
         
     
     # use for preview of acquisition
@@ -642,6 +710,21 @@ class MainWindow(QMainWindow):
             self.save_frame_path_label.setText(f"Frames saved to: {folder}")
             self.controller.set_save_frame_path(Path(folder))
 
+    def open_npz(self):
+
+        file, _ = QFileDialog.getOpenFileName(self, "Open NPZ file", "", "NPZ Files (*.npz)")
+        
+        if file:
+            try:
+                data = np.load(file,allow_pickle=True)
+                spectrum = data['spectrum']
+                name = Path(file).name
+                self.show_calibration_result(spectrum, title=name)
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to open NPZ file:\n{str(e)}")
+        else:
+            return
+
     # ==== VISUALS ====
     def _separator(self):
         sep = QWidget()
@@ -661,7 +744,11 @@ class MainWindow(QMainWindow):
         try:
             # Stop live preview if running
             try:
-                self.timer.stop()
+                self.timer_acquisition.stop()
+            except:
+                pass
+            try:
+                self.timer_temp.stop()
             except:
                 pass
             try:
@@ -693,7 +780,7 @@ class MainWindow(QMainWindow):
         self.display_msg("Camera connection lost!")
         self.disable_buttons()
 
-        if self.acq_worker and self.controller.acq_worker.isRunning():
+        if self.acq_worker and self.acq_worker.isRunning():
             self.acq_worker.stop()
             self.acq_worker.wait()
 
@@ -835,6 +922,21 @@ def main():
             background: #555555;
         }
 
+        QPushButton {
+            background-color: #3c3f41;
+            border: 1px solid #555555;
+            padding: 5px;
+        }
+
+        QPushButton:hover {
+            background-color: #4b4f52;
+        }
+
+        QPushButton:disabled {
+            background-color: #2a2a2a;
+            border: 1px solid #333333;
+            color: #777777;
+        }
     """)
 
     window = MainWindow()

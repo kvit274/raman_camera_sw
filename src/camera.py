@@ -797,7 +797,21 @@ class RamanCameraModel:
             np.savetxt(csv_path,frame,delimiter=",",fmt="%d")
 
         print(f"[SAVE] Frames saved to {png_path}")
-        return        
+        return
+
+    def save_npz(self,spectrogram, metadata=None):
+        """
+        Save spectrogram + metadata to NPZ format
+        """
+        if spectrogram is None:
+            raise RuntimeError("No spectrogram to save")
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        spe_path = self.save_path / f"{timestamp}.npz"
+
+        np.savez(spe_path, spectrogram, metadata=metadata if metadata else {})
+        print(f"[SAVE] Spectrogram saved to {spe_path}")
+        return
 
     def set_save_frame_path(self,path):
         # validation TOD0
@@ -852,7 +866,7 @@ class RamanCameraModel:
 
     # ==== MATH =====
 
-    def combine_frames(self,frames,acq_mode,num_frames,result_mode):
+    def combine_frames(self,frames,acq_mode="single",num_frames=1,result_mode="sum"):
         # --- Normalize frames to list ---
         if isinstance(frames, np.ndarray):
             frames = [frames]
