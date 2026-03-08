@@ -50,18 +50,25 @@ class MainWindow(QMainWindow):
         self.save_frame_path_button = QPushButton("Save frames to:")
         self.save_frame_path_label = QLabel("Frames saved to: ./data")
 
-
+        self.filename_label = QLabel("Filename:")
         self.filename_input = QLineEdit()
         self.filename_input.setPlaceholderText("Filename (without extension)")
         # self.filename_input.setText("spectrum")
 
+        self.file_index_label = QLabel("index:")
         self.file_index_input = QLineEdit()
-        self.file_index_input.setPlaceholderText("Starting index")
+        self.file_index_input.setPlaceholderText("idx")
         self.file_index_input.setValidator(QIntValidator())
         self.file_index_input.setText("1")
-        self.file_index_input.setFixedWidth(60)
+        # self.file_index_input.setFixedWidth(60)
 
-        self.btn_open_npz = QPushButton("Open NPZ")
+        self.save_frame_path_layout = QHBoxLayout()
+        self.save_frame_path_layout.addWidget(self.filename_label)
+        self.save_frame_path_layout.addWidget(self.filename_input)
+        self.save_frame_path_layout.addWidget(self.file_index_label)
+        self.save_frame_path_layout.addWidget(self.file_index_input)
+
+        self.btn_open_npz = QPushButton("Load NPZ")
 
         # Camera settings
 
@@ -174,8 +181,9 @@ class MainWindow(QMainWindow):
         self.control_layout.addWidget(self.btn_disconnect_cam)
         self.control_layout.addWidget(self.save_frame_path_button)
         self.control_layout.addWidget(self.save_frame_path_label)
-        self.control_layout.addWidget(self.filename_input)
-        self.control_layout.addWidget(self.file_index_input)
+        # self.control_layout.addWidget(self.filename_input)
+        # self.control_layout.addWidget(self.file_index_input)
+        self.control_layout.addLayout(self.save_frame_path_layout)
         self.control_layout.addWidget(self.btn_open_npz)
 
         self.left_layout.addLayout(self.control_layout)
@@ -614,6 +622,14 @@ class MainWindow(QMainWindow):
             self.display_msg("Acquisition failed or camera lost during acquisition.")
             return
 
+        # increment index
+        try:
+            idx = int(self.file_index_input.text().strip())
+            self.file_index_input.setText(str(idx+1))
+
+        except:
+            pass
+
         self.show_calibration_result(spectrum)
 
     def handle_live_results(self, frame, spectrum):
@@ -676,11 +692,16 @@ class MainWindow(QMainWindow):
 
     def start_acquisition(self):
         # self.controller.start_acquisition()
-        self.disable_acq_buttons()
-        self.acq_worker = AcquisitionWorker(self.controller)
-        self.acq_worker.finished.connect(self.handle_acq_result)
-        self.acq_worker.finished.connect(self.enable_buttons)
-        self.acq_worker.start()
+        if self.check_filename():
+            self.disable_acq_buttons()
+            name = self.filename_input.text().strip()
+            idx = self.file_index_input.text().strip()
+            filename = f"{name}_{idx}.npz"
+            self.acq_worker = AcquisitionWorker(self.controller,filename=filename)
+            self.acq_worker.finished.connect(self.handle_acq_result)
+            self.acq_worker.finished.connect(self.enable_buttons)
+
+            self.acq_worker.start()
 
     def stop_acquisition(self):
         if self.controller.acquisition_in_progress():
@@ -691,6 +712,28 @@ class MainWindow(QMainWindow):
             self.controller.stop_acquisition()
             self.enable_buttons()
         return
+
+    def check_filename(self):
+        name = self.filename_input.text().strip()
+        idx = self.file_index_input.text().strip()
+
+        if not name:
+            self.display_msg("Please enter a filename.")
+            return False
+        
+        idx = int(idx) if idx else 1
+        filename = f"{name}_{idx}.npz"
+
+        save_path = Path(self.controller.get_save_path()) / filename
+        print(f"Checking save path: {save_path}")
+        print(f"Save path exists: {save_path.exists()}")
+        if save_path.exists():
+            reply = QMessageBox.question(self, "File Exists", f"{filename} already exists in {save_path}. Do you want to overwrite it?", QMessageBox.Yes | QMessageBox.No)
+            if reply == QMessageBox.No:
+                return False
+        
+        self.pending_filename = filename
+        return True
 
     def toggle_accum_input(self, mode):
         if mode == "accumulate":

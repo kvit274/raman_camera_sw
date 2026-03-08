@@ -278,7 +278,7 @@ class RamanCameraController(QObject):
         # FINISH THIS, display frame
 
     @handle_errors
-    def start_acquisition(self):
+    def start_acquisition(self, filename=None):
         # self.camera.restore_acquisition_settings()      # not sure
         # self.restore_settings()
         self.restore_user_config()
@@ -299,7 +299,7 @@ class RamanCameraController(QObject):
         combined_frame = self.camera.combine_frames(shifted_frames,acq_mode,num_frames,result_mode)
 
         spectrum = self.camera.convert_to_spectrum(combined_frame)
-        self.camera.save_npz(spectrum, metadata=self.user_config)
+        self.camera.save_npz(spectrum, metadata=self.user_config,filename=filename)
         # self.view.show_calibration_result(combined_frame, spectrum)
         return combined_frame, spectrum, frames[0]
 
@@ -676,3 +676,8 @@ class RamanCameraController(QObject):
         vsspeeds = self.camera.get_all_vsspeeds()
         self.view.load_vsspeeds(vsspeeds)
         return
+
+    # File mnagement methods
+    @handle_errors
+    def get_save_path(self):
+        return self.camera.get_save_path()

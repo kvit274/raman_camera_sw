@@ -803,15 +803,21 @@ class RamanCameraModel:
         print(f"[SAVE] Frames saved to {png_path}")
         return
 
-    def save_npz(self,spectrogram, metadata=None):
+    def get_save_path(self):
+        return self.save_path
+
+    def save_npz(self,spectrogram, metadata=None,filename=None):
         """
         Save spectrogram + metadata to NPZ format
         """
         if spectrogram is None:
             raise RuntimeError("No spectrogram to save")
 
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        spe_path = self.save_path / f"{timestamp}.npz"
+        if filename is None:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            spe_path = self.save_path / f"{timestamp}.npz"
+        else:
+            spe_path = self.save_path / f"{filename}"
 
         np.savez(spe_path, spectrogram, metadata=metadata if metadata else {})
         print(f"[SAVE] Spectrogram saved to {spe_path}")

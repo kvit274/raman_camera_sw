@@ -42,13 +42,14 @@ class WarmUpCloseWorker(QThread):
 class AcquisitionWorker(QThread):
     finished = pyqtSignal(object)
 
-    def __init__(self, controller):
+    def __init__(self, controller, filename=None):
         super().__init__()
         self.controller = controller
+        self.filename = filename
 
     def run(self):
         
-        result = self.controller.start_acquisition()
+        result = self.controller.start_acquisition(filename=self.filename)
 
         if result is None:
             self.finished.emit(None)
