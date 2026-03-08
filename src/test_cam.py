@@ -381,8 +381,8 @@ class TestCameraModel:
     # ==== EMCCD GAIN ====
 
     @requires_cam_connected
-    def set_EMCCD_gain(self,emccd_gain, advanced=False):
-        self.validate_EMCCD_gain(emccd_gain,advanced)
+    def set_EMCCD_gain(self,emccd_gain, emccd_advanced=False):
+        self.validate_EMCCD_gain(emccd_gain, emccd_advanced)
         self.emccd_gain = emccd_gain
         print(f"EMCCD gain set to: {self.emccd_gain}")
         return
@@ -675,7 +675,7 @@ class TestCameraModel:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             png_path = self.save_path_image / f"{timestamp}.png"
             # csv_path = self.save_path_csv / f"{timestamp}.csv"
-        else
+        else:
             png_path = self.save_path_image / f"{filename.replace('.npz', '.png')}"
             # csv_path = self.save_path_csv / f"{filename.replace('.npz', '.csv')}"
 

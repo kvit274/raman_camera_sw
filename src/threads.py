@@ -49,14 +49,18 @@ class AcquisitionWorker(QThread):
 
     def run(self):
         
-        result = self.controller.start_acquisition(filename=self.filename)
+        try:
+            result = self.controller.start_acquisition(filename=self.filename)
 
-        if result is None:
+            if result is None:
+                self.finished.emit(None)
+                return
+
+            combined_frame,spectrum,frame = result
+            self.finished.emit(spectrum)
+            
+        except Exception:
             self.finished.emit(None)
-            return
-
-        combined_frame,spectrum,frame = result
-        self.finished.emit(spectrum)
             
        
 class LiveWorker(QThread):

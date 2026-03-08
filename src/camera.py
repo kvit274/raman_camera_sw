@@ -401,9 +401,9 @@ class RamanCameraModel:
     # ==== EMCCD gain ====
     
     @requires_cam_connected
-    def set_EMCCD_gain(self,emccd_gain, advanced=False):
-        self.validate_EMCCD_gain(emccd_gain,advanced)
-        self.cam.set_EMCCD_gain(emccd_gain,advanced)
+    def set_EMCCD_gain(self,emccd_gain, emccd_advanced=False):
+        self.validate_EMCCD_gain(emccd_gain, emccd_advanced)
+        self.cam.set_EMCCD_gain(emccd_gain, emccd_advanced)
 
 
     # ===== TEMPERATURE CONTROL =====
@@ -791,7 +791,7 @@ class RamanCameraModel:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             png_path = self.save_path_image / f"{timestamp}.png"
             # csv_path = self.save_path_csv / f"{timestamp}.csv"
-        else
+        else:
             png_path = self.save_path_image / f"{filename.replace('.npz', '.png')}"
             # csv_path = self.save_path_csv / f"{filename.replace('.npz', '.csv')}"
 

@@ -3,7 +3,7 @@ import traceback
 from pathlib import Path
 import numpy as np
 import sys
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QStackedWidget, QLineEdit, QPushButton, QFileDialog, QLabel, QComboBox, QMessageBox, QScrollArea, QGroupBox, QSizePolicy, QSplitter, QTabWidget
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QStackedWidget, QLineEdit, QPushButton, QFileDialog, QLabel, QComboBox, QMessageBox, QScrollArea, QGroupBox, QSizePolicy, QSplitter, QTabWidget, QCheckBox
 from PyQt5.QtGui import QIntValidator, QDoubleValidator, QImage, QPixmap
 from PyQt5.QtCore import pyqtSignal, QTimer, QThread, Qt
 import pyqtgraph as pg
@@ -145,6 +145,7 @@ class MainWindow(QMainWindow):
         self.emccd_gain_input = QLineEdit()
         self.emccd_gain_input.setPlaceholderText("EMCCD gain, do not exceed 300")
         self.emccd_gain_input.setValidator(QDoubleValidator())
+        self.emccd_advanced_checkbox = QCheckBox("Advanced EMCCD (>300)")
 
         self.set_settings_button = QPushButton("Apply Settings")
 
@@ -250,6 +251,7 @@ class MainWindow(QMainWindow):
 
         self.amp_layout.addWidget(QLabel("EMCCD Gain"))
         self.amp_layout.addWidget(self.emccd_gain_input)
+        self.amp_layout.addWidget(self.emccd_advanced_checkbox)
 
         self.section_amp.setContentLayout(self.amp_layout)
         self.left_layout.addWidget(self.section_amp)
@@ -569,9 +571,15 @@ class MainWindow(QMainWindow):
 
         vsspeed = self.vsspeed_input.currentData(Qt.UserRole+1)
 
-        emccd_gain = self.emccd_gain_input.text()
+        emccd_gain_input = self.emccd_gain_input.text()
+        emccd_advanced = self.emccd_advanced_checkbox.isChecked()
 
-        self.controller.apply_cam_settings(shutter, read_mode_params, acquisition_mode_params, trigger_mode, exposure, result_mode, amp, vsspeed, emccd_gain)
+        emccd_gain = {"emccd_gain": emccd_gain_input, "emccd_advanced": emccd_advanced}
+
+        result = self.controller.apply_cam_settings(shutter, read_mode_params, acquisition_mode_params, trigger_mode, exposure, result_mode, amp, vsspeed, emccd_gain)
+
+        if result is None:  # testing 
+            return
 
     def show_preview(self):
         frame = self.controller.single_preview()
