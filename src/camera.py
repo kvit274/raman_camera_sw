@@ -776,7 +776,7 @@ class RamanCameraModel:
 
     # ===== FILE MANAGEMENT =====
 
-    def save_frames(self,frames):
+    def save_frames(self,frames,filename=None):
         """
         Save a single acquired frame as PNG + raw CSV
         """
@@ -787,18 +787,22 @@ class RamanCameraModel:
         if isinstance(frames,np.ndarray):
             frames = [frames]
 
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        if filename is None:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            png_path = self.save_path_image / f"{timestamp}.png"
+            # csv_path = self.save_path_csv / f"{timestamp}.csv"
+        else
+            png_path = self.save_path_image / f"{filename.replace('.npz', '.png')}"
+            # csv_path = self.save_path_csv / f"{filename.replace('.npz', '.csv')}"
+
         for idx,frame in enumerate(frames):
 
             if frame.size == 0:
                 print("Empty frame")
                 return
 
-            png_path = self.save_path_image / f"{idx+1}.{timestamp}.png"
-            csv_path = self.save_path_csv / f"{idx+1}.{timestamp}.csv"
-
             plt.imsave(png_path, frame,cmap="gray")
-            np.savetxt(csv_path,frame,delimiter=",",fmt="%d")
+            # np.savetxt(csv_path,frame,delimiter=",",fmt="%d")
 
         print(f"[SAVE] Frames saved to {png_path}")
         return
@@ -821,6 +825,27 @@ class RamanCameraModel:
 
         np.savez(spe_path, spectrogram, metadata=metadata if metadata else {})
         print(f"[SAVE] Spectrogram saved to {spe_path}")
+        return
+
+    def save_csv(self, spectrum, filename=None):
+        """
+        Save spectrum to CSV format
+        """
+        if spectrum is None:
+            raise RuntimeError("No spectrum to save")
+
+        pixels = np.arange(len(spectrum))
+        if filename is None:
+            filename = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        csv_path = self.save_path_csv / filename.replace(".npz", ".csv")
+
+        with open(csv_path, "w") as f:
+            f.write("pixel,intensity,wavelength,wavenumber,processed\n")
+
+            for p,i in zip(pixels, spectrum):
+                f.write(f"{p},{i},,,\n")
+
+        print(f"[SAVE] CSV saved to {csv_path}")
         return
 
     def set_save_frame_path(self,path):

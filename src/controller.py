@@ -288,7 +288,7 @@ class RamanCameraController(QObject):
         shifted_frames = self.camera.bit_shift(frames)
 
         if frames:
-            self.camera.save_frames(frames)
+            self.camera.save_frames(frames,filename=filename)  # save raw image
 
         acq_mode = self.user_config.get("acquisition_mode")["mode"]
         num_frames = 1
@@ -300,6 +300,7 @@ class RamanCameraController(QObject):
 
         spectrum = self.camera.convert_to_spectrum(combined_frame)
         self.camera.save_npz(spectrum, metadata=self.user_config,filename=filename)
+        self.camera.save_csv(spectrum, filename=filename)
         # self.view.show_calibration_result(combined_frame, spectrum)
         return combined_frame, spectrum, frames[0]
 
