@@ -164,6 +164,10 @@ class RamanCameraModel:
         return
 
     @requires_cam_connected
+    def get_settings(self,include=-10):
+        return self.cam.get_settings(include=include)
+
+    @requires_cam_connected
     def restore_acquisition_settings(self):
         """
         Return last used settings before the live preview
@@ -494,8 +498,9 @@ class RamanCameraModel:
         """
         Start capturing what camera sees until stop live is clicked.
         """
-        if self.is_live:
-            return
+        if not self.is_live:    # might delete this later
+            self.is_live = True  
+            print("Live mode started")
     
         # self.save_acquisition_settings()
         # self.cam.set_acquisition_mode("single",setup_params=True)    # not sure
@@ -505,8 +510,7 @@ class RamanCameraModel:
         # vmin,vmax,_,_,_ = v_limits
         # self.setup_image_mode(hmin,hmax,vmin,vmax,1,1)
         # self.cam.set_exposure(0.01)
-        self.is_live = True  
-        print("Live mode started")
+        
 
         self.cam.stop_acquisition()      # stop acquisition if it is already in progress, just in case
         acquisition_mode = self.cam.get_acquisition_mode()
@@ -657,7 +661,7 @@ class RamanCameraModel:
 
     def validate_EMCCD_gain(self,emccd_gain:float,advanced:bool):
         if emccd_gain < 0:
-            raise ValueError(f"Invalid EMCCD gain {emccd_gain}, can not be negative")
+            emccd_gain = 0
         if emccd_gain > 300 and not advanced:
             raise ValueError(f"Invalid EMCCD gain {emccd_gain}, to set above 300 use advanced option")
         return
@@ -699,10 +703,10 @@ class RamanCameraModel:
         min_open, min_close = self.get_min_shutter_times()
         
         if open_time is not None and open_time < min_open:
-            raise ValueError(f"Open time {open_time} ms is less than minimum allowed {min_open} ms.")
+            open_time = min_open
         
         if close_time is not None and close_time < min_close:
-            raise ValueError(f"Close time {close_time} ms is less than minimum allowed {min_close} ms.")
+            close_time = min_close
         
         return True
 

@@ -28,6 +28,8 @@ class MainWindow(QMainWindow):
 
         # attach controller
         self.controller = RamanCameraController(view=self)
+        self.controller.error_signal.connect(self.display_msg)
+        self.controller.camera_lost_signal.connect(self.handle_camera_loss)
 
         # Camera preview and controls
         self.preview = PreviewWidget()
@@ -585,10 +587,10 @@ class MainWindow(QMainWindow):
         
         if self.live_worker and self.live_worker.isRunning():
             self.live_worker.stop()
-            self.controller.stop_live()
+            # self.controller.stop_live()
             self.live_worker.wait()
 
-        self.controller.stop_live()
+        # self.controller.stop_live()
         self.enable_buttons()
 
     # def stop_live_timer(self):
@@ -789,7 +791,7 @@ class MainWindow(QMainWindow):
             self.controller.cooling_worker.wait()
 
         # stop live timer
-        self.stop_live_timer()
+        # self.stop_live_timer()
 
         # reset controller state
         try:

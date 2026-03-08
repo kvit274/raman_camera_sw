@@ -5,12 +5,16 @@ from test_cam import TestCameraModel
 from test_spec import TestSpectrometerModel
 import time
 from threads import CoolingWorker, WarmUpCloseWorker
-from PyQt5.QtCore import QMetaObject, Qt, Q_ARG
+from PyQt5.QtCore import QObject, pyqtSignal
 import traceback
 
-class RamanCameraController():
+class RamanCameraController(QObject):
+
+    error_signal = pyqtSignal(str)
+    camera_lost_signal = pyqtSignal()
 
     def __init__(self,view):
+        super().__init__()
         self.view = view
         # self.camera = RamanCameraModel()
         self.camera = TestCameraModel()
@@ -25,14 +29,20 @@ class RamanCameraController():
         def wrapper(self, *args, **kwargs):
             try:
                 return func(self, *args, **kwargs)
+                # return True, result
+
             except Exception as e:
                 print("============ EXCEPTION ============")
                 traceback.print_exc()
                 print("===================================")
+
                 if not self.is_camera_alive():
-                    QMetaObject.invokeMethod(self.view, "handle_camera_lost", Qt.QueuedConnection)   # thread safe signal to gui
-                    return
-                QMetaObject.invokeMethod(self.view, "display_msg", Qt.QueuedConnection, Q_ARG(str, str(e)))
+                    self.camera_lost_signal.emit()
+                else:
+                    self.error_signal.emit(str(e))
+                # return False, None
+                raise
+
         return wrapper
 
 
@@ -92,6 +102,9 @@ class RamanCameraController():
         self.load_amp_modes()
         self.load_vsspeeds()
         # self.display_used_params()
+
+        self.user_config = self.cam_settings_to_user_config()
+
         self.display_shutter_state()
         self.cool_cam(target_temp=-85)
         # self.camera.save_acquisition_settings()     # DOUBTFUL
@@ -160,6 +173,7 @@ class RamanCameraController():
         shifted_frames = self.camera.bit_shift(frames)
 
         num_frames = 1
+        acq_mode = "single"
         if self.user_config is not None:
             acq_cfg = self.user_config.get("acquisition_mode",{})
             acq_mode = acq_cfg.get("mode","single")
@@ -193,6 +207,53 @@ class RamanCameraController():
             return
 
         self.apply_cam_settings(**self.user_config)
+
+    @handle_errors
+    def cam_settings_to_user_config(self):
+        settings = self.camera.get_settings()
+        roi = settings["read_parameters/image"]
+        hstart, hend, vstart, vend, hbin, vbin = roi
+
+        shutter_mode, ttl, open_time, close_time = settings["shutter"]
+
+        return {
+            "shutter": {
+                "mode": shutter_mode,
+                "ttl_mode": str(ttl),
+                "open_time": "" if open_time is None else str(open_time),
+                "close_time": "" if close_time is None else str(close_time)
+            },
+
+            "read_mode": {
+                "mode": settings["read_mode"],
+                "hstart": hstart - 2,
+                "hend": hend,
+                "vstart": vstart - 2,
+                "vend": vend,
+                "hbin": hbin,
+                "vbin": vbin
+            },
+
+            "acquisition_mode": {
+                "mode": settings["acq_mode"]
+            },
+
+            "trigger_mode": settings["trigger_mode"],
+
+            "exposure": str(settings["exposure"]),
+
+            "amp": {
+                "channel": settings["channel"],
+                "oamp": settings["oamp"],
+                "hsspeed": settings["hsspeed"],
+                "preamp": settings["preamp"]
+            },
+
+            "vsspeed": settings["vsspeed"],
+
+            "emccd_gain": "",
+            "result_mode": "sum"
+        }
     
     def get_temp(self):
         return self.camera.get_temp()

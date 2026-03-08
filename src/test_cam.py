@@ -213,6 +213,10 @@ class TestCameraModel:
         print("Default camera settings applied")
         return
 
+    @requires_cam_connected
+    def get_settings(self,include=-10):
+        settings = {'image_indexing': 'rcb', 'frame_format': 'list', 'frame_info_format': 'namedtuple', 'frame_info_period': 1, 'roi': (2, 1024, 2, 256, 1, 1), 'temperature': -85, 'cooler': True, 'channel': 0, 'oamp': 0, 'hsspeed': 0, 'preamp': 1, 'vsspeed': 1, 'shutter': ('open', 0, 0, 0), 'fan_mode': 'full', 'trigger_mode': 'int', 'acq_parameters/accum': (1, 0), 'acq_parameters/kinetic': (1, 0.0, 1, 0, 0), 'acq_parameters/fast_kinetic': (1, 0.0), 'acq_parameters/cont': 0, 'acq_mode': 'single', 'frame_transfer': None, 'read_parameters/single_track': (0, 1), 'read_parameters/multi_track': (1, 1, 0), 'read_parameters/random_track': [(0, 1)], 'read_parameters/image': (2, 1024, 2, 256, 1, 1), 'read_mode': 'image', 'exposure': 0.05000000074505806, 'frame_period': 0.1457899957895279}
+        return settings
 
     # ==== READ MODE =====
 
@@ -470,12 +474,13 @@ class TestCameraModel:
         """
         Start capturing what camera sees until stop live is clicked.
         """
-        if self.is_live:
-            return
-        self.is_live = True
+        if not self.is_live:
+            self.is_live = True
+            print("Live mode started")
+        
+        frame = self.generate_fake_frame()
 
-        print("Live mode started")
-        return
+        return frame
 
     @requires_cam_connected
     def stop_live(self):
@@ -499,7 +504,7 @@ class TestCameraModel:
 
     def validate_EMCCD_gain(self,emccd_gain:float,advanced:bool):
         if emccd_gain < 0:
-            raise ValueError(f"Invalid EMCCD gain {emccd_gain}, can not be negative")
+            emccd_gain = 0
         if emccd_gain > 300 and not advanced:
             raise ValueError(f"Invalid EMCCD gain {emccd_gain}, to set above 300 use advanced option")
         return
@@ -538,10 +543,11 @@ class TestCameraModel:
         min_open_time, min_close_time = self.get_min_shutter_times()
 
         if open_time is not None and open_time < min_open_time:
-            raise ValueError(f"Open time must be at least {min_open_time} ms")
+            open_time = min_open_time
+            # raise ValueError(f"Open time {open_time} ms is less than minimum allowed {min_open_time} ms.")
 
         if close_time is not None and close_time < min_close_time:
-            raise ValueError(f"Close time must be at least {min_close_time} ms")
+            close_time = min_close_time
 
     def validate_acquisition_mode(self, mode:str):
         """
@@ -644,7 +650,7 @@ class TestCameraModel:
 
     @requires_cam_connected
     def start_acquisition(self):
-        return [self.generate_fake_frame()]
+        return self.generate_fake_frame()
 
 
     @requires_cam_connected
@@ -786,9 +792,14 @@ class TestCameraModel:
         return shifted_frames
 
     def adjust_frame(self,frame):
-        frame8 = (frame / frame.max() * 255).astype(np.uint8)   # 8bit grayscale
+        m = frame.max()
+        if m == 0:
+            frame8 = np.zeros_like(frame,dtype=np.uint8)
+        else:
+            frame8 = (frame / frame.max() * 255).astype(np.uint8)   # 8bit grayscale
         h, w = frame8.shape
         return (frame8,h,w)
+
 
     def generate_fake_frame(self):
         base = np.linspace(0, 1, 1024)
@@ -796,7 +807,7 @@ class TestCameraModel:
         noise = np.random.normal(0, 0.05, size=(256, 1024))
         frame = gradient + noise
         frame = np.clip(frame, 0, 1)
-        return frame.astype(np.float32)
+        return [frame.astype(np.float32)]
 
 
 class TAmpModeFull:

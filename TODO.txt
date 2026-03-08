@@ -14,12 +14,10 @@
 !) move restore settings to model?
 !!!) controller should stop live, no self stopping in model.
 
-!!!!) do acquisition using threads
-!!!!!!!!!!!) do display of acquisition state in threads
-!!!!!) handle unplug of the camera.
+
 !!) user config must live in model
 !!!!!!!!!!)) fix handle errors in controller, use signals
-!!!!!!!!!!) ask them if cont is not needed at all?
+!!!))) implement advanced tick for emccd gain
 
 
 ?) ext_trigger ?
