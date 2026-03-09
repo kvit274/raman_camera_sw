@@ -47,8 +47,8 @@ class MainWindow(QMainWindow):
         self.btn_set_temp.setFixedWidth(70)
 
         # Save path directories
-        self.save_frame_path_button = QPushButton("Save frames to:")
-        self.save_frame_path_label = QLabel("Frames saved to: ./data")
+        self.save_frame_path_button = QPushButton("Save data to:")
+        self.save_frame_path_label = QLabel("Data saved to: ./data")
 
         self.filename_label = QLabel("Filename:")
         self.filename_input = QLineEdit()
@@ -377,6 +377,7 @@ class MainWindow(QMainWindow):
         self.on_acquisition_mode_changed("single")
         self.save_frame_path_button.clicked.connect(self.select_save_frame_path)
         self.btn_open_npz.clicked.connect(self.open_npz)
+        self.preview.roi_changed.connect(self.update_roi_inputs)
 
         # Live preview updates
         # self.timer_live = QTimer()
@@ -586,6 +587,17 @@ class MainWindow(QMainWindow):
         # if frame:
         self.display_image(frame)
 
+    def update_roi_inputs(self,roi):
+
+        hstart, hend, vstart, vend, hbin, vbin = roi
+
+        w = self.image_widget
+
+        w.roi_hstart_input.setText(str(hstart))
+        w.roi_hend_input.setText(str(hend))
+        w.roi_vstart_input.setText(str(vstart))
+        w.roi_vend_input.setText(str(vend))
+
     def start_live(self):
         
         self.disable_live_buttons()
@@ -758,9 +770,9 @@ class MainWindow(QMainWindow):
             self.dlls_path_label.setText(os.path.basename(file))
 
     def select_save_frame_path(self):
-        folder = QFileDialog.getExistingDirectory(self,"Select folder to save frames","",QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks)
+        folder = QFileDialog.getExistingDirectory(self,"Select folder to save data","",QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks)
         if folder:
-            self.save_frame_path_label.setText(f"Frames saved to: {folder}")
+            self.save_frame_path_label.setText(f"Data saved to: {folder}")
             self.controller.set_save_frame_path(Path(folder))
 
     def open_npz(self):

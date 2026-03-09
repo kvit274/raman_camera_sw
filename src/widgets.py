@@ -45,10 +45,13 @@ class TemperaturePopUp(QWidget):
 
 
 class PreviewWidget(QWidget):
+
+    roi_changed = pyqtSignal(tuple)
+
     def __init__(self):
         super().__init__()
 
-        self.setFixedSize(1024,256)  # ideally not hardcoded
+        self.setFixedSize(1024,256)
         self.setStyleSheet("background-color:black;")
 
         self.overlay_enabled = False
@@ -56,6 +59,11 @@ class PreviewWidget(QWidget):
         self.frame = None
         self.show_roi = False
         self.show_grid = False
+
+        # dragging state
+        self.drag_mode = None
+        self.drag_start = None
+        self.handle_size = 6
 
     def set_roi(self, roi):
         self.roi = roi
@@ -65,38 +73,143 @@ class PreviewWidget(QWidget):
         self.frame = frame
         self.update()
 
-    def paintEvent(self, event):
+    def _detect_handle(self,x,y):
+        if not self.roi:
+            return None
+
+        hstart,hend,vstart,vend,_,_ = self.roi
+        hs = self.handle_size
+
+        if abs(x-hstart) < hs:
+            return "left"
+
+        if abs(x-hend) < hs:
+            return "right"
+
+        if abs(y-vstart) < hs:
+            return "top"
+
+        if abs(y-vend) < hs:
+            return "bottom"
+
+        if hstart < x < hend and vstart < y < vend:
+            return "move"
+
+        return None
+
+    def mousePressEvent(self,event):
+
+        if not self.roi:
+            return
+
+        x = event.x()
+        y = event.y()
+
+        mode = self._detect_handle(x,y)
+
+        if mode:
+            self.drag_mode = mode
+            self.drag_start = (x,y)
+
+    def mouseMoveEvent(self,event):
+
+        if not self.drag_mode or not self.roi:
+            return
+
+        x = event.x()
+        y = event.y()
+
+        hstart,hend,vstart,vend,hbin,vbin = self.roi
+
+        dx = x - self.drag_start[0]
+        dy = y - self.drag_start[1]
+
+        if self.drag_mode == "move":
+            
+            width = hend - hstart
+            height = vend - vstart
+
+            new_hstart = hstart + dx
+            new_vstart = vstart + dy
+
+            new_hstart = max(0,min(1023-width,new_hstart))
+            new_vstart = max(0,min(255-height,new_vstart))
+
+            hstart = new_hstart
+            hend = hstart + width
+            vstart = new_vstart
+            vend = vstart + height
+
+        elif self.drag_mode == "left":
+            hstart += dx
+
+        elif self.drag_mode == "right":
+            hend += dx
+
+        elif self.drag_mode == "top":
+            vstart += dy
+
+        elif self.drag_mode == "bottom":
+            vend += dy
+
+        # clamp to detector
+        hstart = max(0,min(1023,hstart))
+        hend = max(1,min(1023,hend))
+        vstart = max(0,min(255,vstart))
+        vend = max(1,min(255,vend))
+
+        if hend <= hstart+1:
+            return
+
+        if vend <= vstart+1:
+            return
+
+        self.roi = (hstart,hend,vstart,vend,hbin,vbin)
+
+        self.drag_start = (x,y)
+
+        self.roi_changed.emit(self.roi)
+
+        self.update()
+
+    def mouseReleaseEvent(self,event):
+        self.drag_mode = None
+
+    def paintEvent(self,event):
+
         painter = QPainter(self)
-        painter.fillRect(self.rect(), Qt.black)
+        painter.fillRect(self.rect(),Qt.black)
 
-        # Draw frame
+        # draw frame
         if self.frame:
-            frame8, h, w = self.frame
-            qimg = QImage(frame8.tobytes(), w, h, w, QImage.Format_Grayscale8)
-            painter.drawImage(0,0, qimg)
+            frame8,h,w = self.frame
+            qimg = QImage(frame8.tobytes(),w,h,w,QImage.Format_Grayscale8)
+            painter.drawImage(0,0,qimg)
 
-        # Draw ROI + grid (same logic, but inside image_rect)
         if self.overlay_enabled and self.roi:
-            hstart, hend, vstart, vend, hbin, vbin = self.roi
+
+            hstart,hend,vstart,vend,hbin,vbin = self.roi
 
             pen = QPen(Qt.yellow)
             pen.setWidth(1)
             painter.setPen(pen)
 
             if self.show_roi:
-                painter.drawLine(hstart,vstart,hend-1,vstart)
-                painter.drawLine(hstart,vend-1,hend-1,vend-1)
-                painter.drawLine(hstart,vstart,hstart,vend-1)
-                painter.drawLine(hend-1,vstart,hend-1,vend-1)
+
+                painter.drawLine(hstart,vstart,hend,vstart)
+                painter.drawLine(hstart,vend,hend,vend)
+                painter.drawLine(hstart,vstart,hstart,vend)
+                painter.drawLine(hend,vstart,hend,vend)
 
             if self.show_grid:
-                if hbin > 1:
-                    for x in range(hstart, hend, hbin):
-                        painter.drawLine(x, vstart, x, vend-1)
 
-                if vbin > 1:
-                    for y in range(vstart, vend, vbin):
-                        painter.drawLine(hstart, y, hend-1, y)
+                if hbin>1:
+                    for x in range(hstart,hend,hbin):
+                        painter.drawLine(x,vstart,x,vend)
+
+                if vbin>1:
+                    for y in range(vstart,vend,vbin):
+                        painter.drawLine(hstart,y,hend,y)
 
 # ==== Draw Rulers ====
 
