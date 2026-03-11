@@ -150,7 +150,7 @@ class MainWindow(QMainWindow):
         self.set_settings_button = QPushButton("Apply Settings")
 
         # ==== Acquisition progress ====
-        self.acquisition_state = QLabel("Acquisition in progress: False")
+        # self.acquisition_state = QLabel("Acquisition in progress: False")
 
 
         # ===== LAYOUT (split) =====
@@ -340,7 +340,7 @@ class MainWindow(QMainWindow):
         self.status_layout.addWidget(self._separator())
         self.status_layout.addWidget(self.shutter_current_state)
         self.status_layout.addWidget(self._separator())
-        self.status_layout.addWidget(self.acquisition_state)
+        # self.status_layout.addWidget(self.acquisition_state)
         self.status_layout.addWidget(self._separator())
         self.status_layout.addStretch()
         self.status_layout.addWidget(self.status)
@@ -389,8 +389,32 @@ class MainWindow(QMainWindow):
         self.timer_temp.start(1000)
 
         # Display acquisition status
-        self.timer_acquisition = QTimer(self)
-        self.timer_acquisition.timeout.connect(self.display_acquisition_state)
+        # self.timer_acquisition = QTimer(self)
+        # self.timer_acquisition.timeout.connect(self.display_acquisition_state)
+
+        # SETTINGS MAP
+        self.settings_map = {
+
+            "exposure": self.exposure_input,
+            "trigger_mode": self.trigger_mode_input,
+            "result_mode": self.result_mode_input,
+
+            ("shutter","mode"): self.shutter_mode_input,
+            ("shutter","ttl_mode"): self.ttl_mode_input,
+            ("shutter","open_time"): self.shutter_open_time_input,
+            ("shutter","close_time"): self.shutter_close_time_input,
+
+            ("read_mode","hstart"): self.image_widget.roi_hstart_input,
+            ("read_mode","hend"): self.image_widget.roi_hend_input,
+            ("read_mode","vstart"): self.image_widget.roi_vstart_input,
+            ("read_mode","vend"): self.image_widget.roi_vend_input,
+            ("read_mode","hbin"): self.image_widget.roi_hbin_input,
+            ("read_mode","vbin"): self.image_widget.roi_vbin_input,
+
+        }
+
+        # disable buttons before camera connection
+        self.disable_not_connected_buttons()
 
     def load_amp_modes(self,amp_modes):
         self.amp_mode_input.clear()
@@ -414,6 +438,43 @@ class MainWindow(QMainWindow):
             # store index
             self.vsspeed_input.setItemData(self.vsspeed_input.count()-1,idx,Qt.UserRole+1)
 
+    def load_settings_from_metadata(self, meta):
+
+        for key, widget in self.settings_map.items():
+
+            try:
+
+                if isinstance(key, tuple):
+                    section, subkey = key
+                    value = meta.get(section, {}).get(subkey)
+                else:
+                    value = meta.get(key)
+
+                if value is None:
+                    continue
+
+                value = str(value)
+
+                if isinstance(widget, QLineEdit):
+                    widget.setText(value)
+
+                elif isinstance(widget, QComboBox):
+                    widget.setCurrentText(value)
+
+            except Exception as e:
+                print(f"Failed loading {key}: {e}")
+
+        # update mode widgets
+        if "read_mode" in meta:
+            self.read_mode_input.setCurrentText(meta["read_mode"]["mode"])
+
+        if "acquisition_mode" in meta:
+            self.acquisition_mode_input.setCurrentText(
+                meta["acquisition_mode"]["mode"]
+            )
+
+        print("Metadata loaded into GUI")
+
     def on_read_mode_changed(self, mode):
         widget = self.read_mode_widgets[mode]
         self.read_mode_stack.setCurrentWidget(widget)
@@ -436,10 +497,10 @@ class MainWindow(QMainWindow):
     def display_shutter_state(self, state:str):
         self.shutter_current_state.setText(f"Shutter State: {state}")
 
-    def display_acquisition_state(self):
-        in_progress,state = self.controller.display_acquisition_state()
-        num_frames, num_acc = state
-        self.acquisition_state.setText(f"Acquisition in progress: {in_progress} (frames done: {num_frames}, acc_done: {num_acc})")
+    # def display_acquisition_state(self):
+    #     in_progress,state = self.controller.display_acquisition_state()
+    #     num_frames, num_acc = state
+    #     self.acquisition_state.setText(f"Acquisition in progress: {in_progress} (frames done: {num_frames}, acc_done: {num_acc})")
 
     def update_image_preview_overlay(self,roi,show_roi,show_grid):
         if self.read_mode_input.currentText() != "image":
@@ -468,16 +529,23 @@ class MainWindow(QMainWindow):
 
     def connect_cam(self):
         self.controller.connect_cam()
-        self.timer_acquisition.start(500)
+        # self.timer_acquisition.start(500)
 
     def disconnect_cam(self):
-        self.timer_acquisition.stop()
+        # self.timer_acquisition.stop()
         self.timer_temp.stop()
         self.controller.disconnect_cam()
+        self.disable_not_connected_buttons()
 
     def disable_buttons(self):
         for b in [self.btn_connect_cam, self.btn_live, self.btn_stop, self.btn_preview, self.btn_acquire, self.btn_stop_acq]:
             b.setEnabled(False)
+
+    def disable_not_connected_buttons(self):
+        for b in [self.btn_live, self.btn_stop, self.btn_preview, self.btn_acquire, self.btn_stop_acq, self.btn_set_temp,self.set_settings_button]:
+            b.setEnabled(False)
+
+    
     
     def disable_acq_buttons(self):
         for b in [self.btn_acquire, self.btn_connect_cam, self.btn_live, self.btn_stop, self.btn_preview, self.btn_acquire, self.btn_set_temp,self.set_settings_button]:
@@ -488,7 +556,7 @@ class MainWindow(QMainWindow):
             b.setEnabled(False)
     
     def enable_buttons(self):
-        for b in [self.btn_connect_cam, self.btn_live, self.btn_stop, self.btn_preview, self.btn_acquire, self.btn_stop_acq, self.btn_set_temp, self.set_settings_button]:
+        for b in [self.btn_connect_cam, self.btn_disconnect_cam, self.btn_live, self.btn_stop, self.btn_preview, self.btn_acquire, self.btn_stop_acq, self.btn_set_temp, self.set_settings_button]:
             b.setEnabled(True)
 
     def apply_temperature(self):
@@ -777,18 +845,48 @@ class MainWindow(QMainWindow):
 
     def open_npz(self):
 
-        file, _ = QFileDialog.getOpenFileName(self, "Open NPZ file", "", "NPZ Files (*.npz)")
-        
-        if file:
-            try:
-                data = np.load(file,allow_pickle=True)
-                spectrum = data['spectrum']
-                name = Path(file).name
-                self.show_calibration_result(spectrum, title=name)
-            except Exception as e:
-                QMessageBox.critical(self, "Error", f"Failed to open NPZ file:\n{str(e)}")
-        else:
+        file, _ = QFileDialog.getOpenFileName(
+            self,
+            "Open NPZ file",
+            "",
+            "NPZ Files (*.npz)"
+        )
+
+        if not file:
             return
+
+        try:
+            data = np.load(file, allow_pickle=True)
+
+            spectrum = data["spectrum"]
+
+            metadata = None
+            if "metadata" in data:
+                metadata = data["metadata"].item()
+
+            name = Path(file).name
+            self.show_calibration_result(spectrum, title=name)
+
+            # ask user if they want to load settings
+            if metadata:
+                reply = QMessageBox.question(
+                    self,
+                    "Load Settings",
+                    "This file contains acquisition settings.\n"
+                    "Do you want to load them into the GUI?",
+                    QMessageBox.Yes | QMessageBox.No
+                )
+
+                if reply == QMessageBox.Yes:
+                    self.load_settings_from_metadata(metadata)
+                    self.set_settings()  # apply loaded settings to camera
+
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Error",
+                f"Failed to open NPZ file:\n{str(e)}"
+            )
 
     # ==== VISUALS ====
     def _separator(self):
@@ -807,11 +905,7 @@ class MainWindow(QMainWindow):
         print("[GUI] Application closing... running safe shutdown")
 
         try:
-            # Stop live preview if running
-            try:
-                self.timer_acquisition.stop()
-            except:
-                pass
+            
             try:
                 self.timer_temp.stop()
             except:
@@ -830,7 +924,7 @@ class MainWindow(QMainWindow):
 
             # Disconnect camera
             try:
-                self.controller.disconnect_cam()
+                self.disconnect_cam()
                 print("Camera disconnected safely due to shutdown.")
             except Exception as e:
                 print("Camera disconnect failed:", e)
@@ -858,13 +952,13 @@ class MainWindow(QMainWindow):
 
         # reset controller state
         try:
-            self.controller.disconnect_cam()
+            self.disconnect_cam()
         except:
             pass
         
         self.temp.setText("Temp: -- °C")
         self.shutter_current_state.setText("Shutter State: --")
-        self.acquisition_state.setText("Acquisition in progress: False")
+        # self.acquisition_state.setText("Acquisition in progress: False")
 
 
 def _safe_exit_close():

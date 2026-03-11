@@ -752,10 +752,10 @@ class RamanCameraModel:
         if vbin > vmaxbin:
             vbin = vmaxbin
 
-        if hstart is None or hstart < hmin:
-            hstart = hmin
-        if vstart is None or vstart < vmin:
-            vstart = vmin
+        if hstart is None or hstart < 0:
+            hstart = 0
+        if vstart is None or vstart < 0:
+            vstart = 0
         if hend is None or hend > hmax:
             hend = hmax
         if vend is None or vend > vmax:
@@ -810,12 +810,12 @@ class RamanCameraModel:
     def get_save_path(self):
         return self.save_path
 
-    def save_npz(self,spectrogram, metadata=None,filename=None):
+    def save_npz(self,spectrum, metadata=None,filename=None):
         """
         Save spectrogram + metadata to NPZ format
         """
-        if spectrogram is None:
-            raise RuntimeError("No spectrogram to save")
+        if spectrum is None:
+            raise RuntimeError("No spectrum to save")
 
         if filename is None:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -823,7 +823,7 @@ class RamanCameraModel:
         else:
             spe_path = self.save_path / f"{filename}"
 
-        np.savez(spe_path, spectrogram, metadata=metadata if metadata else {})
+        np.savez(spe_path, spectrum=spectrum, metadata=metadata if metadata else {})
         print(f"[SAVE] Spectrogram saved to {spe_path}")
         return
 
@@ -837,7 +837,7 @@ class RamanCameraModel:
         pixels = np.arange(len(spectrum))
         if filename is None:
             filename = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-        csv_path = self.save_path_csv / filename.replace(".npz", ".csv")
+        csv_path = self.save_path / filename.replace(".npz", ".csv")
 
         with open(csv_path, "w") as f:
             f.write("pixel,intensity,wavelength,wavenumber,processed\n")
@@ -928,10 +928,19 @@ class RamanCameraModel:
         return combined
     
     def convert_to_spectrum(self,frame):
+
+        hstart, hend, vstart, vend, hbin, vbin = self.get_roi()
+
         if frame.ndim == 2:
             spectrum = frame.sum(axis=0)
+
         else:
-            spectrum = frame
+            spectrum = frame.copy()
+
+        spectrum = spectrum[:1024]
+        spectrum[:hstart] = 0
+        spectrum[hend:] = 0
+
         return spectrum
 
     def bit_shift(self, frames):

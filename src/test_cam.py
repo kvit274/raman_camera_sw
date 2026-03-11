@@ -60,8 +60,8 @@ class TestCameraModel:
         self.emccd_gain = 0
 
         # default paths:
-        self.save_path_cvs = Path("./data/cvs")
-        self.save_path_cvs.mkdir(exist_ok=True)
+        self.save_path_csv = Path("./data/csv")
+        self.save_path_csv.mkdir(exist_ok=True)
         self.save_path_image = Path("./data/images")
         self.save_path_image.mkdir(exist_ok=True)
         self.save_path = Path("./data")
@@ -282,6 +282,7 @@ class TestCameraModel:
         
         """
         self.validate_roi_settings(hstart, hend, vstart, vend, hbin, vbin)
+        self.set_roi(hstart, hend, vstart, vend, hbin, vbin)
         self.set_read_mode("image")
         return 
 
@@ -721,7 +722,7 @@ class TestCameraModel:
         pixels = np.arange(len(spectrum))
         if filename is None:
             filename = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-        csv_path = self.save_path_csv / filename.replace(".npz", ".csv")
+        csv_path = self.save_path / filename.replace(".npz", ".csv")
 
         with open(csv_path, "w") as f:
             f.write("pixel,intensity,wavelength,wavenumber,processed\n")
@@ -812,10 +813,19 @@ class TestCameraModel:
         return combined
     
     def convert_to_spectrum(self,frame):
+
+        hstart, hend, vstart, vend, hbin, vbin = self.get_roi()
+
         if frame.ndim == 2:
             spectrum = frame.sum(axis=0)
+
         else:
-            spectrum = frame
+            spectrum = frame.copy()
+
+        spectrum = spectrum[:1024]
+        spectrum[:hstart] = 0
+        spectrum[hend:] = 0
+
         return spectrum
 
     def bit_shift(self, frames):
