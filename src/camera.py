@@ -434,6 +434,10 @@ class RamanCameraModel:
         self.busy = False
 
     @requires_cam_connected
+    def stop_cooling(self):
+        self.cancel_cooling = True
+
+    @requires_cam_connected
     def warm_cam(self,safe_temp:float=-20):
         self.cam.set_fan_mode("off")
         self.busy = True

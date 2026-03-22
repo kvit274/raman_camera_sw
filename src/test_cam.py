@@ -712,6 +712,11 @@ class TestCameraModel:
         print(f"[SAVE] Spectrogram saved to {spe_path}")
         return
 
+    def save_csv_frame(self,frame,filename):
+        new_filename = filename
+        csv_frame_path = self.save_path / f"{new_filename.replace('.npz','')}_frame.csv"
+        np.savetxt(csv_frame_path,frame,delimiter=",",fmt="%d")
+
     def save_csv(self, spectrum, filename=None):
         """
         Save spectrum to CSV format
@@ -821,6 +826,10 @@ class TestCameraModel:
 
         else:
             spectrum = frame.copy()
+        if hstart is None:
+            hstart = 0
+        if hend is None:
+            hend = len(spectrum)
 
         spectrum = spectrum[:1024]
         spectrum[:hstart] = 0

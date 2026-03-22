@@ -515,7 +515,7 @@ class MainWindow(QMainWindow):
 
 
     def show_temp_popup(self):
-        if not self.controller.camera.cam:
+        if not self.controller.is_camera_alive():
             return
         
         btn_pos = self.btn_set_temp.mapToGlobal(self.btn_set_temp.rect().topLeft())
@@ -571,7 +571,7 @@ class MainWindow(QMainWindow):
 
     def apply_roi_preset(self, text):
         try:
-            full_w, full_h = self.controller.camera.detect_cam_size()
+            full_w, full_h = self.controller.detect_cam_size()
         except:
             return  # camera not connected
 
@@ -586,10 +586,12 @@ class MainWindow(QMainWindow):
         hend = hstart + roi_w
         vend = vstart + roi_h
 
-        self.roi_hstart_input.setText(str(hstart))
-        self.roi_hend_input.setText(str(hend))
-        self.roi_vstart_input.setText(str(vstart))
-        self.roi_vend_input.setText(str(vend))
+        w = self.image_widget
+
+        w.roi_hstart_input.setText(str(hstart))
+        w.roi_hend_input.setText(str(hend))
+        w.roi_vstart_input.setText(str(vstart))
+        w.roi_vend_input.setText(str(vend))
 
 
     def apply_bin_preset(self, text):
@@ -597,8 +599,9 @@ class MainWindow(QMainWindow):
             return
 
         hbin, vbin = map(int, text.split("x"))
-        self.roi_hbin_input.setText(str(hbin))
-        self.roi_vbin_input.setText(str(vbin))
+        w = self.image_widget
+        w.roi_hbin_input.setText(str(hbin))
+        w.roi_vbin_input.setText(str(vbin))
 
 
     def set_settings(self):
@@ -669,6 +672,8 @@ class MainWindow(QMainWindow):
     def start_live(self):
         
         self.disable_live_buttons()
+
+        self.controller.restore_user_config()
 
         self.live_worker = LiveWorker(self.controller)
         self.live_worker.frame_ready.connect(self.handle_live_results)
@@ -944,7 +949,7 @@ class MainWindow(QMainWindow):
             self.acq_worker.wait()
 
         if hasattr(self.controller, "cooling_worker") and self.controller.cooling_worker.isRunning():
-            self.controller.camera.cancel_cooling = True
+            self.controller.stop_cooling()
             self.controller.cooling_worker.wait()
 
         # stop live timer

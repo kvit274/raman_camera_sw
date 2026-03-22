@@ -133,6 +133,9 @@ class RamanCameraController(QObject):
     def isBusy_cam(self):
         return self.camera.busy
 
+    def detect_cam_size(self):
+        return self.camera.detect_cam_size()
+
     @handle_errors
     def set_save_frame_path(self,path):
         self.camera.set_save_frame_path(path)
@@ -152,6 +155,10 @@ class RamanCameraController(QObject):
         self.cooling_worker.finished.connect(self.view.enable_buttons)
         self.cooling_worker.start()
         return
+
+    @handle_errors
+    def stop_cooling(self):
+        self.camera.stop_cooling()
 
     @handle_errors
     def warm_cam(self):
@@ -177,7 +184,7 @@ class RamanCameraController(QObject):
         # self.view.start_live_timer()
         # self.camera.restore_acquisition_settings()      # not sure
         # self.restore_settings()
-        self.restore_user_config()
+        # self.restore_user_config()
         frames = self.camera.start_live()
         result_mode = self.user_config.get("result_mode","sum")
 
@@ -294,6 +301,7 @@ class RamanCameraController(QObject):
         # self.restore_settings()
         self.restore_user_config()
         frames = self.camera.start_acquisition()
+        self.camera.save_csv_frame(frames[0],filename)        # temp DELETE THIS testing only
         result_mode = self.user_config.get("result_mode","sum")
 
         shifted_frames = self.camera.bit_shift(frames)

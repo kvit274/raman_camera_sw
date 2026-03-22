@@ -50,12 +50,12 @@ class AcquisitionWorker(QThread):
 
     def stop(self):
         self.stop_requested = True
-        self.controller.stop_acquistion()
+        self.controller.stop_acquisition()
 
     def run(self):
 
         if self.stop_requested:
-            self.finish.emit(None)
+            self.finished.emit(None)
             return
         
         try:
