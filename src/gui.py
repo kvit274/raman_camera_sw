@@ -793,12 +793,12 @@ class MainWindow(QMainWindow):
 
     def stop_acquisition(self):
         
-            if self.acq_worker and self.acq_worker.isRunning():
-                self.acq_worker.stop()
-                self.acq_worker.wait()
+        if self.acq_worker and self.acq_worker.isRunning():
+            self.acq_worker.stop()
+            self.acq_worker.wait()
 
-            # self.controller.stop_acquisition()
-            self.enable_buttons()
+        # self.controller.stop_acquisition()
+        self.enable_buttons()
         return
 
     def check_filename(self):

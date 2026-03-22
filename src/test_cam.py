@@ -677,7 +677,7 @@ class TestCameraModel:
             png_path = self.save_path_image / f"{timestamp}.png"
             # csv_path = self.save_path_csv / f"{timestamp}.csv"
         else:
-            png_path = self.save_path_image / f"{filename.replace('.npz', '.png')}"
+            png_path = self.save_path / f"{filename.replace('.npz', '.png')}"
             # csv_path = self.save_path_csv / f"{filename.replace('.npz', '.csv')}"
 
         for idx,frame in enumerate(frames):
@@ -852,12 +852,56 @@ class TestCameraModel:
 
 
     def generate_fake_frame(self):
-        base = np.linspace(0, 1, 1024)
-        gradient = np.tile(base, (256, 1))
-        noise = np.random.normal(0, 0.05, size=(256, 1024))
-        frame = gradient + noise
-        frame = np.clip(frame, 0, 1)
-        return [frame.astype(np.float32)]
+        h, w = 256, 1024
+
+        # dark baseline like CCD counts
+        frame = np.random.normal(loc=120, scale=18, size=(h, w))
+
+        rng = np.random.default_rng()
+
+        # choose sparse bright spectral columns
+        n_lines = rng.integers(18, 32)
+        cols = np.sort(rng.choice(np.arange(40, w - 40), size=n_lines, replace=False))
+
+        y = np.arange(h)[:, None]
+
+        for c in cols:
+            # vertical position of brightest part
+            y0 = rng.integers(95, 185)
+
+            # main bright spot along vertical direction
+            amp_main = rng.uniform(1800, 5200)
+            sigma_y_main = rng.uniform(4.0, 10.0)
+            profile_main = amp_main * np.exp(-0.5 * ((y - y0) / sigma_y_main) ** 2)
+
+            # faint upward trail to imitate streak
+            amp_tail = rng.uniform(300, 1200)
+            sigma_y_tail = rng.uniform(25.0, 60.0)
+            y_tail = y0 - rng.uniform(25, 55)
+            profile_tail = amp_tail * np.exp(-0.5 * ((y - y_tail) / sigma_y_tail) ** 2)
+
+            vertical_profile = profile_main + profile_tail
+
+            # make each spectral line 1–3 pixels wide
+            line_half_width = int(rng.integers(0, 2))
+            for dx in range(-line_half_width, line_half_width + 1):
+                cc = c + dx
+                if 0 <= cc < w:
+                    strength = 1.0 if dx == 0 else 0.55
+                    frame[:, cc] += (vertical_profile[:, 0] * strength)
+
+        # faint column-wise banding / detector texture
+        col_noise = rng.normal(0, 8, size=w)
+        frame += col_noise[None, :]
+
+        # occasional hot pixels
+        for _ in range(rng.integers(10, 25)):
+            ry = rng.integers(0, h)
+            rx = rng.integers(0, w)
+            frame[ry, rx] += rng.uniform(800, 2500)
+
+        frame = np.clip(frame, 0, 65535).astype(np.uint16)
+        return [frame]
 
 
 class TAmpModeFull:

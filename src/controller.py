@@ -237,9 +237,9 @@ class RamanCameraController(QObject):
 
             "read_mode": {
                 "mode": settings["read_mode"],
-                "hstart": hstart - 2,
+                "hstart": hstart,
                 "hend": hend,
-                "vstart": vstart - 2,
+                "vstart": vstart,
                 "vend": vend,
                 "hbin": hbin,
                 "vbin": vbin

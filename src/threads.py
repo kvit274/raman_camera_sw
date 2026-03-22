@@ -46,6 +46,7 @@ class AcquisitionWorker(QThread):
         super().__init__()
         self.controller = controller
         self.filename = filename
+        self.stop_requested = False
 
     def stop(self):
         self.stop_requested = True
