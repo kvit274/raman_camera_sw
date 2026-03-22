@@ -500,6 +500,10 @@ class TestCameraModel:
         frame = self.generate_fake_frame()
         return frame
 
+    @requires_cam_connected
+    def single_preview(self):
+        return self.get_live_frame()
+
 
     # ==== VALIDATION ====
 

@@ -50,7 +50,7 @@ class RamanCameraModel:
     #     @wraps(func)
     #     def wrapper(self, *args, **kwargs):
     #         if self.cam.acquisition_in_progress():
-    #             self.cam.stop_acquistion()
+    #             self.cam.stop_acquisition()
     #         return func(self, *args, **kwargs)
     #     return wrapper
 
@@ -784,7 +784,7 @@ class RamanCameraModel:
 
     # ===== FILE MANAGEMENT =====
 
-    def save_frames(self,frames,filename=None):
+    def save_frames(self,frames,filename=None):     # should handle saving mulitiple files without overwritin files
         """
         Save a single acquired frame as PNG + raw CSV
         """
@@ -936,6 +936,7 @@ class RamanCameraModel:
         return combined
     
     def convert_to_spectrum(self,frame):
+        # should consider binning>1 how to display?
 
         hstart, hend, vstart, vend, hbin, vbin = self.get_roi()
 

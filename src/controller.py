@@ -13,16 +13,21 @@ class RamanCameraController(QObject):
     error_signal = pyqtSignal(str)
     camera_lost_signal = pyqtSignal()
 
-    def __init__(self,view):
+    shutter_state_changed = pyqtSignal(str)
+    amp_modes_loaded = pyqtSignal(object)
+    vsspeeds_loaded = pyqtSignal(object)
+    message_signal = pyqtSignal(str)
+    ui_busy_changed = pyqtSignal(bool)
+
+    def __init__(self):
         super().__init__()
 
-        self.view = view
+        # self.view = view
         # self.camera = RamanCameraModel()
         self.camera = TestCameraModel()
         self.spec = TestSpectrometerModel()
         self.user_config = {}     # should be moved to model?
         self.cooling_worker = None
-
         self._error_active = False
 
 
@@ -86,13 +91,13 @@ class RamanCameraController(QObject):
     #     return
 
     def display_msg(self,msg:str):
-        self.view.display_msg(msg)
+        self.message_signal.emit(msg)
         return
 
     @handle_errors
     def display_shutter_state(self):
         state = self.camera.get_shutter()
-        self.view.display_shutter_state(state)
+        self.shutter_state_changed.emit(state)
         return
 
     @handle_errors
@@ -149,10 +154,9 @@ class RamanCameraController(QObject):
             self.camera.cancel_cooling = True
             self.cooling_worker.wait()
 
-        self.view.disable_buttons()
-
+        self.ui_busy_changed.emit(True)
         self.cooling_worker = CoolingWorker(self.camera, target_temp)
-        self.cooling_worker.finished.connect(self.view.enable_buttons)
+        self.cooling_worker.finished.connect(lambda: self.ui_busy_changed.emit(False))
         self.cooling_worker.start()
         return
 
@@ -171,9 +175,9 @@ class RamanCameraController(QObject):
 
     @handle_errors
     def safe_disconnect_cam(self):
-        self.view.disable_buttons()
+        self.ui_busy_changed.emit(True)
         self.warmup_close_worker = WarmUpCloseWorker(self.camera, target_temp=20.0)
-        self.warmup_close_worker.finished.connect(self.view.enable_buttons)
+        self.warmup_close_worker.finished.connect(self.ui_busy_changed.emit(False))
         self.warmup_close_worker.start()
         return
 
@@ -221,7 +225,7 @@ class RamanCameraController(QObject):
     @handle_errors
     def restore_user_config(self):
         if not self.user_config:
-            raise RuntimeError("You must set parameters before acquistion")
+            raise RuntimeError("You must set parameters before acquisition")
             return
 
         self.apply_cam_settings(**self.user_config)
@@ -369,7 +373,7 @@ class RamanCameraController(QObject):
 
     @handle_errors
     def restore_settings(self):
-        if self.camera.cam.acquistion_in_progress():    # temperary
+        if self.camera.cam.acquisition_in_progress():    # temperary
             self.camera.stop_acquisition()
 
         settings = self.camera.restore_acquisition_settings()
@@ -688,13 +692,13 @@ class RamanCameraController(QObject):
     @handle_errors
     def load_amp_modes(self):
         amp_modes = self.camera.get_all_amp_modes()
-        self.view.load_amp_modes(amp_modes)
+        self.amp_modes_loaded.emit(amp_modes)
         return
 
     @handle_errors
     def load_vsspeeds(self):
         vsspeeds = self.camera.get_all_vsspeeds()
-        self.view.load_vsspeeds(vsspeeds)
+        self.vsspeeds_loaded.emit(vsspeeds)
         return
 
     # File mnagement methods

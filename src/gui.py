@@ -27,9 +27,14 @@ class MainWindow(QMainWindow):
         self.live_worker = None
 
         # attach controller
-        self.controller = RamanCameraController(view=self)
+        self.controller = RamanCameraController()
         self.controller.error_signal.connect(self.display_msg)
         self.controller.camera_lost_signal.connect(self.handle_camera_loss)
+        self.controller.message_signal.connect(self.display_msg)
+        self.controller.shutter_state_changed.connect(self.display_shutter_state)
+        self.controller.amp_modes_loaded.connect(self.load_amp_modes)
+        self.controller.vsspeeds_loaded.connect(self.load_vsspeeds)
+        self.controller.ui_busy_changed.connect(self.set_ui_busy)
 
         # Camera preview and controls
         self.preview = PreviewWidget()
@@ -386,7 +391,6 @@ class MainWindow(QMainWindow):
         # Display temperature
         self.timer_temp = QTimer(self)
         self.timer_temp.timeout.connect(self.display_temp)
-        self.timer_temp.start(1000)
 
         # Display acquisition status
         # self.timer_acquisition = QTimer(self)
@@ -415,6 +419,12 @@ class MainWindow(QMainWindow):
 
         # disable buttons before camera connection
         self.disable_not_connected_buttons()
+
+    def set_ui_busy(self, busy:bool):
+        if busy:
+            self.disable_buttons()
+        else:
+            self.enable_buttons()
 
     def load_amp_modes(self,amp_modes):
         self.amp_mode_input.clear()
@@ -529,6 +539,7 @@ class MainWindow(QMainWindow):
 
     def connect_cam(self):
         self.controller.connect_cam()
+        self.timer_temp.start(1000)
         # self.timer_acquisition.start(500)
 
     def disconnect_cam(self):
