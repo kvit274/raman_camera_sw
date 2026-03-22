@@ -596,6 +596,10 @@ class RamanCameraModel:
     @requires_cam_connected
     @requires_live_stopped
     def start_acquisition(self):
+        """
+
+
+        """
         if self.is_live:
             self.stop_live()
 

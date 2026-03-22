@@ -534,7 +534,7 @@ class TestCameraModel:
         return
 
     def validate_shutter_settings(self, mode:str, ttl_mode:int, open_time:Optional[float], close_time:Optional[float]):
-        valid_modes = ["auto", "open", "close"]
+        valid_modes = ["auto", "open", "closed"]
         if mode not in valid_modes:
             raise ValueError(f"Invalid shutter mode: {mode}. Valid modes are: {valid_modes}")
 

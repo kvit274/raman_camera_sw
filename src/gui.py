@@ -792,12 +792,12 @@ class MainWindow(QMainWindow):
             self.acq_worker.start()
 
     def stop_acquisition(self):
-        if self.controller.acquisition_in_progress():
+        
             if self.acq_worker and self.acq_worker.isRunning():
                 self.acq_worker.stop()
                 self.acq_worker.wait()
 
-            self.controller.stop_acquisition()
+            # self.controller.stop_acquisition()
             self.enable_buttons()
         return
 

@@ -47,18 +47,26 @@ class AcquisitionWorker(QThread):
         self.controller = controller
         self.filename = filename
 
+    def stop(self):
+        self.stop_requested = True
+        self.controller.stop_acquistion()
+
     def run(self):
+
+        if self.stop_requested:
+            self.finish.emit(None)
+            return
         
         try:
             result = self.controller.start_acquisition(filename=self.filename)
 
-            if result is None:
+            if self.stop_requested or result is None:
                 self.finished.emit(None)
                 return
 
-            combined_frame,spectrum,frame = result
+            _,spectrum,_ = result
             self.finished.emit(spectrum)
-            
+
         except Exception:
             self.finished.emit(None)
             
