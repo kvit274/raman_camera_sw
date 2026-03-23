@@ -7,6 +7,7 @@ import time
 from threads import CoolingWorker, WarmUpCloseWorker
 from PyQt5.QtCore import QObject, pyqtSignal
 import traceback
+from acquisition_service import AcquisitionService
 
 class RamanCameraController(QObject):
 
@@ -25,7 +26,9 @@ class RamanCameraController(QObject):
         # self.view = view
         # self.camera = RamanCameraModel()
         self.camera = TestCameraModel()
-        self.spec = TestSpectrometerModel()
+        self.acquisition_service = AcquisitionService()
+        self.spec = TestSpectrometerModel() # delete
+
         self.user_config = {}     # should be moved to model?
         self.cooling_worker = None
         self._error_active = False
@@ -143,7 +146,7 @@ class RamanCameraController(QObject):
 
     @handle_errors
     def set_save_frame_path(self,path):
-        self.camera.set_save_frame_path(path)
+        self.acquisition_service.set_save_frame_path(path)
         return
 
     @handle_errors
@@ -192,7 +195,7 @@ class RamanCameraController(QObject):
         frames = self.camera.start_live()
         result_mode = self.user_config.get("result_mode","sum")
 
-        shifted_frames = self.camera.bit_shift(frames)
+        shifted_frames = self.acquisition_service.bit_shift(frames)
 
         num_frames = 1
         acq_mode = "single"
@@ -204,9 +207,10 @@ class RamanCameraController(QObject):
             if acq_mode == "accum":
                 num_frames = acq_cfg.get("num_acc",1)
         
-        combined_frame = self.camera.combine_frames(shifted_frames,acq_mode,num_frames,result_mode)
+        combined_frame = self.acquisition_service.combine_frames(shifted_frames,acq_mode,num_frames,result_mode)
 
-        spectrum = self.camera.convert_to_spectrum(combined_frame)
+        roi = self.camera.get_roi()
+        spectrum = self.acquisition_service.convert_to_spectrum(combined_frame, roi)
         # self.view.show_calibration_result(combined_frame, spectrum)
         return combined_frame, spectrum, frames[0]
     
@@ -305,13 +309,13 @@ class RamanCameraController(QObject):
         # self.restore_settings()
         self.restore_user_config()
         frames = self.camera.start_acquisition()
-        self.camera.save_csv_frame(frames[0],filename)        # temp DELETE THIS testing only
+        self.acquisition_service.save_csv_frame(frames[0],filename)        # temp DELETE THIS testing only
         result_mode = self.user_config.get("result_mode","sum")
 
-        shifted_frames = self.camera.bit_shift(frames)
+        shifted_frames = self.acquisition_service.bit_shift(frames)
 
         if frames:
-            self.camera.save_frames(frames,filename=filename)  # save raw image
+            self.acquisition_service.save_frames(frames,filename=filename)  # save raw image
 
         acq_mode = self.user_config.get("acquisition_mode")["mode"]
         num_frames = 1
@@ -319,11 +323,12 @@ class RamanCameraController(QObject):
             num_frames = len(frames)
         if acq_mode == "accum":
             num_frames = self.user_config.get("acquisition_mode")["num_acc"]
-        combined_frame = self.camera.combine_frames(shifted_frames,acq_mode,num_frames,result_mode)
+        combined_frame = self.acquisition_service.combine_frames(shifted_frames,acq_mode,num_frames,result_mode)
 
-        spectrum = self.camera.convert_to_spectrum(combined_frame)
-        self.camera.save_npz(spectrum, metadata=self.user_config,filename=filename)
-        self.camera.save_csv(spectrum, filename=filename)
+        roi = self.camera.get_roi()
+        spectrum = self.acquisition_service.convert_to_spectrum(combined_frame, roi)
+        self.acquisition_service.save_npz(spectrum, metadata=self.user_config,filename=filename)
+        self.acquisition_service.save_csv(spectrum, filename=filename)
         # self.view.show_calibration_result(combined_frame, spectrum)
         return combined_frame, spectrum, frames[0]
 
@@ -334,7 +339,7 @@ class RamanCameraController(QObject):
     
     @handle_errors
     def adjust_frame(self,frame):
-        return self.camera.adjust_frame(frame)
+        return self.acquisition_service.adjust_frame(frame)
 
 
     # ==== SETTINGS METHODS =====
@@ -704,4 +709,4 @@ class RamanCameraController(QObject):
     # File mnagement methods
     @handle_errors
     def get_save_path(self):
-        return self.camera.get_save_path()
+        return self.acquisition_service.get_save_path()

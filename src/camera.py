@@ -797,10 +797,10 @@ class RamanCameraModel:
 
         if filename is None:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            png_path = self.save_path_image / f"{timestamp}.png"
+            png_path = self.save_path / f"{timestamp}.png"
             # csv_path = self.save_path_csv / f"{timestamp}.csv"
         else:
-            png_path = self.save_path_image / f"{filename.replace('.npz', '.png')}"
+            png_path = self.save_path / f"{filename.replace('.npz', '.png')}"
             # csv_path = self.save_path_csv / f"{filename.replace('.npz', '.csv')}"
 
         for idx,frame in enumerate(frames):
