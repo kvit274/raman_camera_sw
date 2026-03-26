@@ -19,9 +19,9 @@ class TestCameraModel:
 
         # roi params
         self.hstart = 0
-        self.hend = None
+        self.hend = 1024
         self.vstart = 0
-        self.vend = None
+        self.vend = 256
         self.hbin = 1
         self.vbin = 1
 
@@ -148,7 +148,7 @@ class TestCameraModel:
         return (self.hstart, self.hend, self.vstart, self.vend, self.hbin, self.vbin)
 
     @requires_cam_connected
-    def set_roi(self,hstart:int=0, hend:Optional[int]=None, vstart:int=0, vend:Optional[int]=None, hbin:int=1, vbin:int=1):
+    def set_roi(self,hstart:int=0, hend:Optional[int]=1024, vstart:int=0, vend:Optional[int]=256, hbin:int=1, vbin:int=1):
         self.validate_roi_settings(hstart, hend, vstart, vend, hbin, vbin)
         self.hstart = hstart
         self.hend = hend
@@ -215,7 +215,7 @@ class TestCameraModel:
 
     @requires_cam_connected
     def get_settings(self,include=-10):
-        settings = {'image_indexing': 'rcb', 'frame_format': 'list', 'frame_info_format': 'namedtuple', 'frame_info_period': 1, 'roi': (2, 1024, 2, 256, 1, 1), 'temperature': -85, 'cooler': True, 'channel': 0, 'oamp': 0, 'hsspeed': 0, 'preamp': 1, 'vsspeed': 1, 'shutter': ('open', 0, 0, 0), 'fan_mode': 'full', 'trigger_mode': 'int', 'acq_parameters/accum': (1, 0), 'acq_parameters/kinetic': (1, 0.0, 1, 0, 0), 'acq_parameters/fast_kinetic': (1, 0.0), 'acq_parameters/cont': 0, 'acq_mode': 'single', 'frame_transfer': None, 'read_parameters/single_track': (0, 1), 'read_parameters/multi_track': (1, 1, 0), 'read_parameters/random_track': [(0, 1)], 'read_parameters/image': (2, 1024, 2, 256, 1, 1), 'read_mode': 'image', 'exposure': 0.05000000074505806, 'frame_period': 0.1457899957895279}
+        settings = {'image_indexing': 'rcb', 'frame_format': 'list', 'frame_info_format': 'namedtuple', 'frame_info_period': 1, 'roi': (0, 1024, 0, 256, 1, 1), 'temperature': -85, 'cooler': True, 'channel': 0, 'oamp': 0, 'hsspeed': 0, 'preamp': 1, 'vsspeed': 1, 'shutter': ('open', 0, 0, 0), 'fan_mode': 'full', 'trigger_mode': 'int', 'acq_parameters/accum': (1, 0), 'acq_parameters/kinetic': (1, 0.0, 1, 0, 0), 'acq_parameters/fast_kinetic': (1, 0.0), 'acq_parameters/cont': 0, 'acq_mode': 'single', 'frame_transfer': None, 'read_parameters/single_track': (0, 1), 'read_parameters/multi_track': (1, 1, 0), 'read_parameters/random_track': [(0, 1)], 'read_parameters/image': (0, 1024, 0, 256, 1, 1), 'read_mode': 'image', 'exposure': 0.05000000074505806, 'frame_period': 0.1457899957895279}
         return settings
 
     # ==== READ MODE =====
@@ -277,7 +277,7 @@ class TestCameraModel:
         return (10,20)
 
     @requires_cam_connected
-    def setup_image_mode(self,mode,hstart:int=0, hend:Optional[int]=None, vstart:int=0, vend:Optional[int]=None, hbin:int=1, vbin:int=1):
+    def setup_image_mode(self,mode,hstart:int=0, hend:Optional[int]=1024, vstart:int=0, vend:Optional[int]=256, hbin:int=1, vbin:int=1):
         """
         
         """
@@ -790,7 +790,11 @@ class TestCameraModel:
 
 
     def generate_fake_frame(self):
-        h, w = 256, 1024
+
+        hstart,hend,vstart,vend,_,_ = self.get_roi()
+        w = hend-hstart
+        h = vend-vstart
+        print(f"hstart:{hstart},hend:{hend},vstart:{vstart},vend:{vend},width:{w},height:{h}")
 
         # dark baseline like CCD counts
         frame = np.random.normal(loc=120, scale=18, size=(h, w))

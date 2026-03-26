@@ -65,7 +65,7 @@ class AcquisitionService:
         hstart, hend, vstart, vend, hbin, vbin = roi
 
         if frame.ndim == 2:
-            spectrum = frame.sum(axis=0)
+            spectrum = frame.mean(axis=0)
 
         else:
             spectrum = frame.copy()
@@ -82,7 +82,7 @@ class AcquisitionService:
         for frame in frames:
             if frame.ndim == 2:
                 frame_copy = frame.copy()
-                frame_copy[-1, :] = np.roll(frame_copy[-1, :], -2)
+                frame_copy[-1, :] = np.roll(frame_copy[-1, :], -1)
                 shifted_frames.append(frame_copy)
             else:
                 shifted_frames.append(frame)

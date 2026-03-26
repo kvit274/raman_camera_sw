@@ -270,6 +270,7 @@ class RamanCameraController(QObject):
         self.acquisition_service.save_csv_frame(frames[0],filename)        # temp DELETE THIS testing only
         result_mode = self.user_config.get("result_mode","sum")
 
+        self.acquisition_service.save_frames(frames,filename="before_shifting.npz")  # save raw image
         shifted_frames = self.acquisition_service.bit_shift(frames)
 
         if frames:

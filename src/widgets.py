@@ -1,6 +1,6 @@
 import atexit
 import sys
-from PyQt5.QtWidgets import QSlider, QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QStackedWidget, QLineEdit, QPushButton, QFileDialog, QLabel, QComboBox, QMessageBox, QToolButton, QCheckBox
+from PyQt5.QtWidgets import QSlider, QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QStackedWidget, QLineEdit, QPushButton, QFileDialog, QLabel, QComboBox, QMessageBox, QToolButton, QCheckBox, QSizePolicy
 from PyQt5.QtGui import QIntValidator, QDoubleValidator, QImage, QPixmap, QPainter, QPen, QColor
 from PyQt5.QtCore import pyqtSignal, QTimer, QThread, Qt, QRectF, QRect, QSize, QEvent
 import pyqtgraph as pg
@@ -563,7 +563,7 @@ class AccumWidget(QWidget):
 
     def __init__(self):
         super().__init__()
-        layout = QHBoxLayout(self)
+        layout = QVBoxLayout(self)
         label = QLabel("Accumulative Aquisition Mode Settings")
 
         self.num_acc_input = QLineEdit()
@@ -577,6 +577,9 @@ class AccumWidget(QWidget):
         layout.addWidget(label)
         layout.addWidget(self.num_acc_input)
         layout.addWidget(self.cycle_time_acc_input)
+
+        self.num_acc_input.setMinimumWidth(0)
+        self.cycle_time_acc_input.setMinimumWidth(0)
 
     def get_params(self):
         params = {"mode": "accum"}
@@ -600,7 +603,7 @@ class KineticWidget(QWidget):
 
     def __init__(self):
         super().__init__()
-        layout = QHBoxLayout(self)
+        layout = QVBoxLayout(self)
         label = QLabel("Kinetic Aquisition Mode Settings")
 
         self.num_cycle_input = QLineEdit()
@@ -659,7 +662,7 @@ class FastKineticWidget(QWidget):
 
     def __init__(self):
         super().__init__()
-        layout = QHBoxLayout(self)
+        layout = QVBoxLayout(self)
         label = QLabel("Fast Kinetic Aquisition Mode Settings")
 
         self.num_acc_input = QLineEdit()
