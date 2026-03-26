@@ -65,13 +65,20 @@ class AcquisitionService:
         hstart, hend, vstart, vend, hbin, vbin = roi
 
         if frame.ndim == 2:
-            local_spectrum = frame.sum(axis=0)
+            y = frame.sum(axis=0)
 
         else:
-            local_spectrum = frame.copy()
+            y = frame.copy()
 
-        spectrum = np.zeros(1024, dtype=local_spectrum.dtype)
-        spectrum[hstart:hend] = local_spectrum[:hend-hstart]
+        x_detector = np.arange(hstart,hend,hbin,dtype=float)
+
+        if len(x_detector) != len(y):
+            raise ValueError(f"x/y lenght missmatch: len(x):{len(x_detector)}, len(y)={len(y)}")
+        
+        return x_detector, y
+
+        # spectrum = np.zeros(1024, dtype=local_spectrum.dtype)
+        # spectrum[hstart:hend] = local_spectrum[:hend-hstart]
         # spectrum = spectrum[:1024]
         # spectrum[:hstart] = 0
         # spectrum[hend:] = 0
@@ -100,12 +107,14 @@ class AcquisitionService:
         h, w = frame8.shape
         return (frame8,h,w)
 
-    def save_npz(self,spectrum, metadata=None,filename=None):
+    def save_npz(self,spectrum_data, metadata=None,filename=None):
         """
         Save spectrogram + metadata to NPZ format
         """
-        if spectrum is None:
+        if spectrum_data is None:
             raise RuntimeError("No spectrum to save")
+
+        x,y = spectrum_data
 
         if filename is None:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -113,18 +122,20 @@ class AcquisitionService:
         else:
             spe_path = self.save_path / f"{filename}"
 
-        np.savez(spe_path, spectrum=spectrum, metadata=metadata if metadata else {})
+        np.savez(spe_path, pixel=x, spectrum=y, metadata=metadata if metadata else {})
         print(f"[SAVE] Spectrogram saved to {spe_path}")
         return
 
-    def save_csv(self, spectrum, filename=None):
+    def save_csv(self, spectrum_data, filename=None):
         """
         Save spectrum to CSV format
         """
-        if spectrum is None:
+        if spectrum_data is None:
             raise RuntimeError("No spectrum to save")
 
-        pixels = np.arange(len(spectrum))
+        x,y = spectrum_data
+
+        # pixels = np.arange(len(spectrum))
         if filename is None:
             filename = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
         csv_path = self.save_path / filename.replace(".npz", ".csv")
@@ -132,7 +143,7 @@ class AcquisitionService:
         with open(csv_path, "w") as f:
             f.write("pixel,intensity,wavelength,wavenumber,processed\n")
 
-            for p,i in zip(pixels, spectrum):
+            for p,i in zip(x, y):
                 f.write(f"{p},{i},,,\n")
 
         print(f"[SAVE] CSV saved to {csv_path}")

@@ -134,7 +134,10 @@ class TestCameraModel:
         """
         Returns the dimensions of the data (width,height) after binning and ROI
         """
-        return (64,128)
+        hstart,hend,vstart,vend,hbin,vbin = self.get_roi()
+        width = (hend-hstart)//hbin
+        height = (vend-vstart)//vbin
+        return (width,height)
 
     
     # ==== ROI and Binning =====
@@ -149,7 +152,7 @@ class TestCameraModel:
 
     @requires_cam_connected
     def set_roi(self,hstart:int=0, hend:Optional[int]=1024, vstart:int=0, vend:Optional[int]=256, hbin:int=1, vbin:int=1):
-        self.validate_roi_settings(hstart, hend, vstart, vend, hbin, vbin)
+        hstart,hend,vstart,vend,hbin,vbin = self.validate_roi_settings(hstart, hend, vstart, vend, hbin, vbin)
         self.hstart = hstart
         self.hend = hend
         self.vstart = vstart
@@ -159,9 +162,21 @@ class TestCameraModel:
         print(f"ROI set to: x={hstart}->{hend} | y={vstart}->{vend} | hbin: {hbin}, vbin: {vbin}")
 
     @requires_cam_connected
-    def get_roi_limits(self):
-        # TOD0
-        return
+    def get_roi_limits(self,hbin=1,vbin=1):
+        if hbin is None:
+            hbin = 1
+        if vbin is None:
+            vbin = 1
+        
+        det_w, det_h = self.detect_cam_size()
+        hmaxbin, vmaxbin = 32, 32
+
+        hbin = max(1,min(int(hbin),hmaxbin))
+        vbin = max(1,min(int(vbin),vmaxbin))
+
+        hlim = (hbin,det_w,1,hbin,hmaxbin)
+        vlim = (vbin,det_h,1,vbin,vmaxbin)
+        return (hlim, vlim)
 
 
     # ==== SHUTTER SETUP ====
@@ -575,8 +590,19 @@ class TestCameraModel:
         return True
 
     def validate_roi_settings(self, hstart:int, hend:Optional[int], vstart:int, vend:Optional[int], hbin:int, vbin:int):
-
-        return
+        if hstart is None:
+            hstart = 0
+        if hend is None:
+            hend = 1024
+        if vstart is None:
+            vstart = 0
+        if vend is None:
+            vend = 256
+        if hbin is None:
+            hbin = 1
+        if vbin is None:
+            vbin = 1
+        return hstart,hend,vstart,vend,hbin,vbin
 
     @requires_cam_connected
     def start_acquisition(self):
@@ -746,25 +772,25 @@ class TestCameraModel:
 
         return combined
     
-    def convert_to_spectrum(self,frame):
+    # def convert_to_spectrum(self,frame):
 
-        hstart, hend, vstart, vend, hbin, vbin = self.get_roi()
+    #     hstart, hend, vstart, vend, hbin, vbin = self.get_roi()
 
-        if frame.ndim == 2:
-            spectrum = frame.sum(axis=0)
+    #     if frame.ndim == 2:
+    #         spectrum = frame.sum(axis=0)
 
-        else:
-            spectrum = frame.copy()
-        if hstart is None:
-            hstart = 0
-        if hend is None:
-            hend = len(spectrum)
+    #     else:
+    #         spectrum = frame.copy()
+    #     if hstart is None:
+    #         hstart = 0
+    #     if hend is None:
+    #         hend = len(spectrum)
 
-        spectrum = spectrum[:1024]
-        spectrum[:hstart] = 0
-        spectrum[hend:] = 0
+    #     spectrum = spectrum[:1024]
+    #     spectrum[:hstart] = 0
+    #     spectrum[hend:] = 0
 
-        return spectrum
+    #     return spectrum
 
     def bit_shift(self, frames):
         shifted_frames = []
@@ -788,35 +814,53 @@ class TestCameraModel:
         h, w = frame8.shape
         return (frame8,h,w)
 
+    def _apply_binning(self, frame: np.ndarray, hbin: int, vbin: int) -> np.ndarray:
+        """
+        Simulate CCD binning by summing charge inside each vbin x hbin block.
+        """
+
+        if hbin == 1 and vbin == 1:
+            return frame.astype(np.uint16)
+
+        h, w = frame.shape
+        out_h = h // vbin
+        out_w = w // hbin
+
+        trimmed = frame[:out_h * vbin, :out_w * hbin]
+        binned = trimmed.reshape(out_h, vbin, out_w, hbin).sum(axis=(1, 3))
+
+        return np.clip(binned, 0, 65535).astype(np.uint16)
 
     def generate_fake_frame(self):
+        hstart, hend, vstart, vend, hbin, vbin = self.get_roi()
 
-        hstart,hend,vstart,vend,_,_ = self.get_roi()
-        w = hend-hstart
-        h = vend-vstart
-        print(f"hstart:{hstart},hend:{hend},vstart:{vstart},vend:{vend},width:{w},height:{h}")
+        raw_w = hend - hstart
+        raw_h = vend - vstart
+        # print(
+        #     f"hstart:{hstart}, hend:{hend}, vstart:{vstart}, vend:{vend}, "
+        #     f"raw_width:{raw_w}, raw_height:{raw_h}, hbin:{hbin}, vbin:{vbin}"
+        # )
 
-        # dark baseline like CCD counts
-        frame = np.random.normal(loc=120, scale=18, size=(h, w))
+        # generate RAW ROI-sized image first
+        frame = np.random.normal(loc=120, scale=18, size=(raw_h, raw_w))
 
         rng = np.random.default_rng()
-
-        # choose sparse bright spectral columns
         n_lines = rng.integers(18, 32)
-        cols = np.sort(rng.choice(np.arange(40, w - 40), size=n_lines, replace=False))
 
-        y = np.arange(h)[:, None]
+        if raw_w > 80:
+            cols = np.sort(rng.choice(np.arange(40, raw_w - 40), size=n_lines, replace=False))
+        else:
+            cols = np.sort(rng.choice(np.arange(0, raw_w), size=min(n_lines, raw_w), replace=False))
+
+        y = np.arange(raw_h)[:, None]
 
         for c in cols:
-            # vertical position of brightest part
-            y0 = rng.integers(95, 185)
+            y0 = rng.integers(max(0, raw_h // 3), max(1, 2 * raw_h // 3))
 
-            # main bright spot along vertical direction
             amp_main = rng.uniform(1800, 5200)
             sigma_y_main = rng.uniform(4.0, 10.0)
             profile_main = amp_main * np.exp(-0.5 * ((y - y0) / sigma_y_main) ** 2)
 
-            # faint upward trail to imitate streak
             amp_tail = rng.uniform(300, 1200)
             sigma_y_tail = rng.uniform(25.0, 60.0)
             y_tail = y0 - rng.uniform(25, 55)
@@ -824,25 +868,29 @@ class TestCameraModel:
 
             vertical_profile = profile_main + profile_tail
 
-            # make each spectral line 1–3 pixels wide
             line_half_width = int(rng.integers(0, 2))
             for dx in range(-line_half_width, line_half_width + 1):
                 cc = c + dx
-                if 0 <= cc < w:
+                if 0 <= cc < raw_w:
                     strength = 1.0 if dx == 0 else 0.55
-                    frame[:, cc] += (vertical_profile[:, 0] * strength)
+                    frame[:, cc] += vertical_profile[:, 0] * strength
 
-        # faint column-wise banding / detector texture
-        col_noise = rng.normal(0, 8, size=w)
+        col_noise = rng.normal(0, 8, size=raw_w)
         frame += col_noise[None, :]
 
-        # occasional hot pixels
         for _ in range(rng.integers(10, 25)):
-            ry = rng.integers(0, h)
-            rx = rng.integers(0, w)
+            ry = rng.integers(0, raw_h)
+            rx = rng.integers(0, raw_w)
             frame[ry, rx] += rng.uniform(800, 2500)
 
-        frame = np.clip(frame, 0, 65535).astype(np.uint16)
+        frame = np.clip(frame, 0, 65535)
+
+        # simulate camera output AFTER hardware binning
+        frame = self._apply_binning(frame, hbin=hbin, vbin=vbin)
+
+        out_h, out_w = frame.shape
+        # print(f"returned frame shape after binning: ({out_h}, {out_w})")
+
         return [frame]
 
 

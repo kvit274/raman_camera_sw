@@ -101,6 +101,8 @@ class MainWindow(QMainWindow):
         self.read_mode_stack.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
         self.image_widget = ImageWidget()
         self.image_widget.roi_visual_changed.connect(self.update_image_preview_overlay)  # connect to draw on preview
+        # self.image_widget.roi_hbin_input.textChanged.connect(self.get_preview_roi_limits)
+        # self.image_widget.roi_vbin_input.textChanged.connect(self.get_preview_roi_limits)
         self.read_mode_widgets = {
             "fvb": FVBWidget(),
             "image": self.image_widget,
@@ -479,6 +481,7 @@ class MainWindow(QMainWindow):
                 meta["acquisition_mode"]["mode"]
             )
 
+        # self.get_preview_roi_limits()
         print("Metadata loaded into GUI")
 
     def on_read_mode_changed(self, mode):
@@ -542,6 +545,7 @@ class MainWindow(QMainWindow):
     def connect_cam(self):
         self.controller.connect_cam()
         self.timer_temp.start(1000)
+        # self.get_preview_roi_limits()
         # self.timer_acquisition.start(500)
 
     def disconnect_cam(self):
@@ -615,6 +619,7 @@ class MainWindow(QMainWindow):
         w = self.image_widget
         w.roi_hbin_input.setText(str(hbin))
         w.roi_vbin_input.setText(str(vbin))
+        # self.get_preview_roi_limits()
 
 
     def set_settings(self):
@@ -663,6 +668,7 @@ class MainWindow(QMainWindow):
 
         result = self.controller.apply_cam_settings(shutter, read_mode_params, acquisition_mode_params, trigger_mode, exposure, result_mode, amp, vsspeed, emccd_gain)
 
+        # self.get_preview_roi_limits()
         self.display_msg("Settings applied",True)
 
         if result is None:  # testing 
@@ -683,6 +689,17 @@ class MainWindow(QMainWindow):
         w.roi_hend_input.setText(str(hend))
         w.roi_vstart_input.setText(str(vstart))
         w.roi_vend_input.setText(str(vend))
+        # w.roi_hbin_input.setText(str(hbin))
+        # w.roi_vbin_input.setText(str(vbin))
+
+    # def get_preview_roi_limits(self):
+    #     try:
+    #         hbin = int(self.image_widget.roi_hbin_input.text() or 1)
+    #         vbin = int(self.image_widget.roi_vbin_input.text() or 1)
+    #         limits = self.controller.camera.get_roi_limits(hbin=hbin,vbin=vbin)
+    #         self.preview.set_roi_limits(limits)
+    #     except Expection:
+    #         self.preview.set_roi_limits(None)
 
     def start_live(self):
         
@@ -737,11 +754,13 @@ class MainWindow(QMainWindow):
 
         self.show_calibration_result(spectrum)
 
-    def handle_live_results(self, frame, spectrum):
+    def handle_live_results(self, frame, spectrum_data):
         if frame is not None:
             self.display_image(frame)
 
-        if spectrum is not None:
+        if spectrum_data is not None:
+            x,y = spectrum_data
+
             if self.live_plot is None:
                 self.live_plot = pg.PlotWidget()
                 self.live_plot.setLabel('left', 'Intensity')
@@ -749,10 +768,11 @@ class MainWindow(QMainWindow):
                 self.live_tab_index = self.calibration_tabs.addTab(self.live_plot, "Live")
 
             self.live_plot.clear()
-            pixels = np.arange(len(spectrum))
-            self.live_plot.plot(pixels,spectrum,pen="y")
+            # pixels = np.arange(len(spectrum))
+            self.live_plot.plot(x,y,pen="y")
 
-    def show_calibration_result(self, spectrum, title="Acquisition"):
+    def show_calibration_result(self, spectrum_data, title="Acquisition"):
+        x,y = spectrum_data
 
         plot = pg.PlotWidget()
 
@@ -762,9 +782,9 @@ class MainWindow(QMainWindow):
         vb = plot.getViewBox()
         vb.setMouseEnabled(x=True,y=True)
 
-        pixels = np.arange(len(spectrum))
+        # pixels = np.arange(len(spectrum))
 
-        plot.plot(pixels,spectrum,pen="y")
+        plot.plot(x,y,pen="y")
         plot.enableAutoRange(x=True,y=True)
 
         self.calibration_tabs.addTab(plot, f"{title}{self.calibration_tabs.count()+1}")
@@ -862,13 +882,15 @@ class MainWindow(QMainWindow):
             data = np.load(file, allow_pickle=True)
 
             spectrum = data["spectrum"]
+            pixel = data["pixel"]
+            spectrum_data = (pixel,spectrum)
 
             metadata = None
             if "metadata" in data:
                 metadata = data["metadata"].item()
 
             name = Path(file).name
-            self.show_calibration_result(spectrum, title=name)
+            self.show_calibration_result(spectrum_data, title=name)
 
             # ask user if they want to load settings
             if metadata:

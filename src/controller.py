@@ -172,12 +172,12 @@ class RamanCameraController(QObject):
         combined_frame = self.acquisition_service.combine_frames(shifted_frames,acq_mode,num_frames,result_mode)
 
         roi = self.camera.get_roi()
-        spectrum = self.acquisition_service.convert_to_spectrum(combined_frame, roi)
+        spectrum_data = self.acquisition_service.convert_to_spectrum(combined_frame, roi)
         # x = np.arange(1024)
         # raw_spectrum = np.sin(x/50)*1000+5000
         # spectrum, _ = self.acquisition_service.baseline_correct(raw_spectrum)
         # self.view.show_calibration_result(combined_frame, spectrum)
-        return combined_frame, spectrum, frames[0]
+        return combined_frame, spectrum_data, frames[0]
     
     @handle_errors
     def stop_live(self):
@@ -285,12 +285,12 @@ class RamanCameraController(QObject):
         combined_frame = self.acquisition_service.combine_frames(shifted_frames,acq_mode,num_frames,result_mode)
 
         roi = self.camera.get_roi()
-        spectrum = self.acquisition_service.convert_to_spectrum(combined_frame, roi)
+        spectrum_data = self.acquisition_service.convert_to_spectrum(combined_frame, roi)
         # spectrum, baseline = self.acquisition_service.baseline_correct(raw_spectrum)
-        self.acquisition_service.save_npz(spectrum, metadata=self.user_config,filename=filename)
-        self.acquisition_service.save_csv(spectrum, filename=filename)
+        self.acquisition_service.save_npz(spectrum_data, metadata=self.user_config,filename=filename)
+        self.acquisition_service.save_csv(spectrum_data, filename=filename)
         # self.view.show_calibration_result(combined_frame, spectrum)
-        return combined_frame, spectrum, frames[0]
+        return combined_frame, spectrum_data, frames[0]
 
     @handle_errors
     def stop_acquisition(self):
@@ -630,6 +630,11 @@ class RamanCameraController(QObject):
     @handle_errors
     def get_roi(self):
         return self.camera.get_roi()
+
+    def get_roi_limits(hbin,vbin):
+        hbin = None if hbin == "" else int(hbin)
+        vbin = None if vbin == "" else int(vbin)
+        return self.camera.get_roi_limits(hbin,vbin)
 
     # @handle_errors
     def set_roi(self,hstart=0, hend=None, vstart=0, vend=None, hbin=1, vbin=1):
