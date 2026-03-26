@@ -9,6 +9,7 @@ from pprint import pformat
 from typing import Optional
 from datetime import datetime
 from functools import wraps
+import ramanspy as rp
 
 class AcquisitionService:
 
@@ -170,3 +171,29 @@ class AcquisitionService:
         new_filename = filename
         csv_frame_path = self.save_path / f"{new_filename.replace('.npz','')}_frame.csv"
         np.savetxt(csv_frame_path,frame,delimiter=",",fmt="%d")
+
+    def baseline_correct(self,spectrum,method="asls"):
+        """
+        RamanSPy baseline correction
+        Returns: corrected baseline
+        """
+
+        y = np.asarray(spectrum, dtype=np.float64)
+
+        sp = rp.Spectrum(y, spectral_axis=np.arange(len(y)))   # spectral_axis should be wavenumbers after callibration is mplemented
+
+        if method == "asls":
+            processor = rp.preprocessing.baseline.ASLS(lam=5000, p=0.007)
+        elif method == "modpoly":
+            processor = rp.preprocessing.baseline.ModPoly(poly_order=3)
+        else:
+            raise ValueError("Unsupported baseline method")
+
+        corrected_sp = processor.apply(sp)
+
+        corrected = np.asarray(corrected_sp.spectral_data)
+        baseline = y - corrected
+
+        # corrected = np.clip(corrected, 0, None)
+
+        return corrected, baseline

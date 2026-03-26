@@ -8,6 +8,7 @@ from threads import CoolingWorker, WarmUpCloseWorker
 from PyQt5.QtCore import QObject, pyqtSignal
 import traceback
 from acquisition_service import AcquisitionService
+import numpy as np
 
 class RamanCameraController(QObject):
 
@@ -25,8 +26,8 @@ class RamanCameraController(QObject):
         super().__init__()
 
         # self.view = view
-        self.camera = RamanCameraModel()
-        # self.camera = TestCameraModel()
+        # self.camera = RamanCameraModel()
+        self.camera = TestCameraModel()
         self.acquisition_service = AcquisitionService()
         self.spec = TestSpectrometerModel() # delete
 
@@ -171,7 +172,10 @@ class RamanCameraController(QObject):
         combined_frame = self.acquisition_service.combine_frames(shifted_frames,acq_mode,num_frames,result_mode)
 
         roi = self.camera.get_roi()
-        spectrum = self.acquisition_service.convert_to_spectrum(combined_frame, roi)
+        # raw_spectrum = self.acquisition_service.convert_to_spectrum(combined_frame, roi)
+        x = np.arange(1024)
+        raw_spectrum = np.sin(x/50)*1000+5000
+        spectrum, _ = self.acquisition_service.baseline_correct(raw_spectrum)
         # self.view.show_calibration_result(combined_frame, spectrum)
         return combined_frame, spectrum, frames[0]
     
@@ -280,7 +284,8 @@ class RamanCameraController(QObject):
         combined_frame = self.acquisition_service.combine_frames(shifted_frames,acq_mode,num_frames,result_mode)
 
         roi = self.camera.get_roi()
-        spectrum = self.acquisition_service.convert_to_spectrum(combined_frame, roi)
+        raw_spectrum = self.acquisition_service.convert_to_spectrum(combined_frame, roi)
+        spectrum, baseline = self.acquisition_service.baseline_correct(raw_spectrum)
         self.acquisition_service.save_npz(spectrum, metadata=self.user_config,filename=filename)
         self.acquisition_service.save_csv(spectrum, filename=filename)
         # self.view.show_calibration_result(combined_frame, spectrum)
