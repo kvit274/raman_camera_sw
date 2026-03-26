@@ -187,8 +187,6 @@ class MainWindow(QMainWindow):
         self.control_layout.addWidget(self.btn_disconnect_cam)
         self.control_layout.addWidget(self.save_frame_path_button)
         self.control_layout.addWidget(self.save_frame_path_label)
-        # self.control_layout.addWidget(self.filename_input)
-        # self.control_layout.addWidget(self.file_index_input)
         self.control_layout.addLayout(self.save_frame_path_layout)
         self.control_layout.addWidget(self.btn_open_npz)
 
@@ -296,13 +294,6 @@ class MainWindow(QMainWindow):
 
         # ---- SPECTROGRAMS ----
 
-        # self.calibration_plot = pg.PlotWidget()
-        # self.calibration_plot.setLabel('left', 'Intensity')
-        # self.calibration_plot.setLabel('bottom', 'Pixels')
-
-        # cal_vb = self.calibration_plot.getViewBox()
-        # cal_vb.setMouseEnabled(x=False,y=False)
-
         self.calibration_tab = QWidget()
         self.cal_layout = QVBoxLayout(self.calibration_tab)
         self.cal_layout.setContentsMargins(0,0,0,0)
@@ -313,7 +304,7 @@ class MainWindow(QMainWindow):
 
         self.cal_layout.addWidget(self.calibration_tabs)
 
-        self.right_tabs.addTab(self.calibration_tab, "Calibration")
+        self.right_tabs.addTab(self.calibration_tab, "Spectrogram")
 
         self.live_plot = None       # to display live mode spectrogram
         self.live_tab_index = None
@@ -384,9 +375,6 @@ class MainWindow(QMainWindow):
         self.btn_open_npz.clicked.connect(self.open_npz)
         self.preview.roi_changed.connect(self.update_roi_inputs)
 
-        # Live preview updates
-        # self.timer_live = QTimer()
-        # self.timer_live.timeout.connect(self.update_preview)
 
         # Display temperature
         self.timer_temp = QTimer(self)
@@ -474,7 +462,6 @@ class MainWindow(QMainWindow):
             except Exception as e:
                 print(f"Failed loading {key}: {e}")
 
-        # update mode widgets
         if "read_mode" in meta:
             self.read_mode_input.setCurrentText(meta["read_mode"]["mode"])
 
@@ -497,7 +484,13 @@ class MainWindow(QMainWindow):
 
         self.acquisition_mode_stack.setFixedHeight(widget.sizeHint().height())
 
-    def display_msg(self, message:str):
+    def display_msg(self, message:str,success=False):
+
+        if success:
+            self.status.setStyleSheet("color: #00ff00;")
+        else:
+            self.status.setStyleSheet("color: red;")
+
         self.status.showMessage(message, 5000)  # display for 5 seconds
 
     def display_temp(self):
@@ -661,6 +654,8 @@ class MainWindow(QMainWindow):
 
         result = self.controller.apply_cam_settings(shutter, read_mode_params, acquisition_mode_params, trigger_mode, exposure, result_mode, amp, vsspeed, emccd_gain)
 
+        self.display_msg("Settings applied",True)
+
         if result is None:  # testing 
             return
 
@@ -691,9 +686,6 @@ class MainWindow(QMainWindow):
         self.live_worker.finished.connect(self.enable_buttons)
 
         self.live_worker.start()
-    
-    # def start_live_timer(self):
-    #     self.timer_live.start(30)    # 30 is FPS, we might change it
 
     def stop_live(self):
         
@@ -704,13 +696,6 @@ class MainWindow(QMainWindow):
 
         # self.controller.stop_live()
         self.enable_buttons()
-
-    # def stop_live_timer(self):
-    #     self.timer_live.stop()
-
-    # def update_preview(self):
-    #     frame = self.controller.get_live_frame()
-    #     self.display_image(frame)
 
     def display_image(self,frame):
         if frame is None:
@@ -768,15 +753,6 @@ class MainWindow(QMainWindow):
 
         self.calibration_tabs.addTab(plot, f"{title}{self.calibration_tabs.count()+1}")
 
-        # Plot spectrum
-        # self.calibration_plot.clear()
-
-        # pixels = np.arange(len(spectrum))
-
-        # self.calibration_plot.plot(pixels,spectrum,pen="y")
-
-        # self.calibration_plot.enableAutoRange(x=True,y=True)
-
     def close_calibration_tab(self, index):
 
         widget = self.calibration_tabs.widget(index)
@@ -788,14 +764,11 @@ class MainWindow(QMainWindow):
         self.calibration_tabs.removeTab(index)
         widget.deleteLater()
         
-    
-    # use for preview of acquisition
     def acquisition_preview(self):
         frame = self.controller.acquire_single()
         self.display_image(frame)
 
     def start_acquisition(self):
-        # self.controller.start_acquisition()
         if self.check_filename():
             self.disable_acq_buttons()
             name = self.filename_input.text().strip()
@@ -813,7 +786,6 @@ class MainWindow(QMainWindow):
             self.acq_worker.stop()
             self.acq_worker.wait()
 
-        # self.controller.stop_acquisition()
         self.enable_buttons()
         return
 
@@ -850,7 +822,6 @@ class MainWindow(QMainWindow):
         file = QFileDialog.getExistingDirectory(self, "Select dll file")
         if file:
             self.dlls_path = file
-            # self.dlls_path_label.setText(f"DLL file: {file}")
             self.dlls_path_label.setText(os.path.basename(file))
 
     def select_save_frame_path(self):
@@ -962,9 +933,6 @@ class MainWindow(QMainWindow):
         if hasattr(self.controller, "cooling_worker") and self.controller.cooling_worker.isRunning():
             self.controller.stop_cooling()
             self.controller.cooling_worker.wait()
-
-        # stop live timer
-        # self.stop_live_timer()
 
         # reset controller state
         try:
@@ -1117,8 +1085,6 @@ def main():
     window = MainWindow()
     window.move(0,0)
     window.showMaximized()
-    # QTimer.singleShot(0,lambda: self.on_read_mode_changed(self.read_mode_input.currentText()))  # sinlge shot to update ui selections on loading
-    # QTimer.singleShot(0,lambda: self.on_acquisition_mode_changed(self.acquisition_mode_input.currentText()))  # sinlge shot to update ui selections on loading
     sys.exit(app.exec_())
 
 if __name__ == "__main__":

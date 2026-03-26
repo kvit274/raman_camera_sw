@@ -414,8 +414,6 @@ class TestCameraModel:
             if self.temp <= target_temp:
                 print(f"Temperature stabilized, Status: Stabilized")
                 break
-            # if time.time() - t0 > time_out:
-            #     raise RuntimeError("Cooling timeout")
 
             time.sleep(0.1)
         self.busy = False
@@ -577,81 +575,8 @@ class TestCameraModel:
         return True
 
     def validate_roi_settings(self, hstart:int, hend:Optional[int], vstart:int, vend:Optional[int], hbin:int, vbin:int):
-        # if hstart < 0 or hstart >= self.detect_cam_size()[0]:
-        #     raise ValueError("Invalid horizontal start value")
-        
-        # if vstart < 0 or vstart >= self.detect_cam_size()[1]:
-        #     raise ValueError("Invalid vertical start value")
 
-        # if hend is not None:
-        #     if hend <= hstart or hend > self.detect_cam_size()[0]:
-        #         raise ValueError("Invalid horizontal end value")
-        
-        # if vend is not None:
-        #     if vend <= vstart or vend > self.detect_cam_size()[1]:
-        #         raise ValueError("Invalid vertical end value")
-
-        # if hbin < 1 or hbin > self.get_max_binning()[0]:
-        #     raise ValueError("Invalid horizontal binning value")
-
-        # if vbin < 1 or vbin > self.get_max_binning()[1]:
-        #     raise ValueError("Invalid vertical binning value")
-
-        # except ValueError as ve:
-        #     print(f"Error setting ROI: {ve}")
         return
-        
-
-
-    # def aquire_frame(self):
-    #     frames = self.cam.grab(nframes=1)
-
-    #     if isinstance(frames, list):
-    #         frame = frames[0]
-    #     else:
-    #         # For frame_format="array", 'frames' can be a 3D array
-    #         frame = frames[0]
-        
-    #     frame = np.array(frame)
-
-    #     if frame.ndim == 2:
-    #         spectrum = frame.sum(axis=0).astype(np.int64)
-    #     else:
-    #         spectrum = frame.reshape(-1).astype(np.int64)
-
-    #     return frame, spectrum
-
-    # def acquire_single(self):
-    #     self.cam.start_acquisition()
-    #     print(f"Camera acquiring: {self.cam.get_attribute_value('CameraAcquiring')}") # check if the camera is acquiring
-    #     frame = self.cam.wait_for_frame()
-    #     spectrum = frame.sum(axis=0).astype(np.int32)   # turn raw 2D into 1D spectrum by summing the column pixels (more score -> brighter -> higher score)
-
-    #     return frame, spectrum
-    
-    # def acquire_accumulate(self,n):
-    #     self.cam.set_number_accumulations(n)
-    #     self.cam.start_acquisition()
-    #     frame = self.cam.wait_for_frame()
-    #     spectrum = frame.sum(axis=0).astype(np.int32)
-    #     return frame, spectrum
-    
-    # def acquire_rta(self):
-    #     self.cam.start_acquisition()    
-    #     try:
-    #         while True:
-    #             frame = self.cam.wait_for_frame(timeout=5.0)
-    #             spectrum = frame.sum(axis=0).astype(np.int32)
-    #     except KeyboardInterrupt:
-    #         pass
-    #     finally:
-    #         self.cam.abort_acquisition()
-    #         return frame, spectrum
-        
-    # def acquire_kinetic(self):
-    #     # To do
-    #     pass
-
 
     @requires_cam_connected
     def start_acquisition(self):

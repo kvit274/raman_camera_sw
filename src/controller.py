@@ -13,6 +13,7 @@ class RamanCameraController(QObject):
 
     error_signal = pyqtSignal(str)
     camera_lost_signal = pyqtSignal()
+    send_msg = pyqtSignal(str)
 
     shutter_state_changed = pyqtSignal(str)
     amp_modes_loaded = pyqtSignal(object)
@@ -24,8 +25,8 @@ class RamanCameraController(QObject):
         super().__init__()
 
         # self.view = view
-        # self.camera = RamanCameraModel()
-        self.camera = TestCameraModel()
+        self.camera = RamanCameraModel()
+        # self.camera = TestCameraModel()
         self.acquisition_service = AcquisitionService()
         self.spec = TestSpectrometerModel() # delete
 
@@ -64,35 +65,6 @@ class RamanCameraController(QObject):
 
         return wrapper
 
-
-    # ==== View methods =====
-
-    # might join those below later
-    # @handle_errors
-    # def display_used_params(self):
-    #     roi = self.camera.get_roi()
-    #     roi_dict = {
-    #         'hstart': str(roi[0]),
-    #         'hend': "" if roi[1] is None else str(roi[1]),
-    #         'vstart': str(roi[2]),
-    #         'vend': "" if roi[3] is None else str(roi[3]),
-    #         'hbin': str(roi[4]),
-    #         'vbin': str(roi[5])
-    #     }
-
-    #     shutter = self.camera.get_shutter_parameters()
-    #     shutter_dict = {
-    #         'mode': str(shutter[0]),
-    #         'ttl_mode': str(shutter[1]),
-    #         'open_time': str(shutter[2]),
-    #         'close_time': str(shutter[3])
-    #     }
-
-    #     read_mode = self.camera.get_read_mode()
-    #     # read_mode_params = self.get_read_mode_params(read_mode)
-    #     self.view.display_used_params(roi=roi_dict, shutter=shutter_dict, read_mode=read_mode)
-    #     return
-
     def display_msg(self,msg:str):
         self.message_signal.emit(msg)
         return
@@ -116,17 +88,13 @@ class RamanCameraController(QObject):
     @handle_errors
     def connect_cam(self):
         self.camera.connect_cam()
-        # self.camera.get_cam_params()     # save cam defaults for later
-        # self.camera.set_default_settings() !!
         self.load_amp_modes()
         self.load_vsspeeds()
-        # self.display_used_params()
 
         self.user_config = self.cam_settings_to_user_config()
 
         self.display_shutter_state()
         self.cool_cam(target_temp=-85)
-        # self.camera.save_acquisition_settings()     # DOUBTFUL
         return
 
     def is_camera_alive(self):
@@ -152,7 +120,6 @@ class RamanCameraController(QObject):
     @handle_errors
     def cool_cam(self,target_temp):
         
-        # if already cooling
         if self.cooling_worker and self.cooling_worker.isRunning():
             self.camera.cancel_cooling = True
             self.cooling_worker.wait()
@@ -186,12 +153,6 @@ class RamanCameraController(QObject):
 
     @handle_errors
     def start_live(self):
-        # self.camera.stop_acquisition()   # just in case, might not be needed
-        # self.camera.start_live()
-        # self.view.start_live_timer()
-        # self.camera.restore_acquisition_settings()      # not sure
-        # self.restore_settings()
-        # self.restore_user_config()
         frames = self.camera.start_live()
         result_mode = self.user_config.get("result_mode","sum")
 
@@ -217,9 +178,6 @@ class RamanCameraController(QObject):
     @handle_errors
     def stop_live(self):
         self.camera.stop_live()
-        # self.view.stop_live_timer()
-        # self.restore_user_config()
-        # self.restore_settings()
         return
 
     @handle_errors
@@ -296,8 +254,6 @@ class RamanCameraController(QObject):
 
     @handle_errors
     def single_preview(self):
-        # self.camera.restore_acquisition_settings()      # not sure
-        # self.restore_settings()
         self.restore_user_config()
         frame = self.camera.single_preview()
         return frame
@@ -305,8 +261,6 @@ class RamanCameraController(QObject):
 
     @handle_errors
     def start_acquisition(self, filename=None):
-        # self.camera.restore_acquisition_settings()      # not sure
-        # self.restore_settings()
         self.restore_user_config()
         frames = self.camera.start_acquisition()
         self.acquisition_service.save_csv_frame(frames[0],filename)        # temp DELETE THIS testing only
@@ -346,11 +300,11 @@ class RamanCameraController(QObject):
 
     @handle_errors
     def apply_cam_settings(self,shutter,read_mode,acquisition_mode,trigger_mode,exposure,result_mode,amp,vsspeed,emccd_gain):
+        # create cameraconfig as a dataclass instead of user_config
         if acquisition_mode["mode"] == "cont":
             raise RuntimeError("Cannot apply settings while in continuous acquisition mode. Please stop live mode or continuous acquisition before applying new settings.")
         self.stop_live()
         self.camera.stop_acquisition()
-        # self.set_roi(**roi)
         self.set_acquisition_mode(acquisition_mode)
         self.set_read_mode(read_mode)
         self.set_exposure(exposure)
@@ -359,7 +313,7 @@ class RamanCameraController(QObject):
         self.set_amp_mode(amp)
         self.set_vsspeed(vsspeed)
         self.set_EMCCD_gain(**emccd_gain)
-        # self.camera.save_acquisition_settings()     # not sure
+
         self.user_config = {
             "shutter": shutter,
             "read_mode": read_mode,
@@ -371,8 +325,7 @@ class RamanCameraController(QObject):
             "vsspeed": vsspeed,
             "emccd_gain": emccd_gain
         }
-        # self.display_used_params()
-        # print(f"Printing all set settings:\n{self.camera.cam.get_settings(include=-10)}\n")
+
         print(f"User config: {self.user_config}")
         return
 

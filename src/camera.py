@@ -46,14 +46,6 @@ class RamanCameraModel:
             return func(self, *args, **kwargs)
         return wrapper
 
-    # def requires_stopped_acquisition(func):
-    #     @wraps(func)
-    #     def wrapper(self, *args, **kwargs):
-    #         if self.cam.acquisition_in_progress():
-    #             self.cam.stop_acquisition()
-    #         return func(self, *args, **kwargs)
-    #     return wrapper
-
     # ===== CAMERA SETTINGS =====
 
     def connect_cam(self):
@@ -505,38 +497,15 @@ class RamanCameraModel:
         if not self.is_live:    # might delete this later
             self.is_live = True  
             print("Live mode started")
-    
-        # self.save_acquisition_settings()
-        # self.cam.set_acquisition_mode("single",setup_params=True)    # not sure
-        # h_limits, v_limits = self.get_roi_limits(hbin=1,vbin=1)   # get full ROI
-        # print(f"ROI limits for live preview: h_limits={h_limits}, v_limits={v_limits}")
-        # hmin,hmax,_,_,_ = h_limits
-        # vmin,vmax,_,_,_ = v_limits
-        # self.setup_image_mode(hmin,hmax,vmin,vmax,1,1)
-        # self.cam.set_exposure(0.01)
-        
 
         self.cam.stop_acquisition()      # stop acquisition if it is already in progress, just in case
         acquisition_mode = self.cam.get_acquisition_mode()
         frames = None
 
         try:
-            if acquisition_mode == "single":
-                self.cam.set_acquisition_mode("single",setup_params=True)    # testing this
-                frames = [self.cam.snap(timeout=5,return_info=False)]
-            elif acquisition_mode == "accum":
-                self.cam.set_acquisition_mode("accum",setup_params=True)    # testing this
-                frames = [self.cam.snap(timeout=5,return_info=False)]       # since 1 frame produced
-            elif acquisition_mode == "kinetic":
-                self.cam.set_acquisition_mode("kinetic",setup_params=True)    # testing this
-                num_frames = self.cam.get_kinetic_mode_parameters()[0]
-                frames = self.cam.grab(nframes=num_frames, frame_timeout=5.0, missing_frame='skip', return_info=False, buff_size=None)
-            elif acquisition_mode == "fast_kinetic":
-                self.cam.set_acquisition_mode("fast_kinetic",setup_params=True)    # testing this
-                num_frames = self.cam.get_fast_kinetic_mode_parameters()[0]
-                frames = self.cam.grab(nframes=num_frames, frame_timeout=5.0, missing_frame='skip', return_info=False, buff_size=None)
-            elif acquisition_mode == "cont":
-                raise RuntimeError("Continuous mode cannot be used")        # ???????
+
+            self.cam.set_acquisition_mode("single",setup_params=True)    # testing this
+            frames = [self.cam.snap(timeout=5,return_info=False)]
 
         finally:
             self.cam.stop_acquisition()      # stop acquisition after grabbing frames
