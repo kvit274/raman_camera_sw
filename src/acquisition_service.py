@@ -65,14 +65,16 @@ class AcquisitionService:
         hstart, hend, vstart, vend, hbin, vbin = roi
 
         if frame.ndim == 2:
-            spectrum = frame.mean(axis=0)
+            local_spectrum = frame.sum(axis=0)
 
         else:
-            spectrum = frame.copy()
+            local_spectrum = frame.copy()
 
-        spectrum = spectrum[:1024]
-        spectrum[:hstart] = 0
-        spectrum[hend:] = 0
+        spectrum = np.zeros(1024, dtype=local_spectrum.dtype)
+        spectrum[hstart:hend] = local_spectrum[:hend-hstart]
+        # spectrum = spectrum[:1024]
+        # spectrum[:hstart] = 0
+        # spectrum[hend:] = 0
 
         return spectrum
 

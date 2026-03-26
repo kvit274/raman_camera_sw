@@ -712,8 +712,10 @@ class MainWindow(QMainWindow):
     def display_image(self,frame):
         if frame is None:
             return
+
         frame8, h, w = self.controller.adjust_frame(frame)
-        self.preview.set_frame((frame8,h,w))
+        roi = self.controller.get_roi()
+        self.preview.set_frame((frame8,h,w),roi)
 
     def handle_acq_result(self, spectrum):
 

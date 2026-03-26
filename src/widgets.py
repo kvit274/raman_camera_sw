@@ -59,6 +59,7 @@ class PreviewWidget(QWidget):
         self.frame = None
         self.show_roi = False
         self.show_grid = False
+        self.frame_roi = None
 
         # dragging state
         self.drag_mode = None
@@ -69,8 +70,9 @@ class PreviewWidget(QWidget):
         self.roi = roi
         self.update()
 
-    def set_frame(self,frame):
+    def set_frame(self,frame, roi=None):
         self.frame = frame
+        self.frame_roi = roi
         self.update()
 
     def _detect_handle(self,x,y):
@@ -132,8 +134,8 @@ class PreviewWidget(QWidget):
             new_hstart = hstart + dx
             new_vstart = vstart + dy
 
-            new_hstart = max(0,min(1023-width,new_hstart))
-            new_vstart = max(0,min(255-height,new_vstart))
+            new_hstart = max(0,min(1024-width,new_hstart))
+            new_vstart = max(0,min(256-height,new_vstart))
 
             hstart = new_hstart
             hend = hstart + width
@@ -153,10 +155,10 @@ class PreviewWidget(QWidget):
             vend += dy
 
         # clamp to detector
-        hstart = max(0,min(1023,hstart))
-        hend = max(1,min(1023,hend))
-        vstart = max(0,min(255,vstart))
-        vend = max(1,min(255,vend))
+        hstart = max(0,min(1024,hstart))
+        hend = max(1,min(1024,hend))
+        vstart = max(0,min(256,vstart))
+        vend = max(1,min(256,vend))
 
         if hend <= hstart+1:
             return
@@ -180,11 +182,15 @@ class PreviewWidget(QWidget):
         painter = QPainter(self)
         painter.fillRect(self.rect(),Qt.black)
 
-        # draw frame
         if self.frame:
             frame8,h,w = self.frame
             qimg = QImage(frame8.tobytes(),w,h,w,QImage.Format_Grayscale8)
-            painter.drawImage(0,0,qimg)
+
+            if self.frame_roi:
+                hstart,hend,vstart,vend,_,_ = self.frame_roi
+                painter.drawImage(hstart,vstart,qimg)
+            else:
+                painter.drawImage(0,0,qimg)
 
         if self.overlay_enabled and self.roi:
 
