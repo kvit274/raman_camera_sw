@@ -54,6 +54,8 @@ class MainWindow(QMainWindow):
         # Save path directories
         self.save_frame_path_button = QPushButton("Save data to:")
         self.save_frame_path_label = QLabel("Data saved to: ./data")
+        self.save_frame_path_label.setWordWrap(True)
+
 
         self.filename_label = QLabel("Filename:")
         self.filename_input = QLineEdit()
@@ -142,6 +144,8 @@ class MainWindow(QMainWindow):
 
         # Amp
         self.amp_mode_input = QNoScrollComboBox()
+        self.amp_mode_input.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLengthWithIcon)
+        self.amp_mode_input.setMinimumContentsLength(1)
 
         # Vsspeed
         self.vsspeed_input  = QNoScrollComboBox()
@@ -168,11 +172,15 @@ class MainWindow(QMainWindow):
         self.left_layout.setSpacing(10)
         self.left_layout.setContentsMargins(10, 10, 10, 10)
 
-        self.left_container.setStyleSheet("""
-            QWidget {
-                background-color: #2b2b2b;
-            }
-        """)
+        # self.left_container.setStyleSheet("""
+        #     QWidget {
+        #         background-color: #2b2b2b;
+        #     }
+        # """)
+        self.left_container.setObjectName("leftPanel")
+
+        self.left_container.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+
 
         # -------- Camera Control (NOT collapsible) --------
         self.control_layout = QVBoxLayout()
@@ -266,6 +274,7 @@ class MainWindow(QMainWindow):
         self.scroll.setWidgetResizable(True)
         self.scroll.setWidget(self.left_container)
         self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.scroll.setSizePolicy(QSizePolicy.Preferred,QSizePolicy.Expanding)
 
         # ============================================================
         # ---- RIGHT SIDE TABS ----
@@ -686,6 +695,7 @@ class MainWindow(QMainWindow):
         self.live_worker.finished.connect(self.enable_buttons)
 
         self.live_worker.start()
+        self.display_msg("Live mode started.", success=True)
 
     def stop_live(self):
         
@@ -696,6 +706,8 @@ class MainWindow(QMainWindow):
 
         # self.controller.stop_live()
         self.enable_buttons()
+
+        self.display_msg("Live mode stopped.", success=True)
 
     def display_image(self,frame):
         if frame is None:
@@ -710,6 +722,8 @@ class MainWindow(QMainWindow):
         if spectrum is None:
             self.display_msg("Acquisition failed or camera lost during acquisition.")
             return
+        
+        self.display_msg("Acquisition finished successfully.",success=True)
 
         # increment index
         try:
@@ -976,6 +990,8 @@ def _safe_exit_close():
             ctrl.disconnect_spec()
         except:
             pass
+        
+        window.display_msg("Camera disconnected")
 
     except Exception as e:
         print("[EXIT] Error in atexit shutdown:", e)
@@ -992,6 +1008,11 @@ sys.excepthook = excepthook
 def main():
     app = QApplication(sys.argv)
     app.setStyleSheet("""
+
+        QWidget#leftPanel {
+            background-color: #2b2b2b;
+        }
+
         QWidget {
             background-color: #3c3f41;
             color: white;
@@ -1066,13 +1087,17 @@ def main():
         }
 
         QPushButton {
-            background-color: #3c3f41;
+            background-color: #4a5258;
             border: 1px solid #555555;
             padding: 5px;
         }
 
+        QPushButton:pressed {
+            background-color: #3f464c;
+        }
+
         QPushButton:hover {
-            background-color: #4b4f52;
+            background-color: #555e66;
         }
 
         QPushButton:disabled {

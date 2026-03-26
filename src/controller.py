@@ -172,10 +172,10 @@ class RamanCameraController(QObject):
         combined_frame = self.acquisition_service.combine_frames(shifted_frames,acq_mode,num_frames,result_mode)
 
         roi = self.camera.get_roi()
-        # raw_spectrum = self.acquisition_service.convert_to_spectrum(combined_frame, roi)
-        x = np.arange(1024)
-        raw_spectrum = np.sin(x/50)*1000+5000
-        spectrum, _ = self.acquisition_service.baseline_correct(raw_spectrum)
+        spectrum = self.acquisition_service.convert_to_spectrum(combined_frame, roi)
+        # x = np.arange(1024)
+        # raw_spectrum = np.sin(x/50)*1000+5000
+        # spectrum, _ = self.acquisition_service.baseline_correct(raw_spectrum)
         # self.view.show_calibration_result(combined_frame, spectrum)
         return combined_frame, spectrum, frames[0]
     
@@ -284,8 +284,8 @@ class RamanCameraController(QObject):
         combined_frame = self.acquisition_service.combine_frames(shifted_frames,acq_mode,num_frames,result_mode)
 
         roi = self.camera.get_roi()
-        raw_spectrum = self.acquisition_service.convert_to_spectrum(combined_frame, roi)
-        spectrum, baseline = self.acquisition_service.baseline_correct(raw_spectrum)
+        spectrum = self.acquisition_service.convert_to_spectrum(combined_frame, roi)
+        # spectrum, baseline = self.acquisition_service.baseline_correct(raw_spectrum)
         self.acquisition_service.save_npz(spectrum, metadata=self.user_config,filename=filename)
         self.acquisition_service.save_csv(spectrum, filename=filename)
         # self.view.show_calibration_result(combined_frame, spectrum)
