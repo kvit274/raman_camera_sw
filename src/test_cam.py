@@ -888,7 +888,7 @@ class TestCameraModel:
         # simulate camera output AFTER hardware binning
         frame = self._apply_binning(frame, hbin=hbin, vbin=vbin)
 
-        out_h, out_w = frame.shape
+        # out_h, out_w = frame.shape
         # print(f"returned frame shape after binning: ({out_h}, {out_w})")
 
         return [frame]

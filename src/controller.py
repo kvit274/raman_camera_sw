@@ -26,8 +26,8 @@ class RamanCameraController(QObject):
         super().__init__()
 
         # self.view = view
-        # self.camera = RamanCameraModel()
-        self.camera = TestCameraModel()
+        self.camera = RamanCameraModel()
+        # self.camera = TestCameraModel()
         self.acquisition_service = AcquisitionService()
         self.spec = TestSpectrometerModel() # delete
 
@@ -289,10 +289,10 @@ class RamanCameraController(QObject):
 
         roi = self.camera.get_roi()
         spectrum_data = self.acquisition_service.convert_to_spectrum(combined_frame, roi)
-        pixel_intensity_data = self.acquisition_service.build_pixel_intensity_data(combined_frame, roi)
+        # pixel_intensity_data = self.acquisition_service.build_pixel_intensity_data(combined_frame, roi)
         # spectrum, baseline = self.acquisition_service.baseline_correct(raw_spectrum)
         self.acquisition_service.save_npz(spectrum_data, metadata=self.user_config,filename=filename)
-        self.acquisition_service.save_csv(pixel_intensity_data, filename=filename)
+        self.acquisition_service.save_csv(combined_frame, roi, filename=filename)
         # self.view.show_calibration_result(combined_frame, spectrum)
         return combined_frame, spectrum_data, frames[0]
 

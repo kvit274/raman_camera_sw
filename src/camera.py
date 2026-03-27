@@ -904,22 +904,22 @@ class RamanCameraModel:
 
         return combined
     
-    def convert_to_spectrum(self,frame):
-        # should consider binning>1 how to display?
+    # def convert_to_spectrum(self,frame):
+    #     # should consider binning>1 how to display?
 
-        hstart, hend, vstart, vend, hbin, vbin = self.get_roi()
+    #     hstart, hend, vstart, vend, hbin, vbin = self.get_roi()
 
-        if frame.ndim == 2:
-            spectrum = frame.sum(axis=0)
+    #     if frame.ndim == 2:
+    #         spectrum = frame.sum(axis=0)
 
-        else:
-            spectrum = frame.copy()
+    #     else:
+    #         spectrum = frame.copy()
 
-        spectrum = spectrum[:1024]
-        spectrum[:hstart] = 0
-        spectrum[hend:] = 0
+    #     spectrum = spectrum[:1024]
+    #     spectrum[:hstart] = 0
+    #     spectrum[hend:] = 0
 
-        return spectrum
+    #     return spectrum
 
     def bit_shift(self, frames):
         shifted_frames = []
