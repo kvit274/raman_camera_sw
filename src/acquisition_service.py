@@ -238,3 +238,33 @@ class AcquisitionService:
         # corrected = np.clip(corrected, 0, None)
 
         return corrected, baseline
+    
+    def expand_frame_for_display(self, frame, roi, read_mode):
+        frame = np.asarray(frame)
+        hstart, hend, vstart, vend, hbin, vbin = roi
+
+        roi_w = hend - hstart
+        roi_h = vend - vstart
+
+        # FVB: always expand vertically inside ROI/full selected height
+        if read_mode == "fvb":
+            if frame.ndim == 1:
+                frame = frame.reshape(1, -1)
+            elif frame.ndim == 2 and frame.shape[1] == 1 and frame.shape[0] > 1:
+                frame = frame.T
+
+            if frame.ndim == 2 and frame.shape[0] == 1:
+                return np.repeat(frame, roi_h, axis=0)
+
+            return frame
+
+        # Image mode: do nothing if no binning
+        if read_mode == "image" and frame.ndim == 2:
+            if hbin == 1 and vbin == 1:
+                return frame
+
+            expanded = np.repeat(frame, vbin, axis=0)
+            expanded = np.repeat(expanded, hbin, axis=1)
+            return expanded[:roi_h, :roi_w]
+
+        return frame

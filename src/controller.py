@@ -160,10 +160,10 @@ class RamanCameraController(QObject):
 
         if read_mode == "fvb":
             processed_frames = frames
-            display_frame = self.acquisition_service.expand_fvb_frame(frames[0])
+            # display_frame = self.acquisition_service.expand_fvb_frame(frames[0])
         else:
             processed_frames = self.acquisition_service.bit_shift(frames)
-            display_frame = frames[0]
+            # display_frame = frames[0]
 
         num_frames = 1
         acq_mode = "single"
@@ -181,6 +181,7 @@ class RamanCameraController(QObject):
 
         roi = self.camera.get_roi()
         spectrum_data = self.acquisition_service.convert_to_spectrum(combined_frame, roi)
+        display_frame = self.expand_frame_for_display(frames[0], roi, read_mode)
 
         return combined_frame, spectrum_data, display_frame
     
