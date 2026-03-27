@@ -173,6 +173,16 @@ class RamanCameraModel:
         """
         self.acquisition_settings = self.cam.get_settings(include=-10)
         return
+    
+    @requires_cam_connected
+    def calc_frame_timeout(self, extra=5.0, min_timeout=5.0):
+        # FIX THIS
+        exp = float(self.get_exposure())
+        return max(min_timeout, exp + extra)
+    
+    @requires_cam_connected
+    def get_exposure(self):
+        return self.cam.get_exposure()
 
     
     # ===== ROI MANAGEMENT =====
@@ -501,11 +511,11 @@ class RamanCameraModel:
         self.cam.stop_acquisition()      # stop acquisition if it is already in progress, just in case
         acquisition_mode = self.cam.get_acquisition_mode()
         frames = None
-
+        timeout = self.calc_frame_timeout()
         try:
 
             self.cam.set_acquisition_mode("single",setup_params=True)    # testing this
-            frames = [self.cam.snap(timeout=5,return_info=False)]
+            frames = [self.cam.snap(timeout=timeout,return_info=False)]
 
         finally:
             self.cam.stop_acquisition()      # stop acquisition after grabbing frames
@@ -554,9 +564,10 @@ class RamanCameraModel:
         """
         Perform single snap to preview the result
         """
+        timeout = self.calc_frame_timeout()
         self.cam.stop_acquisition()      # stop acquisition if it is already in progress
         try:
-            frame = self.cam.snap(timeout=5,return_info=False)
+            frame = self.cam.snap(timeout=timeout,return_info=False)
         finally:
             self.cam.stop_acquisition()      # stop acquisition after grabbing frames
             self.cam.clear_acquisition()    # clear the buffer
@@ -573,6 +584,7 @@ class RamanCameraModel:
 
 
         """
+        timeout = self.calc_frame_timeout()
         if self.is_live:
             self.stop_live()
 
@@ -587,18 +599,18 @@ class RamanCameraModel:
             if acquisition_mode == "single":
                 self.cam.set_acquisition_mode("single",setup_params=True)    # testing this
                 print(f"Acquisition parameters after enforcing: {self.cam.get_acquisition_parameters()}")
-                frames = [self.cam.snap(timeout=5,return_info=False)]
+                frames = [self.cam.snap(timeout=timeout,return_info=False)]
             elif acquisition_mode == "accum":
                 self.cam.set_acquisition_mode("accum",setup_params=True)    # testing this
-                frames = [self.cam.snap(timeout=5,return_info=False)]       # since 1 frame produced
+                frames = [self.cam.snap(timeout=timeout,return_info=False)]       # since 1 frame produced
             elif acquisition_mode == "kinetic":
                 self.cam.set_acquisition_mode("kinetic",setup_params=True)    # testing this
                 num_frames = self.cam.get_kinetic_mode_parameters()[0]
-                frames = self.cam.grab(nframes=num_frames, frame_timeout=5.0, missing_frame='skip', return_info=False, buff_size=None)
+                frames = self.cam.grab(nframes=num_frames, frame_timeout=timeout, missing_frame='skip', return_info=False, buff_size=None)
             elif acquisition_mode == "fast_kinetic":
                 self.cam.set_acquisition_mode("fast_kinetic",setup_params=True)    # testing this
                 num_frames = self.cam.get_fast_kinetic_mode_parameters()[0]
-                frames = self.cam.grab(nframes=num_frames, frame_timeout=5.0, missing_frame='skip', return_info=False, buff_size=None)
+                frames = self.cam.grab(nframes=num_frames, frame_timeout=timeout, missing_frame='skip', return_info=False, buff_size=None)
             elif acquisition_mode == "cont":
                 raise RuntimeError("Continuous mode cannot be used for save acquisition")
 

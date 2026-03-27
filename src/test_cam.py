@@ -138,7 +138,16 @@ class TestCameraModel:
         width = (hend-hstart)//hbin
         height = (vend-vstart)//vbin
         return (width,height)
+    
+    @requires_cam_connected
+    def calc_frame_timeout(self, extra=5.0, min_timeout=5.0):
+        # FIX THIS
+        exp = float(self.get_exposure())
+        return max(min_timeout, exp + extra)
 
+    @requires_cam_connected
+    def get_exposure(self):
+        return self.exposure
     
     # ==== ROI and Binning =====
 
