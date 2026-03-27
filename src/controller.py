@@ -260,7 +260,9 @@ class RamanCameraController(QObject):
     def single_preview(self):
         self.restore_user_config()
         frame = self.camera.single_preview()
-        return frame
+        roi = self.camera.get_roi()
+        spectrum_data = self.acquisition_service.convert_to_spectrum(frame, roi)
+        return frame, spectrum_data
         # FINISH THIS, display frame
 
     @handle_errors
@@ -270,7 +272,8 @@ class RamanCameraController(QObject):
         self.acquisition_service.save_csv_frame(frames[0],filename)        # temp DELETE THIS testing only
         result_mode = self.user_config.get("result_mode","sum")
 
-        self.acquisition_service.save_frames(frames,filename="before_shifting.npz")  # save raw image
+        before_shift_filename = f'{filename.strip(".npz")}_before_shifting.npz'
+        self.acquisition_service.save_frames(frames,before_shift_filename)  # save raw image
         shifted_frames = self.acquisition_service.bit_shift(frames)
 
         if frames:
@@ -286,9 +289,10 @@ class RamanCameraController(QObject):
 
         roi = self.camera.get_roi()
         spectrum_data = self.acquisition_service.convert_to_spectrum(combined_frame, roi)
+        pixel_intensity_data = self.acquisition_service.build_pixel_intensity_data(combined_frame, roi)
         # spectrum, baseline = self.acquisition_service.baseline_correct(raw_spectrum)
         self.acquisition_service.save_npz(spectrum_data, metadata=self.user_config,filename=filename)
-        self.acquisition_service.save_csv(spectrum_data, filename=filename)
+        self.acquisition_service.save_csv(pixel_intensity_data, filename=filename)
         # self.view.show_calibration_result(combined_frame, spectrum)
         return combined_frame, spectrum_data, frames[0]
 

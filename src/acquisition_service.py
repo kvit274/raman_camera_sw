@@ -65,7 +65,7 @@ class AcquisitionService:
         hstart, hend, vstart, vend, hbin, vbin = roi
 
         if frame.ndim == 2:
-            y = frame.sum(axis=0)
+            y = frame.mean(axis=0)
 
         else:
             y = frame.copy()
@@ -83,7 +83,27 @@ class AcquisitionService:
         # spectrum[:hstart] = 0
         # spectrum[hend:] = 0
 
-        return spectrum
+        # return spectrum
+    
+    def build_pixel_intensity_data(self, combined_frame, roi):
+        hstart, hend, vstart, vend, hbin, vbin = roi
+
+        x_detector = np.arange(hstart, hend, hbin, dtype=float)
+
+        if combined_frame.ndim == 1:
+            intensities = combined_frame.copy()
+        else:
+            # shape: (num_pixels, num_rows)
+            # intensities[i] = all row intensities for pixel x_detector[i]
+            intensities = combined_frame.T.copy()
+
+        if len(x_detector) != len(intensities):
+            raise ValueError(
+                f"pixel/intensity length mismatch: len(pixel)={len(x_detector)}, "
+                f"len(intensities)={len(intensities)}"
+            )
+
+        return x_detector, intensities
 
     def bit_shift(self, frames):
         shifted_frames = []
@@ -107,6 +127,7 @@ class AcquisitionService:
         h, w = frame8.shape
         return (frame8,h,w)
 
+
     def save_npz(self,spectrum_data, metadata=None,filename=None):
         """
         Save spectrogram + metadata to NPZ format
@@ -126,28 +147,38 @@ class AcquisitionService:
         print(f"[SAVE] Spectrogram saved to {spe_path}")
         return
 
-    def save_csv(self, spectrum_data, filename=None):
+    def save_csv(self, combined_frame, roi, filename=None):
         """
-        Save spectrum to CSV format
+        Save detector pixel + all corresponding intensities from combined frame.
+        Uses build_pixel_intensity_data().
         """
-        if spectrum_data is None:
-            raise RuntimeError("No spectrum to save")
+        if combined_frame is None:
+            raise RuntimeError("No frame to save")
 
-        x,y = spectrum_data
+        pixel, intensities = self.build_pixel_intensity_data(combined_frame, roi)
 
-        # pixels = np.arange(len(spectrum))
         if filename is None:
             filename = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
         csv_path = self.save_path / filename.replace(".npz", ".csv")
 
         with open(csv_path, "w") as f:
-            f.write("pixel,intensity,wavelength,wavenumber,processed\n")
+            # 1D case
+            if intensities.ndim == 1:
+                f.write("pixel,intensity\n")
+                for p, i in zip(pixel, intensities):
+                    f.write(f"{p},{i}\n")
 
-            for p,i in zip(x, y):
-                f.write(f"{p},{i},,,\n")
+            # 2D case
+            else:
+                num_rows = intensities.shape[1]
+                header = ["pixel"] + [f"intensity_row_{r}" for r in range(num_rows)]
+                f.write(",".join(header) + "\n")
+
+                for p, row_vals in zip(pixel, intensities):
+                    values_str = ",".join(str(v) for v in row_vals)
+                    f.write(f"{p},{values_str}\n")
 
         print(f"[SAVE] CSV saved to {csv_path}")
-        return
 
     def save_frames(self,frames,filename=None):     # should handle saving mulitiple files without overwritin files
         """

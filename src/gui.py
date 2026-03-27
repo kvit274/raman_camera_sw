@@ -675,9 +675,11 @@ class MainWindow(QMainWindow):
             return
 
     def show_preview(self):
-        frame = self.controller.single_preview()
-        # if frame:
+        frame, spectrum_data = self.controller.single_preview()
+        
         self.display_image(frame)
+        self.show_calibration_result(spectrum_data,title="Preview")
+
 
     def update_roi_inputs(self,roi):
 
