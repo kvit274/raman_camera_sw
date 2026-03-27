@@ -162,7 +162,8 @@ class RamanCameraController(QObject):
             processed_frames = frames
             # display_frame = self.acquisition_service.expand_fvb_frame(frames[0])
         else:
-            processed_frames = self.acquisition_service.bit_shift(frames)
+            processed_frames = frames
+            # processed_frames = self.acquisition_service.bit_shift(frames)
             # display_frame = frames[0]
 
         num_frames = 1
@@ -280,7 +281,8 @@ class RamanCameraController(QObject):
 
         before_shift_filename = f'{filename.strip(".npz")}_before_shifting.npz'
         self.acquisition_service.save_frames(frames,before_shift_filename)  # save raw image
-        shifted_frames = self.acquisition_service.bit_shift(frames)
+        # shifted_frames = self.acquisition_service.bit_shift(frames)
+        shifted_frames = frames
 
         if frames:
             self.acquisition_service.save_frames(frames,filename=filename)  # save raw image
