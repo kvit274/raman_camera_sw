@@ -88,7 +88,7 @@ class AcquisitionService:
     def build_pixel_intensity_data(self, combined_frame, roi):
         hstart, hend, vstart, vend, hbin, vbin = roi
 
-        pixel = np.arange(hstart, hend, hbin, dtype=int)
+        pixel = np.arange(hstart, hend, hbin, dtype=int) + 1
 
         frame = np.asarray(combined_frame)
 

@@ -427,7 +427,7 @@ class RamanCameraModel:
             except:
                 break
 
-            if temp <= target_temp:      # GET RID OF 20!!
+            if temp <= target_temp+20:      # GET RID OF 20!!
                 print(f"Temperature stabilized, Status: {self.cam.get_temperature_status()}")
                 break
 
@@ -736,10 +736,10 @@ class RamanCameraModel:
         vmin,vmax,vpstep,vsstep,vmaxbin = v_limits
         print(f"horizontal limits: hmin={hmin}, hmax={hmax}, hpstep={hpstep}, hsstep={hsstep}, hmaxbin={hmaxbin}")
         print(f"vertical limits: vmin={vmin}, vmax={vmax}, vpstep={vpstep}, vsstep={vsstep}, vmaxbin={vmaxbin}")
-        if hbin > hmaxbin:      # what?
-            hbin = hmaxbin
-        if vbin > vmaxbin:
-            vbin = vmaxbin
+        # if hbin > hmaxbin:      # what?
+        #     hbin = hmaxbin
+        # if vbin > vmaxbin:
+        #     vbin = vmaxbin
 
         if hstart is None or hstart < 0:
             hstart = 0
@@ -753,13 +753,13 @@ class RamanCameraModel:
         if hend <= hstart or vend <= vstart:
             raise ValueError("ROI end positions must be greater than start positions.")
         
-        if hstart % hpstep != 0 or (hend - hstart) % hsstep != 0:
-            raise ValueError(f"Horizontal ROI positions must align with steps: hstart step {hpstep}, width step {hsstep}.")
-        if vstart % vpstep != 0 or (vend - vstart) % vsstep != 0:
-            raise ValueError(f"Vertical ROI positions must align with steps: vstart step {vpstep}, height step {vsstep}.")
+        # if hstart % hpstep != 0 or (hend - hstart) % hsstep != 0:
+        #     raise ValueError(f"Horizontal ROI positions must align with steps: hstart step {hpstep}, width step {hsstep}.")
+        # if vstart % vpstep != 0 or (vend - vstart) % vsstep != 0:
+        #     raise ValueError(f"Vertical ROI positions must align with steps: vstart step {vpstep}, height step {vsstep}.")
         
-        if (hend - hstart) % hbin != 0 or (vend - vstart) % vbin != 0:
-            raise ValueError("ROI width and height must be divisible by binning factors.")
+        if (hend - hstart+1) % hbin != 0 or (vend - vstart+1) % vbin != 0:
+            raise ValueError(f"ROI width and height must be divisible by binning factors.{(hend - hstart+1) % hbin}")
         return hstart, hend, vstart, vend, hbin, vbin
 
 
