@@ -129,6 +129,17 @@ class AcquisitionService:
             frame8 = (frame / frame.max() * 255).astype(np.uint8)   # 8bit grayscale
         h, w = frame8.shape
         return (frame8,h,w)
+    
+    def expand_fvb_frame(self, frame):
+        frame = np.asarray(frame)
+
+        if frame.ndim == 1:
+            frame = frame[np.newaxis, :]
+
+        if frame.ndim == 2 and frame.shape[0] == 1:
+            return np.repeat(frame, 256, axis=0)
+
+        return frame
 
 
     def save_npz(self,spectrum_data, metadata=None,filename=None):

@@ -155,29 +155,34 @@ class RamanCameraController(QObject):
     @handle_errors
     def start_live(self):
         frames = self.camera.start_live()
-        result_mode = self.user_config.get("result_mode","sum")
+        result_mode = self.user_config.get("result_mode", "sum")
+        read_mode = self.camera.get_read_mode()
 
-        shifted_frames = self.acquisition_service.bit_shift(frames)
+        if read_mode == "fvb":
+            processed_frames = frames
+            display_frame = self.acquisition_service.expand_fvb_frame(frames[0])
+        else:
+            processed_frames = self.acquisition_service.bit_shift(frames)
+            display_frame = frames[0]
 
         num_frames = 1
         acq_mode = "single"
         if self.user_config is not None:
-            acq_cfg = self.user_config.get("acquisition_mode",{})
-            acq_mode = acq_cfg.get("mode","single")
-            if acq_mode in ["kinetic","fast_kinetic"]:
+            acq_cfg = self.user_config.get("acquisition_mode", {})
+            acq_mode = acq_cfg.get("mode", "single")
+            if acq_mode in ["kinetic", "fast_kinetic"]:
                 num_frames = len(frames)
             if acq_mode == "accum":
-                num_frames = acq_cfg.get("num_acc",1)
-        
-        combined_frame = self.acquisition_service.combine_frames(shifted_frames,acq_mode,num_frames,result_mode)
+                num_frames = acq_cfg.get("num_acc", 1)
+
+        combined_frame = self.acquisition_service.combine_frames(
+            processed_frames, acq_mode, num_frames, result_mode
+        )
 
         roi = self.camera.get_roi()
         spectrum_data = self.acquisition_service.convert_to_spectrum(combined_frame, roi)
-        # x = np.arange(1024)
-        # raw_spectrum = np.sin(x/50)*1000+5000
-        # spectrum, _ = self.acquisition_service.baseline_correct(raw_spectrum)
-        # self.view.show_calibration_result(combined_frame, spectrum)
-        return combined_frame, spectrum_data, frames[0]
+
+        return combined_frame, spectrum_data, display_frame
     
     @handle_errors
     def stop_live(self):
