@@ -246,7 +246,7 @@ class AcquisitionService:
         roi_w = hend - hstart
         roi_h = vend - vstart
 
-        # FVB: always expand vertically inside ROI/full selected height
+        # ---------- FVB ----------
         if read_mode == "fvb":
             if frame.ndim == 1:
                 frame = frame.reshape(1, -1)
@@ -254,17 +254,26 @@ class AcquisitionService:
                 frame = frame.T
 
             if frame.ndim == 2 and frame.shape[0] == 1:
-                return np.repeat(frame, roi_h, axis=0)
+                src_h, src_w = frame.shape
+                x_idx = np.linspace(0, src_w - 1, roi_w).astype(int)
+                expanded = frame[:, x_idx]
+                expanded = np.repeat(expanded, roi_h, axis=0)
+                return expanded
 
             return frame
 
-        # Image mode: do nothing if no binning
+        # ---------- IMAGE ----------
         if read_mode == "image" and frame.ndim == 2:
             if hbin == 1 and vbin == 1:
                 return frame
 
-            expanded = np.repeat(frame, vbin, axis=0)
-            expanded = np.repeat(expanded, hbin, axis=1)
-            return expanded[:roi_h, :roi_w]
+            src_h, src_w = frame.shape
+
+            # map every ROI pixel to nearest source bin pixel
+            y_idx = np.linspace(0, src_h - 1, roi_h).astype(int)
+            x_idx = np.linspace(0, src_w - 1, roi_w).astype(int)
+
+            expanded = frame[y_idx][:, x_idx]
+            return expanded
 
         return frame
