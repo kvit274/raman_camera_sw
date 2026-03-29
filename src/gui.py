@@ -345,11 +345,11 @@ class MainWindow(QMainWindow):
 
         self.status_layout.addWidget(self.temp)
         self.status_layout.insertWidget(1,self.btn_set_temp)
-        self.status_layout.addWidget(self._separator())
+        self.status_layout.addWidget(self.separator())
         self.status_layout.addWidget(self.shutter_current_state)
-        self.status_layout.addWidget(self._separator())
+        self.status_layout.addWidget(self.separator())
         # self.status_layout.addWidget(self.acquisition_state)
-        self.status_layout.addWidget(self._separator())
+        self.status_layout.addWidget(self.separator())
         self.status_layout.addStretch()
         self.status_layout.addWidget(self.status)
 
@@ -687,7 +687,7 @@ class MainWindow(QMainWindow):
         self.display_image(frame)
         self.show_calibration_result(spectrum_data,title="Preview")
 
-    def _create_spectrum_plot(self, title="Spectrum"):
+    def create_spectrum_plot(self, title="Spectrum"):
         plot = pg.PlotWidget()
         plot.setLabel("left", "Intensity")
         plot.setLabel("bottom", "Detector pixel")
@@ -695,6 +695,7 @@ class MainWindow(QMainWindow):
 
         vb = plot.getViewBox()
         vb.setMouseEnabled(x=True, y=True)
+        
         vb.setDefaultPadding(0.0)
 
         curve = plot.plot([], [], pen=pg.mkPen("y", width=1.5))
@@ -702,7 +703,7 @@ class MainWindow(QMainWindow):
         marker = pg.ScatterPlotItem(size=8, brush=pg.mkBrush(255, 80, 80))
         plot.addItem(marker)
 
-        label = pg.TextItem("", anchor=(0.5, 1.2))
+        label = pg.TextItem("", anchor=(0.5, 1.4))
         label.setVisible(False)
         plot.addItem(label)
 
@@ -712,14 +713,13 @@ class MainWindow(QMainWindow):
         plot._x = None
         plot._y = None
 
-        plot.scene().sigMouseClicked.connect(
-            lambda ev, p=plot: self.on_spectrum_clicked(ev, p)
-        )
+        plot.scene().sigMouseMoved.connect(lambda pos, p=plot: self.on_spectrum_hover(pos, p))
+        plot.setMouseTracking(True)
 
         return plot
 
 
-    def _update_spectrum_plot(self, plot, spectrum_data):
+    def update_spectrum_plot(self, plot, spectrum_data):
         x, y = spectrum_data
         x = np.asarray(x)
         y = np.asarray(y)
@@ -749,14 +749,23 @@ class MainWindow(QMainWindow):
         plot._label.setVisible(False)
 
 
-    def on_spectrum_clicked(self, event, plot):
+    def on_spectrum_hover(self, pos, plot):
         if plot._x is None or plot._y is None or len(plot._x) == 0:
             return
 
-        mouse_point = plot.getViewBox().mapSceneToView(event.scenePos())
-        clicked_x = mouse_point.x()
+        vb = plot.getViewBox()
+        if vb is None:
+            return
 
-        idx = int(np.argmin(np.abs(plot._x - clicked_x)))
+        mouse_point = vb.mapSceneToView(pos)
+        x_min, x_max = float(plot._x.min()), float(plot._x.max())
+
+        if mouse_point.x() < x_min or mouse_point.x() > x_max:
+            plot._marker.setData([], [])
+            plot._label.setVisible(False)
+            return
+
+        idx = int(np.argmin(np.abs(plot._x - mouse_point.x())))
         px = float(plot._x[idx])
         py = float(plot._y[idx])
 
@@ -847,14 +856,14 @@ class MainWindow(QMainWindow):
 
         if spectrum_data is not None:
             if self.live_plot is None:
-                self.live_plot = self._create_spectrum_plot("Live")
+                self.live_plot = self.create_spectrum_plot("Live")
                 self.live_tab_index = self.calibration_tabs.addTab(self.live_plot, "Live")
 
-            self._update_spectrum_plot(self.live_plot, spectrum_data)
+            self.update_spectrum_plot(self.live_plot, spectrum_data)
 
     def show_calibration_result(self, spectrum_data, title="Acquisition"):
-        plot = self._create_spectrum_plot(title)
-        self._update_spectrum_plot(plot, spectrum_data)
+        plot = self.create_spectrum_plot(title)
+        self.update_spectrum_plot(plot, spectrum_data)
         self.calibration_tabs.addTab(plot, f"{title}{self.calibration_tabs.count()+1}")
 
     def close_calibration_tab(self, index):
@@ -982,7 +991,7 @@ class MainWindow(QMainWindow):
             )
 
     # ==== VISUALS ====
-    def _separator(self):
+    def separator(self):
         sep = QWidget()
         sep.setFixedWidth(1)
         sep.setObjectName("statusSeparator")
