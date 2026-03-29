@@ -530,6 +530,12 @@ class ImageWidget(QWidget):
         layout.addWidget(self.roi_vstart_input)
         layout.addWidget(self.roi_vend_input)
 
+        layout.addWidget(QLabel("Processing Mode"))
+        self.processing_mode_input = QNoScrollComboBox()
+        self.processing_mode_input.addItems(["bit_shift", "binning"])
+        self.processing_mode_input.setCurrentText("binning")
+        layout.addWidget(self.processing_mode_input)
+
         # Binning preset selector
         self.bin_preset_input = QNoScrollComboBox()
         self.bin_preset_input.addItems(["1x1","2x2","4x4","8x8","Custom"])
@@ -550,25 +556,9 @@ class ImageWidget(QWidget):
         layout.addWidget(self.roi_hbin_input)
         layout.addWidget(self.roi_vbin_input)
 
-        layout.addWidget(QLabel("Processing Mode"))
-        self.processing_mode_input = QNoScrollComboBox()
-        self.processing_mode_input.addItems(["bit_shift", "binning"])
-        self.processing_mode_input.setCurrentText("binning")
-        layout.addWidget(self.processing_mode_input)
-
-        self.binning_widgets = [
-            self.show_grid_checkbox,
-            self.bin_preset_input,
-            self.roi_hbin_input,
-            self.roi_vbin_input,
-        ]
-
-        self.bit_shift_widgets = [
-            self.bit_shift_pixels_input,
-            self.bit_shift_vstart_input,
-            self.bit_shift_vend_input,
-            self.show_bit_shift_region_checkbox,
-        ]
+        # bit shifting
+        self.show_bit_shift_region_checkbox = QCheckBox("Show bit-shift region")
+        layout.addWidget(self.show_bit_shift_region_checkbox)
 
         self.bit_shift_pixels_input = QLineEdit()
         self.bit_shift_pixels_input.setPlaceholderText("Bit shift left by N pixels")
@@ -585,8 +575,19 @@ class ImageWidget(QWidget):
         self.bit_shift_vend_input.setValidator(QIntValidator())
         layout.addWidget(self.bit_shift_vend_input)
 
-        self.processing_mode_input.currentTextChanged.connect(self.update_processing_ui)
-        self.update_processing_ui(self.processing_mode_input.currentText())
+        self.binning_widgets = [
+            self.show_grid_checkbox,
+            self.bin_preset_input,
+            self.roi_hbin_input,
+            self.roi_vbin_input,
+        ]
+
+        self.bit_shift_widgets = [
+            self.bit_shift_pixels_input,
+            self.bit_shift_vstart_input,
+            self.bit_shift_vend_input,
+            self.show_bit_shift_region_checkbox,
+        ]
 
         self.roi_preset_input.currentTextChanged.connect(self.apply_roi_preset)
         self.bin_preset_input.currentTextChanged.connect(self.apply_bin_preset)
@@ -595,10 +596,10 @@ class ImageWidget(QWidget):
         self.show_roi_checkbox.stateChanged.connect(self.emit_visual_update)
         self.show_grid_checkbox.stateChanged.connect(self.emit_visual_update)
 
-        # bit shifting
-        self.show_bit_shift_region_checkbox = QCheckBox("Show bit-shift region")
-        layout.addWidget(self.show_bit_shift_region_checkbox)
-        self.show_bit_shift_region_checkbox.stateChanged.connect(self.emit_visual_update)
+        self.processing_mode_input.currentTextChanged.connect(self.update_processing_ui)
+        self.update_processing_ui(self.processing_mode_input.currentText())
+
+        self.show_bit_shift_region_checkbox.stateChanged.connect(self.on_toggle_bit_shift_region)
 
         self.bit_shift_pixels_input.textChanged.connect(self.emit_visual_update)
         self.bit_shift_vstart_input.textChanged.connect(self.emit_visual_update)
@@ -651,6 +652,26 @@ class ImageWidget(QWidget):
 
         except:
             pass
+
+    def on_toggle_bit_shift_region(self,state):
+        if state:
+
+            vstart = self.bit_shift_vstart_input.text()
+            hend = self.bit_shift_vend_input.text()
+
+            if not vstart or not vend:
+
+                center = 256 // 2
+                half = 10
+
+                vstart = center - half
+                vend = center + half
+
+                self.bit_shift_vstart_input.setText(str(vstart))
+                self.bit_shift_vend_input.setText(str(vend))
+
+        self.emit_visual_update()
+
 
     def apply_roi_preset(self, text):
         if text == "Custom":
