@@ -101,6 +101,7 @@ class MainWindow(QMainWindow):
         self.read_mode_stack.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
         self.image_widget = ImageWidget()
         self.image_widget.roi_visual_changed.connect(self.update_image_preview_overlay)  # connect to draw on preview
+        
         # self.image_widget.roi_hbin_input.textChanged.connect(self.get_preview_roi_limits)
         # self.image_widget.roi_vbin_input.textChanged.connect(self.get_preview_roi_limits)
         self.read_mode_widgets = {
@@ -385,6 +386,7 @@ class MainWindow(QMainWindow):
         self.save_frame_path_button.clicked.connect(self.select_save_frame_path)
         self.btn_open_npz.clicked.connect(self.open_npz)
         self.preview.roi_changed.connect(self.update_roi_inputs)
+        self.preview.bit_shift_region_changed.connect(self.update_bit_shift_inputs)
 
 
         # Display temperature
@@ -529,6 +531,11 @@ class MainWindow(QMainWindow):
         self.preview.show_grid = show_grid
         self.preview.set_roi(roi)
         self.preview.set_bit_shift_region(bit_shift_vstart,bit_shift_vend,show_bit_shift_region)
+
+    def update_bit_shift_inputs(self, vstart, vend):
+        w = self.image_widget
+        w.bit_shift_vstart_input.setText(str(vstart))
+        w.bit_shift_vend_input.setText(str(vend))
 
 
     def show_temp_popup(self):
