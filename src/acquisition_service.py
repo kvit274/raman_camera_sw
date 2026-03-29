@@ -108,16 +108,43 @@ class AcquisitionService:
 
         return pixel, intensities
 
-    def bit_shift(self, frames):
+    def bit_shift(self, frames, roi, shift_pixels=0, shift_vstart=None, shift_vend=None):
         shifted_frames = []
 
+        hstart, hend, roi_vstart, roi_vend, hbin, vbin = roi
+
         for frame in frames:
-            if frame.ndim == 2:
-                frame_copy = frame.copy()
-                frame_copy[-1, :] = np.roll(frame_copy[-1, :], -1)
-                shifted_frames.append(frame_copy)
-            else:
+            frame = np.asarray(frame)
+
+            if frame.ndim != 2 or shift_pixels == 0:
                 shifted_frames.append(frame)
+                continue
+
+            if hbin != 1 or vbin != 1:
+                shifted_frames.append(frame)
+                continue
+
+            frame_copy = frame.copy()
+            frame_h = frame_copy.shape[0]
+
+            if shift_vstart is None:
+                local_vstart = 0
+            else:
+                local_vstart = max(0, shift_vstart - roi_vstart)
+
+            if shift_vend is None:
+                local_vend = frame_h
+            else:
+                local_vend = min(frame_h, shift_vend - roi_vstart)
+
+            if local_vend > local_vstart:
+                frame_copy[local_vstart:local_vend, :] = np.roll(
+                    frame_copy[local_vstart:local_vend, :],
+                    -shift_pixels,
+                    axis=1
+                )
+
+            shifted_frames.append(frame_copy)
 
         return shifted_frames
 

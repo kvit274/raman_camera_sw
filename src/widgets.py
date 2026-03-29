@@ -466,12 +466,50 @@ class ImageWidget(QWidget):
         layout.addWidget(self.roi_hbin_input)
         layout.addWidget(self.roi_vbin_input)
 
+        layout.addWidget(QLabel("Processing Mode"))
+        self.processing_mode_input = QNoScrollComboBox()
+        self.processing_mode_input.addItems(["binning", "bit_shift"])
+        self.processing_mode_input.setCurrentText("binning")
+        layout.addWidget(self.processing_mode_input)
+
+        self.bit_shift_pixels_input = QLineEdit()
+        self.bit_shift_pixels_input.setPlaceholderText("Bit shift left by N pixels")
+        self.bit_shift_pixels_input.setValidator(QIntValidator())
+        layout.addWidget(self.bit_shift_pixels_input)
+
+        self.bit_shift_vstart_input = QLineEdit()
+        self.bit_shift_vstart_input.setPlaceholderText("Bit shift row start")
+        self.bit_shift_vstart_input.setValidator(QIntValidator())
+        layout.addWidget(self.bit_shift_vstart_input)
+
+        self.bit_shift_vend_input = QLineEdit()
+        self.bit_shift_vend_input.setPlaceholderText("Bit shift row end")
+        self.bit_shift_vend_input.setValidator(QIntValidator())
+        layout.addWidget(self.bit_shift_vend_input)
+
+        self.processing_mode_input.currentTextChanged.connect(self.update_processing_ui)
+        self.update_processing_ui(self.processing_mode_input.currentText())
+
         self.roi_preset_input.currentTextChanged.connect(self.apply_roi_preset)
         self.bin_preset_input.currentTextChanged.connect(self.apply_bin_preset)
         for field in [self.roi_hstart_input,self.roi_hend_input,self.roi_vstart_input,self.roi_vend_input,self.roi_hbin_input,self.roi_vbin_input]:
             field.textChanged.connect(self.emit_visual_update)
         self.show_roi_checkbox.stateChanged.connect(self.emit_visual_update)
         self.show_grid_checkbox.stateChanged.connect(self.emit_visual_update)
+
+    def update_processing_ui(self, mode):
+        use_binning = (mode == "binning")
+
+        self.roi_hbin_input.setEnabled(use_binning)
+        self.roi_vbin_input.setEnabled(use_binning)
+
+        self.bit_shift_pixels_input.setEnabled(not use_binning)
+        self.bit_shift_vstart_input.setEnabled(not use_binning)
+        self.bit_shift_vend_input.setEnabled(not use_binning)
+
+        if not use_binning:
+            self.roi_hbin_input.setText("1")
+            self.roi_vbin_input.setText("1")
 
     def emit_visual_update(self):
         try:
@@ -519,15 +557,17 @@ class ImageWidget(QWidget):
 
     def get_params(self):
         params = {"mode": "image"}
-        hstart, hend = self.roi_hstart_input.text(), self.roi_hend_input.text()
-        vstart, vend = self.roi_vstart_input.text(), self.roi_vend_input.text()
-        hbin, vbin = self.roi_hbin_input.text(), self.roi_vbin_input.text()
-        params["hstart"] = hstart
-        params["hend"] = hend
-        params["vstart"] = vstart
-        params["vend"] = vend
-        params["hbin"] = hbin
-        params["vbin"] = vbin
+        params["hstart"] = self.roi_hstart_input.text()
+        params["hend"] = self.roi_hend_input.text()
+        params["vstart"] = self.roi_vstart_input.text()
+        params["vend"] = self.roi_vend_input.text()
+        params["hbin"] = self.roi_hbin_input.text() or "1"
+        params["vbin"] = self.roi_vbin_input.text() or "1"
+
+        params["processing_mode"] = self.processing_mode_input.currentText()
+        params["bit_shift_pixels"] = self.bit_shift_pixels_input.text() or "0"
+        params["bit_shift_vstart"] = self.bit_shift_vstart_input.text()
+        params["bit_shift_vend"] = self.bit_shift_vend_input.text()
         return params
 
 class RandomTrackWidget(QWidget):

@@ -157,14 +157,19 @@ class RamanCameraController(QObject):
         frames = self.camera.start_live()
         result_mode = self.user_config.get("result_mode", "sum")
         read_mode = self.camera.get_read_mode()
+        roi = self.camera.get_roi()
+        read_cfg = self.user_config.get("read_mode", {})
 
-        if read_mode == "fvb":
-            processed_frames = frames
-            # display_frame = self.acquisition_service.expand_fvb_frame(frames[0])
+        if self.should_apply_bit_shift():
+            processed_frames = self.acquisition_service.bit_shift(
+                frames,
+                roi=roi,
+                shift_pixels=int(read_cfg.get("bit_shift_pixels", 0) or 0),
+                shift_vstart=read_cfg.get("bit_shift_vstart"),
+                shift_vend=read_cfg.get("bit_shift_vend"),
+            )
         else:
             processed_frames = frames
-            # processed_frames = self.acquisition_service.bit_shift(frames)
-            # display_frame = frames[0]
 
         num_frames = 1
         acq_mode = "single"
@@ -226,7 +231,11 @@ class RamanCameraController(QObject):
                 "vstart": vstart,
                 "vend": vend,
                 "hbin": hbin,
-                "vbin": vbin
+                "vbin": vbin,
+                "processing_mode": "binning",
+                "bit_shift_pixels": 0,
+                "bit_shift_vstart": "",
+                "bit_shift_vend": ""
             },
 
             "acquisition_mode": {
@@ -268,9 +277,16 @@ class RamanCameraController(QObject):
         self.restore_user_config()
         frame = self.camera.single_preview()
         roi = self.camera.get_roi()
-        spectrum_data = self.acquisition_service.convert_to_spectrum(frame, roi)
-        return frame, spectrum_data
-        # FINISH THIS, display frame
+        read_cfg = self.user_config.get("read_mode", {})
+
+        if self.should_apply_bit_shift():
+            frame = self.acquisition_service.bit_shift(
+                [frame],
+                roi=roi,
+                shift_pixels=int(read_cfg.get("bit_shift_pixels", 0) or 0),
+                shift_vstart=read_cfg.get("bit_shift_vstart"),
+                shift_vend=read_cfg.get("bit_shift_vend"),
+            )[0]
 
     @handle_errors
     def start_acquisition(self, filename=None):
@@ -282,7 +298,7 @@ class RamanCameraController(QObject):
         before_shift_filename = f'{filename.strip(".npz")}_before_shifting.npz'
         self.acquisition_service.save_frames(frames,before_shift_filename)  # save raw image
         # shifted_frames = self.acquisition_service.bit_shift(frames)
-        shifted_frames = frames
+        # shifted_frames = frames
 
         if frames:
             self.acquisition_service.save_frames(frames,filename=filename)  # save raw image
@@ -293,9 +309,23 @@ class RamanCameraController(QObject):
             num_frames = len(frames)
         if acq_mode == "accum":
             num_frames = self.user_config.get("acquisition_mode")["num_acc"]
-        combined_frame = self.acquisition_service.combine_frames(shifted_frames,acq_mode,num_frames,result_mode)
-
+        
         roi = self.camera.get_roi()
+        read_cfg = self.user_config.get("read_mode", {})
+
+        if self.should_apply_bit_shift():
+            processed_frames = self.acquisition_service.bit_shift(
+                frames,
+                roi=roi,
+                shift_pixels=int(read_cfg.get("bit_shift_pixels", 0) or 0),
+                shift_vstart=read_cfg.get("bit_shift_vstart"),
+                shift_vend=read_cfg.get("bit_shift_vend"),
+            )
+        else:
+            processed_frames = frames
+        combined_frame = self.acquisition_service.combine_frames(processed_frames,acq_mode,num_frames,result_mode)
+
+        # roi = self.camera.get_roi()
         spectrum_data = self.acquisition_service.convert_to_spectrum(combined_frame, roi)
         # pixel_intensity_data = self.acquisition_service.build_pixel_intensity_data(combined_frame, roi)
         # spectrum, baseline = self.acquisition_service.baseline_correct(raw_spectrum)
@@ -613,16 +643,29 @@ class RamanCameraController(QObject):
         return
 
     # @handle_errors
-    def setup_image_mode(self,params):
+    def setup_image_mode(self, params):
         print(f"Entered setup_image_mode in controller")
+
         params["hstart"] = int(params["hstart"]) if params.get("hstart") not in ("", None) else None
         params["hend"] = int(params["hend"]) if params.get("hend") not in ("", None) else None
         params["vstart"] = int(params["vstart"]) if params.get("vstart") not in ("", None) else None
         params["vend"] = int(params["vend"]) if params.get("vend") not in ("", None) else None
-        params["hbin"] = int(params["hbin"]) if params.get("hbin") not in ("", None) else None
-        params["vbin"] = int(params["vbin"]) if params.get("vbin") not in ("", None) else None
+        params["hbin"] = int(params["hbin"]) if params.get("hbin") not in ("", None) else 1
+        params["vbin"] = int(params["vbin"]) if params.get("vbin") not in ("", None) else 1
 
-        self.camera.setup_image_mode(**params)
+        params["bit_shift_pixels"] = int(params.get("bit_shift_pixels") or 0)
+        params["bit_shift_vstart"] = int(params["bit_shift_vstart"]) if params.get("bit_shift_vstart") not in ("", None) else None
+        params["bit_shift_vend"] = int(params["bit_shift_vend"]) if params.get("bit_shift_vend") not in ("", None) else None
+
+        self.camera.setup_image_mode(
+            hstart=params["hstart"],
+            hend=params["hend"],
+            vstart=params["vstart"],
+            vend=params["vend"],
+            hbin=params["hbin"],
+            vbin=params["vbin"],
+            mode=params["mode"],
+        )
         return
 
     # ==== Shutter methods =====
@@ -666,6 +709,19 @@ class RamanCameraController(QObject):
         self.camera.set_roi(hstart, hend, vstart, vend, hbin, vbin)
 
         return
+    
+    def should_apply_bit_shift(self):
+        read_cfg = self.user_config.get("read_mode", {})
+        if read_cfg.get("mode") != "image":
+            return False
+
+        if read_cfg.get("processing_mode", "binning") != "bit_shift":
+            return False
+
+        hbin = int(read_cfg.get("hbin", 1) or 1)
+        vbin = int(read_cfg.get("vbin", 1) or 1)
+
+        return hbin == 1 and vbin == 1
 
 
     # ==== View communication methods ====
