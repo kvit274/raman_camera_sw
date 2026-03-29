@@ -66,6 +66,15 @@ class PreviewWidget(QWidget):
         self.drag_start = None
         self.handle_size = 6
 
+        # bit shifting region
+        self.bit_shift_region = None   # (vstart, vend)
+        self.show_bit_shift_region = False
+
+    def set_bit_shift_region(self, vstart, vend, show=False):
+        self.bit_shift_region = (vstart, vend) if vstart is not None and vend is not None else None
+        self.show_bit_shift_region = show
+        self.update()
+
     def set_roi(self, roi):
         self.roi = roi
         self.update()
@@ -216,6 +225,20 @@ class PreviewWidget(QWidget):
                 if vbin>1:
                     for y in range(vstart,vend,vbin):
                         painter.drawLine(hstart,y,hend,y)
+
+        if self.overlay_enabled and self.show_bit_shift_region and self.bit_shift_region:
+            shift_vstart, shift_vend = self.bit_shift_region
+
+            shift_vstart = max(0, min(256, shift_vstart))
+            shift_vend = max(0, min(256, shift_vend))
+
+            if shift_vend > shift_vstart:
+                green_pen = QPen(Qt.green)
+                green_pen.setWidth(2)
+                painter.setPen(green_pen)
+
+                painter.drawLine(0, shift_vstart, self.width(), shift_vstart)
+                painter.drawLine(0, shift_vend, self.width(), shift_vend)
 
 # ==== Draw Rulers ====
 
@@ -407,7 +430,7 @@ class FVBWidget(QWidget):
 
 class ImageWidget(QWidget):
 
-    roi_visual_changed = pyqtSignal(tuple,bool,bool)        # roi tuple, show roi, show grid
+    roi_visual_changed = pyqtSignal(tuple, bool, bool, object, object, bool)        # roi tuple, show roi, show grid
 
     def __init__(self):
         super().__init__()
@@ -497,6 +520,11 @@ class ImageWidget(QWidget):
         self.show_roi_checkbox.stateChanged.connect(self.emit_visual_update)
         self.show_grid_checkbox.stateChanged.connect(self.emit_visual_update)
 
+        # bit shifting
+        self.show_bit_shift_region_checkbox = QCheckBox("Show bit-shift region")
+        layout.addWidget(self.show_bit_shift_region_checkbox)
+        self.show_bit_shift_region_checkbox.stateChanged.connect(self.emit_visual_update)
+
     def update_processing_ui(self, mode):
         use_binning = (mode == "binning")
 
@@ -521,8 +549,18 @@ class ImageWidget(QWidget):
                 int(self.roi_hbin_input.text() or 1),
                 int(self.roi_vbin_input.text() or 1)
             )
+            bit_shift_vstart = int(self.bit_shift_vstart_input.text()) if self.bit_shift_vstart_input.text() else None
+            bit_shift_vend = int(self.bit_shift_vend_input.text()) if self.bit_shift_vend_input.text() else None
 
-            self.roi_visual_changed.emit(roi,self.show_roi_checkbox.isChecked(),self.show_grid_checkbox.isChecked())
+            self.roi_visual_changed.emit(
+                roi,
+                self.show_roi_checkbox.isChecked(),
+                self.show_grid_checkbox.isChecked(),
+                bit_shift_vstart,
+                bit_shift_vend,
+                self.show_bit_shift_region_checkbox.isChecked()
+            )
+
         except:
             pass
 
