@@ -155,10 +155,10 @@ class RamanCameraController(QObject):
     @handle_errors
     def start_live(self):
         frames = self.camera.start_live()
-        result_mode = self.user_config.get("result_mode", "sum")
+        # result_mode = self.user_config.get("result_mode", "sum")
         read_mode = self.camera.get_read_mode()
         roi = self.camera.get_roi()
-        read_cfg = self.user_config.get("read_mode", {})
+        # read_cfg = self.user_config.get("read_mode", {})
 
         if self.should_apply_bit_shift():
 
@@ -183,9 +183,11 @@ class RamanCameraController(QObject):
             if acq_mode == "accum":
                 num_frames = acq_cfg.get("num_acc", 1)
 
-        combined_frame = self.acquisition_service.combine_frames(
-            processed_frames, acq_mode, num_frames, result_mode
-        )
+        if acq_mode in {"accum", "kinetic", "fast_kinetic"}:
+            result_mode = self.user_config.get("acquisition_mode")["result_mode"]
+            combined_frame = self.acquisition_service.combine_frames(processed_frames,acq_mode,num_frames,result_mode)
+        else:
+            combined_frame = frames[0]
 
         roi = self.camera.get_roi()
         spectrum_data = self.acquisition_service.convert_to_spectrum(combined_frame, roi)
@@ -258,7 +260,6 @@ class RamanCameraController(QObject):
             "vsspeed": settings["vsspeed"],
 
             "emccd_gain": {"emccd_gain": "", "emccd_advanced": False},
-            "result_mode": "sum"
         }
     
     def get_temp(self):
@@ -300,7 +301,9 @@ class RamanCameraController(QObject):
         self.restore_user_config()
         frames = self.camera.start_acquisition()
         self.acquisition_service.save_csv_frame(frames[0],filename)        # temp DELETE THIS testing only
-        result_mode = self.user_config.get("result_mode","sum")
+
+        acq_mode = self.user_config.get("acquisition_mode")["mode"]
+        # result_mode = self.user_config.get("result_mode","sum")
 
         before_shift_filename = f'{filename.strip(".npz")}_before_shifting.npz'
         # self.acquisition_service.save_image(frames,before_shift_filename)  # save raw image
@@ -308,7 +311,6 @@ class RamanCameraController(QObject):
         if frames:
             self.acquisition_service.save_image(frames,filename=before_shift_filename)  # save raw image
 
-        acq_mode = self.user_config.get("acquisition_mode")["mode"]
         num_frames = 1
         if acq_mode in ["kinetic","fast_kinetic"]:
             num_frames = len(frames)
@@ -330,10 +332,14 @@ class RamanCameraController(QObject):
                 shift_vend=bit_shift_vend,
             )
         else:
-            processed_frames = frames
+            processed_frames = frames[0]
 
-        self.acquisition_service.save_image(processed_frames,filename=filename)
-        combined_frame = self.acquisition_service.combine_frames(processed_frames,acq_mode,num_frames,result_mode)
+        if acq_mode in {"accum", "kinetic", "fast_kinetic"}:
+            result_mode = self.user_config.get("acquisition_mode")["result_mode"]
+            combined_frame = self.acquisition_service.combine_frames(processed_frames,acq_mode,num_frames,result_mode)
+        else:
+            combined_frame = frames
+        self.acquisition_service.save_image([combined_frame],filename=filename)
 
         # roi = self.camera.get_roi()
         spectrum_data = self.acquisition_service.convert_to_spectrum(combined_frame, roi)

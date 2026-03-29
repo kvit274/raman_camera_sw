@@ -142,8 +142,8 @@ class MainWindow(QMainWindow):
         self.exposure_input.setValidator(QDoubleValidator())
 
         # Result mode (avg or sum of frames)
-        self.result_mode_input = QNoScrollComboBox()
-        self.result_mode_input.addItems(["sum", "avg"])
+        # self.result_mode_input = QNoScrollComboBox()
+        # self.result_mode_input.addItems(["sum", "avg"])
 
         # Amp
         self.amp_mode_input = QNoScrollComboBox()
@@ -256,8 +256,8 @@ class MainWindow(QMainWindow):
         self.acq_layout.addWidget(QLabel("Exposure (s)"))
         self.acq_layout.addWidget(self.exposure_input)
 
-        self.acq_layout.addWidget(QLabel("Result Processing"))
-        self.acq_layout.addWidget(self.result_mode_input)
+        # self.acq_layout.addWidget(QLabel("Result Processing"))
+        # self.acq_layout.addWidget(self.result_mode_input)
 
         self.section_acq.setContentLayout(self.acq_layout)
         self.left_layout.addWidget(self.section_acq)
@@ -660,7 +660,7 @@ class MainWindow(QMainWindow):
 
         exposure = self.exposure_input.text()
 
-        result_mode = self.result_mode_input.currentText()
+        # result_mode = self.result_mode_input.currentText()
 
         amp_mode = self.amp_mode_input.currentData(Qt.UserRole)
         if amp_mode is not None:
@@ -685,7 +685,7 @@ class MainWindow(QMainWindow):
 
         emccd_gain = {"emccd_gain": emccd_gain_input, "emccd_advanced": emccd_advanced}
 
-        result = self.controller.apply_cam_settings(shutter, read_mode_params, acquisition_mode_params, trigger_mode, exposure, result_mode, amp, vsspeed, emccd_gain)
+        result = self.controller.apply_cam_settings(shutter, read_mode_params, acquisition_mode_params, trigger_mode, exposure, amp, vsspeed, emccd_gain)
 
         # self.get_preview_roi_limits()
         self.display_msg("Settings applied",True)

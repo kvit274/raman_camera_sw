@@ -767,9 +767,14 @@ class AccumWidget(QWidget):
         self.cycle_time_acc_input.setPlaceholderText("Aquisition Period (s)")
         self.cycle_time_acc_input.setValidator(QDoubleValidator())
 
+        self.result_mode_input = QNoScrollComboBox()
+        self.result_mode_input.addItems(["sum", "avg"])
+
         layout.addWidget(label)
         layout.addWidget(self.num_acc_input)
         layout.addWidget(self.cycle_time_acc_input)
+        layout.addWidget(QLabel("Result Processing"))
+        layout.addWidget(self.result_mode_input)
 
         self.num_acc_input.setMinimumWidth(0)
         self.cycle_time_acc_input.setMinimumWidth(0)
@@ -783,6 +788,8 @@ class AccumWidget(QWidget):
             params["num_acc"] = num_acc
         if cycle_time_acc != "":
             params["cycle_time_acc"] = cycle_time_acc
+        params["result_mode"] = self.result_mode_input.currentText()
+
         return params
 
 class KineticWidget(QWidget):
@@ -819,12 +826,17 @@ class KineticWidget(QWidget):
         self.num_prescan.setPlaceholderText("Number of Prescan Frames")
         self.num_prescan.setValidator(QIntValidator())
 
+        self.result_mode_input = QNoScrollComboBox()
+        self.result_mode_input.addItems(["sum", "avg"])
+
         layout.addWidget(label)
         layout.addWidget(self.num_cycle_input)
         layout.addWidget(self.cycle_time_input)
         layout.addWidget(self.num_acc_input)
         layout.addWidget(self.cycle_time_acc_input)
         layout.addWidget(self.num_prescan)
+        layout.addWidget(QLabel("Result Processing"))
+        layout.addWidget(self.result_mode_input)
 
     def get_params(self):
         params = {"mode": "kinetic"}
@@ -845,8 +857,10 @@ class KineticWidget(QWidget):
             params["cycle_time_acc"] = cycle_time_acc
         if num_prescan != "":
             params["num_prescan"] = num_prescan
+        params["result_mode"] = self.result_mode_input.currentText()
+    
         return params
-
+    
 class FastKineticWidget(QWidget):
     """
     num_acc is the number of accumulated frames, 
@@ -866,9 +880,14 @@ class FastKineticWidget(QWidget):
         self.cycle_time_acc_input.setPlaceholderText("Aquisition Period (s)")
         self.cycle_time_acc_input.setValidator(QDoubleValidator())
 
+        self.result_mode_input = QNoScrollComboBox()
+        self.result_mode_input.addItems(["sum", "avg"])
+
         layout.addWidget(label)
         layout.addWidget(self.num_acc_input)
         layout.addWidget(self.cycle_time_acc_input)
+        layout.addWidget(QLabel("Result Processing"))
+        layout.addWidget(self.result_mode_input)
 
     def get_params(self):
         params = {"mode": "fast_kinetic"}
@@ -878,6 +897,8 @@ class FastKineticWidget(QWidget):
             params["num_acc"] = num_acc
         if cycle_time_acc != "":
             params["cycle_time_acc"] = cycle_time_acc
+        params["result_mode"] = self.result_mode_input.currentText()
+
         return params
 
 class ContinuousWidget(QWidget):
