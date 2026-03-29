@@ -432,9 +432,7 @@ class MainWindow(QMainWindow):
         print(f"Amp modes: {len(amp_modes)}")
 
         for m in amp_modes:
-            label = (
-                f"channel={m.channel}, channel_bitdepth={m.channel_bitdepth}, oamp={m.oamp}, oamp_kind={m.oamp_kind}, hsspeed={m.hsspeed}, hsspeed_MHz={m.hsspeed_MHz}, preamp={m.preamp}, preamp_gain={m.preamp_gain}"
-            )
+            label = f"HSSpeed: {m.hsspeed_MHz:.2f} MHz | Preamp gain: {m.preamp_gain:.2f}x"
             self.amp_mode_input.addItem(label)
             self.amp_mode_input.setItemData(self.amp_mode_input.count()-1, m, Qt.UserRole)
         print(f"Items in combo: {self.amp_mode_input.count()}")
@@ -443,7 +441,7 @@ class MainWindow(QMainWindow):
         self.vsspeed_input.clear()
 
         for idx,value in enumerate(vsspeeds):
-            label = f"{value} microseconds"
+            label = f"{value:.2f} µs"
             self.vsspeed_input.addItem(label)
 
             # store index
