@@ -682,10 +682,15 @@ class MainWindow(QMainWindow):
             return
 
     def show_preview(self):
-        frame, spectrum_data = self.controller.single_preview()
-        
+        result = self.controller.single_preview()
+        if result is None:
+            return
+
+        frame, spectrum_data = result
+
         self.display_image(frame)
-        self.show_calibration_result(spectrum_data,title="Preview")
+        self.show_live_spectrum(spectrum_data)
+        self.display_msg("Preview captured.", success=True)
 
     def create_spectrum_plot(self, title="Spectrum"):
         plot = pg.PlotWidget()
@@ -855,11 +860,19 @@ class MainWindow(QMainWindow):
             self.display_image(frame)
 
         if spectrum_data is not None:
-            if self.live_plot is None:
-                self.live_plot = self.create_spectrum_plot("Live")
-                self.live_tab_index = self.calibration_tabs.addTab(self.live_plot, "Live")
+            self.show_live_spectrum(spectrum_data)
 
-            self.update_spectrum_plot(self.live_plot, spectrum_data)
+    def show_live_spectrum(self, spectrum_data):
+        if spectrum_data is None:
+            return
+
+        if self.live_plot is None:
+            self.live_plot = self.create_spectrum_plot("Live")
+            self.live_tab_index = self.calibration_tabs.addTab(self.live_plot, "Live")
+
+        self.update_spectrum_plot(self.live_plot, spectrum_data)
+        self.calibration_tabs.setCurrentWidget(self.live_plot)
+        self.right_tabs.setCurrentWidget(self.calibration_tab)
 
     def show_calibration_result(self, spectrum_data, title="Acquisition"):
         plot = self.create_spectrum_plot(title)
