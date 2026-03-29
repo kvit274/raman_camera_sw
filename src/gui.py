@@ -528,7 +528,7 @@ class MainWindow(QMainWindow):
 
         self.preview.overlay_enabled = True
         self.preview.show_roi = show_roi
-        self.preview.show_grid = show_grid
+        self.preview.show_grid = show_grid and (self.image_widget.processing_mode_input.currentText() == "binning")
         self.preview.set_roi(roi)
         self.preview.set_bit_shift_region(bit_shift_vstart,bit_shift_vend,show_bit_shift_region)
 

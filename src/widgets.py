@@ -47,6 +47,7 @@ class TemperaturePopUp(QWidget):
 class PreviewWidget(QWidget):
 
     roi_changed = pyqtSignal(tuple)
+    bit_shift_region_changed = pyqtSignal(object, object)
 
     def __init__(self):
         super().__init__()
@@ -84,6 +85,22 @@ class PreviewWidget(QWidget):
         self.frame_roi = roi
         self.update()
 
+    def _detect_bit_shift_handle(self, x, y):
+        if not (self.show_bit_shift_region and self.bit_shift_region):
+            return None
+
+        vstart, vend = self.bit_shift_region
+        hs = self.handle_size + 2
+
+        if abs(y - vstart) < hs:
+            return "bit_shift_top"
+        if abs(y - vend) < hs:
+            return "bit_shift_bottom"
+        if vstart < y < vend:
+            return "bit_shift_move"
+
+        return None
+
     def _detect_handle(self,x,y):
         if not self.roi:
             return None
@@ -108,27 +125,70 @@ class PreviewWidget(QWidget):
 
         return None
 
-    def mousePressEvent(self,event):
+    def mousePressEvent(self, event):
+        x = event.x()
+        y = event.y()
+
+        mode = self._detect_bit_shift_handle(x, y)
+
+        if mode:
+            self.drag_mode = mode
+            self.drag_start = (x, y)
+            return
 
         if not self.roi:
             return
 
-        x = event.x()
-        y = event.y()
-
-        mode = self._detect_handle(x,y)
+        mode = self._detect_handle(x, y)
 
         if mode:
             self.drag_mode = mode
-            self.drag_start = (x,y)
+            self.drag_start = (x, y)
 
-    def mouseMoveEvent(self,event):
-
-        if not self.drag_mode or not self.roi:
+    def mouseMoveEvent(self, event):
+        if not self.drag_mode:
             return
 
         x = event.x()
         y = event.y()
+        dx = x - self.drag_start[0]
+        dy = y - self.drag_start[1]
+
+        # ----- bit shift dragging -----
+        if self.drag_mode in {"bit_shift_top", "bit_shift_bottom", "bit_shift_move"}:
+            if not self.bit_shift_region:
+                return
+
+            shift_vstart, shift_vend = self.bit_shift_region
+
+            if self.drag_mode == "bit_shift_move":
+                height = shift_vend - shift_vstart
+                new_vstart = shift_vstart + dy
+                new_vstart = max(0, min(256 - height, new_vstart))
+                shift_vstart = new_vstart
+                shift_vend = shift_vstart + height
+
+            elif self.drag_mode == "bit_shift_top":
+                shift_vstart += dy
+
+            elif self.drag_mode == "bit_shift_bottom":
+                shift_vend += dy
+
+            shift_vstart = max(0, min(256, shift_vstart))
+            shift_vend = max(0, min(256, shift_vend))
+
+            if shift_vend <= shift_vstart + 1:
+                return
+
+            self.bit_shift_region = (shift_vstart, shift_vend)
+            self.drag_start = (x, y)
+            self.bit_shift_region_changed.emit(shift_vstart, shift_vend)
+            self.update()
+            return
+
+        # ----- ROI dragging -----
+        if not self.roi:
+            return
 
         hstart,hend,vstart,vend,hbin,vbin = self.roi
 
@@ -431,6 +491,7 @@ class FVBWidget(QWidget):
 class ImageWidget(QWidget):
 
     roi_visual_changed = pyqtSignal(tuple, bool, bool, object, object, bool)        # roi tuple, show roi, show grid
+    bit_shift_region_changed = pyqtSignal(object, object)
 
     def __init__(self):
         super().__init__()
@@ -491,9 +552,23 @@ class ImageWidget(QWidget):
 
         layout.addWidget(QLabel("Processing Mode"))
         self.processing_mode_input = QNoScrollComboBox()
-        self.processing_mode_input.addItems(["bit_shift","binning"])
+        self.processing_mode_input.addItems(["bit_shift", "binning"])
         self.processing_mode_input.setCurrentText("binning")
         layout.addWidget(self.processing_mode_input)
+
+        self.binning_widgets = [
+            self.show_grid_checkbox,
+            self.bin_preset_input,
+            self.roi_hbin_input,
+            self.roi_vbin_input,
+        ]
+
+        self.bit_shift_widgets = [
+            self.bit_shift_pixels_input,
+            self.bit_shift_vstart_input,
+            self.bit_shift_vend_input,
+            self.show_bit_shift_region_checkbox,
+        ]
 
         self.bit_shift_pixels_input = QLineEdit()
         self.bit_shift_pixels_input.setPlaceholderText("Bit shift left by N pixels")
@@ -525,8 +600,19 @@ class ImageWidget(QWidget):
         layout.addWidget(self.show_bit_shift_region_checkbox)
         self.show_bit_shift_region_checkbox.stateChanged.connect(self.emit_visual_update)
 
+        self.bit_shift_pixels_input.textChanged.connect(self.emit_visual_update)
+        self.bit_shift_vstart_input.textChanged.connect(self.emit_visual_update)
+        self.bit_shift_vend_input.textChanged.connect(self.emit_visual_update)
+        self.processing_mode_input.currentTextChanged.connect(self.emit_visual_update)
+
     def update_processing_ui(self, mode):
         use_binning = (mode == "binning")
+
+        for w in self.binning_widgets:
+            w.setVisible(use_binning)
+
+        for w in self.bit_shift_widgets:
+            w.setVisible(not use_binning)
 
         self.roi_hbin_input.setEnabled(use_binning)
         self.roi_vbin_input.setEnabled(use_binning)
@@ -538,6 +624,8 @@ class ImageWidget(QWidget):
         if not use_binning:
             self.roi_hbin_input.setText("1")
             self.roi_vbin_input.setText("1")
+
+        self.emit_visual_update()
 
     def emit_visual_update(self):
         try:
