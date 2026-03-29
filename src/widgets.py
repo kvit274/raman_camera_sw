@@ -468,7 +468,7 @@ class ImageWidget(QWidget):
 
         layout.addWidget(QLabel("Processing Mode"))
         self.processing_mode_input = QNoScrollComboBox()
-        self.processing_mode_input.addItems(["binning", "bit_shift"])
+        self.processing_mode_input.addItems(["bit_shift","binning"])
         self.processing_mode_input.setCurrentText("binning")
         layout.addWidget(self.processing_mode_input)
 

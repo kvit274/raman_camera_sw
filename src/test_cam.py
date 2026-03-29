@@ -70,6 +70,11 @@ class TestCameraModel:
         # transfer frame mode:
         self.enable_frame_transfer_mode = None
 
+        # bit shifting info
+        self.bit_shift_pixels = 0
+        self.bit_shift_vstart = None
+        self.bit_shift_vend = None
+
 
     # ==== DECORATORS =====
 
@@ -309,6 +314,16 @@ class TestCameraModel:
         self.set_roi(hstart, hend, vstart, vend, hbin, vbin)
         self.set_read_mode("image")
         return 
+
+    def setup_bit_shifting(self,bit_shift_pixels,bit_shift_vstart,bit_shift_vend):
+        bit_shift_pixels,bit_shift_vstart,bit_shift_vend = self.validate_bit_shift(bit_shift_pixels,bit_shift_vstart,bit_shift_vend)
+        self.bit_shift_pixels = bit_shift_pixels
+        self.bit_shift_vstart = bit_shift_vstart
+        self.bit_shift_vend = bit_shift_vend
+        return
+
+    def get_bit_shifting(self):
+        return self.bit_shift_pixels,self.bit_shift_vstart,self.bit_shift_vend
 
     @requires_cam_connected
     def get_image_mode_parameters(self):
@@ -613,6 +628,19 @@ class TestCameraModel:
             vbin = 1
         return hstart,hend,vstart,vend,hbin,vbin
 
+    def validate_bit_shift(self,bit_shift_pixels,bit_shift_vstart,bit_shift_vend):
+        if bit_shift_pixels is None:
+            bit_shift = 0
+
+        _,_,vstart,vend,_,_ = self.get_roi()
+        if bit_shift_vstart is None or bit_shift_vstart<vstart:
+            bit_shift_vstart = vstart
+        if bit_shift_vend is None or bit_shift_vend>vend:
+            bit_shift_vend = vend
+        if bit_shift_vstart > bit_shift_vend:
+            raise ValueError(f"Bit shift region should be between {vstart} - {vend}")
+        return bit_shift_pixels,bit_shift_vstart,bit_shift_vend
+
     @requires_cam_connected
     def start_acquisition(self):
         return self.generate_fake_frame()
@@ -625,7 +653,7 @@ class TestCameraModel:
     # ===== FILE MANAGEMENT =====
     
     # import imageio.v2 as imageio
-    def save_frames(self,frames,filename=None):
+    def save_image(self,frames,filename=None):
         """
         Save a single acquired frame as PNG + raw CSV
         """

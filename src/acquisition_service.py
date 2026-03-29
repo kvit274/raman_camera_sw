@@ -138,6 +138,7 @@ class AcquisitionService:
                 local_vend = min(frame_h, shift_vend - roi_vstart)
 
             if local_vend > local_vstart:
+                print(f"shifting!")
                 frame_copy[local_vstart:local_vend, :] = np.roll(
                     frame_copy[local_vstart:local_vend, :],
                     -shift_pixels,
@@ -204,7 +205,7 @@ class AcquisitionService:
         np.savetxt(csv_path, data, delimiter=",", fmt="%d")
         print(f"[SAVE] CSV saved to {csv_path}")
 
-    def save_frames(self,frames,filename=None):     # should handle saving mulitiple files without overwritin files
+    def save_image(self,frames,filename=None):     # should handle saving mulitiple files without overwritin files
         """
         Save a single acquired frame as PNG + raw CSV
         """
