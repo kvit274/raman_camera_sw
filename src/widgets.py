@@ -657,7 +657,7 @@ class ImageWidget(QWidget):
         if state:
 
             vstart = self.bit_shift_vstart_input.text()
-            hend = self.bit_shift_vend_input.text()
+            vend = self.bit_shift_vend_input.text()
 
             if not vstart or not vend:
 

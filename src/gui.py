@@ -687,6 +687,84 @@ class MainWindow(QMainWindow):
         self.display_image(frame)
         self.show_calibration_result(spectrum_data,title="Preview")
 
+    def _create_spectrum_plot(self, title="Spectrum"):
+        plot = pg.PlotWidget()
+        plot.setLabel("left", "Intensity")
+        plot.setLabel("bottom", "Detector pixel")
+        plot.showGrid(x=True, y=True, alpha=0.2)
+
+        vb = plot.getViewBox()
+        vb.setMouseEnabled(x=True, y=True)
+        vb.setDefaultPadding(0.0)
+
+        curve = plot.plot([], [], pen=pg.mkPen("y", width=1.5))
+
+        marker = pg.ScatterPlotItem(size=8, brush=pg.mkBrush(255, 80, 80))
+        plot.addItem(marker)
+
+        label = pg.TextItem("", anchor=(0.5, 1.2))
+        label.setVisible(False)
+        plot.addItem(label)
+
+        plot._curve = curve
+        plot._marker = marker
+        plot._label = label
+        plot._x = None
+        plot._y = None
+
+        plot.scene().sigMouseClicked.connect(
+            lambda ev, p=plot: self.on_spectrum_clicked(ev, p)
+        )
+
+        return plot
+
+
+    def _update_spectrum_plot(self, plot, spectrum_data):
+        x, y = spectrum_data
+        x = np.asarray(x)
+        y = np.asarray(y)
+
+        plot._x = x
+        plot._y = y
+        plot._curve.setData(x, y)
+
+        if len(x) == 0:
+            return
+
+        xmin = float(x.min())
+        xmax = float(x.max())
+        ymin = float(y.min())
+        ymax = float(y.max())
+
+        if ymin == ymax:
+            ymax = ymin + 1
+
+        ypad = max((ymax - ymin) * 0.08, 1.0)
+
+        plot.setLimits(xMin=xmin, xMax=xmax)
+        plot.setXRange(xmin, xmax, padding=0)
+        plot.setYRange(ymin - ypad, ymax + ypad, padding=0)
+
+        plot._marker.setData([], [])
+        plot._label.setVisible(False)
+
+
+    def on_spectrum_clicked(self, event, plot):
+        if plot._x is None or plot._y is None or len(plot._x) == 0:
+            return
+
+        mouse_point = plot.getViewBox().mapSceneToView(event.scenePos())
+        clicked_x = mouse_point.x()
+
+        idx = int(np.argmin(np.abs(plot._x - clicked_x)))
+        px = float(plot._x[idx])
+        py = float(plot._y[idx])
+
+        plot._marker.setData([px], [py])
+        plot._label.setText(f"{py:.0f} counts")
+        plot._label.setPos(px, py)
+        plot._label.setVisible(True)
+
 
     def update_roi_inputs(self,roi):
 
@@ -768,34 +846,15 @@ class MainWindow(QMainWindow):
             self.display_image(frame)
 
         if spectrum_data is not None:
-            x,y = spectrum_data
-
             if self.live_plot is None:
-                self.live_plot = pg.PlotWidget()
-                self.live_plot.setLabel('left', 'Intensity')
-                self.live_plot.setLabel('bottom', 'Pixels')
+                self.live_plot = self._create_spectrum_plot("Live")
                 self.live_tab_index = self.calibration_tabs.addTab(self.live_plot, "Live")
 
-            self.live_plot.clear()
-            # pixels = np.arange(len(spectrum))
-            self.live_plot.plot(x,y,pen="y")
+            self._update_spectrum_plot(self.live_plot, spectrum_data)
 
     def show_calibration_result(self, spectrum_data, title="Acquisition"):
-        x,y = spectrum_data
-
-        plot = pg.PlotWidget()
-
-        plot.setLabel('left', 'Intensity')
-        plot.setLabel('bottom', 'Pixels')
-
-        vb = plot.getViewBox()
-        vb.setMouseEnabled(x=True,y=True)
-
-        # pixels = np.arange(len(spectrum))
-
-        plot.plot(x,y,pen="y")
-        plot.enableAutoRange(x=True,y=True)
-
+        plot = self._create_spectrum_plot(title)
+        self._update_spectrum_plot(plot, spectrum_data)
         self.calibration_tabs.addTab(plot, f"{title}{self.calibration_tabs.count()+1}")
 
     def close_calibration_tab(self, index):
