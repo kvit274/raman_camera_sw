@@ -185,23 +185,32 @@ class MainWindow(QMainWindow):
         self.left_container.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
 
 
-        # -------- Camera Control (NOT collapsible) --------
-        self.control_layout = QVBoxLayout()
+        
+        # -------- Top camera controls row --------
+        self.top_controls_container = QWidget()
+        self.top_controls_layout = QHBoxLayout(self.top_controls_container)
+        self.top_controls_layout.setContentsMargins(10, 10, 10, 0)
+        self.top_controls_layout.setSpacing(8)
 
-        self.control_layout.addWidget(QLabel("Camera Control"))
-        self.control_layout.addWidget(self.btn_connect_cam)
-        self.control_layout.addWidget(self.btn_live)
-        self.control_layout.addWidget(self.btn_stop)
-        self.control_layout.addWidget(self.btn_preview)
-        self.control_layout.addWidget(self.btn_acquire)
-        self.control_layout.addWidget(self.btn_stop_acq)
-        self.control_layout.addWidget(self.btn_disconnect_cam)
-        self.control_layout.addWidget(self.save_frame_path_button)
-        self.control_layout.addWidget(self.save_frame_path_label)
-        self.control_layout.addLayout(self.save_frame_path_layout)
-        self.control_layout.addWidget(self.btn_open_npz)
+        self.top_controls_layout.addWidget(self.btn_connect_cam)
+        self.top_controls_layout.addWidget(self.btn_disconnect_cam)
+        self.top_controls_layout.addWidget(self.btn_live)
+        self.top_controls_layout.addWidget(self.btn_stop)
+        self.top_controls_layout.addWidget(self.btn_preview)
+        self.top_controls_layout.addWidget(self.btn_acquire)
+        self.top_controls_layout.addWidget(self.btn_stop_acq)
+        self.top_controls_layout.addStretch()
 
-        self.left_layout.addLayout(self.control_layout)
+        # self.left_layout.addLayout(self.control_layout)
+
+        # -------- File / save controls --------
+        self.file_controls_layout = QVBoxLayout()
+        self.file_controls_layout.addWidget(self.save_frame_path_button)
+        self.file_controls_layout.addWidget(self.save_frame_path_label)
+        self.file_controls_layout.addLayout(self.save_frame_path_layout)
+        self.file_controls_layout.addWidget(self.btn_open_npz)
+
+        self.left_layout.addLayout(self.file_controls_layout)
 
         # -------- Shutter --------
         self.section_shutter = CollapsibleSection("Shutter")
@@ -360,8 +369,11 @@ class MainWindow(QMainWindow):
         # ============================================================
 
         self.main_layout = QVBoxLayout()
-        self.main_layout.addWidget(self.splitter,1)
-        self.main_layout.addWidget(self.status_container)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
+        self.main_layout.setSpacing(6)
+        self.main_layout.addWidget(self.top_controls_container, 0)
+        self.main_layout.addWidget(self.splitter, 1)
+        self.main_layout.addWidget(self.status_container, 0)
 
         self.central = QWidget()
         self.central.setLayout(self.main_layout)
