@@ -325,6 +325,12 @@ class MainWindow(QMainWindow):
         self.calibration_tabs.setTabsClosable(True)
         self.calibration_tabs.tabCloseRequested.connect(lambda i: self.close_calibration_tab(i))
 
+        self.btn_new_spectrum_tab = QPushButton("+")
+        self.btn_new_spectrum_tab.setFixedWidth(30)
+        self.btn_new_spectrum_tab.clicked.connect(self.create_empty_spectrum_tab)
+
+        self.calibration_tabs.setCornerWidget(self.btn_new_spectrum_tab, Qt.TopRightCorner)
+
         self.cal_layout.addWidget(self.calibration_tabs)
 
         self.right_tabs.addTab(self.calibration_tab, "Spectrogram")
@@ -332,8 +338,8 @@ class MainWindow(QMainWindow):
         # init common plots
         self.live_plot = None       # to display live mode spectrogram
         self.live_tab_index = None
-        self.last_acquired_plot = None
-        self.last_acquired_title = None
+        # self.last_acquired_plot = None
+        # self.last_acquired_title = None
         self.pending_filename = None
         self.plot_pens = [
             pg.mkPen("y", width=1.8),
@@ -815,6 +821,13 @@ class MainWindow(QMainWindow):
             clear_existing=True
         )
 
+    def create_empty_spectrum_tab(self, title="Spectrum"):
+        plot = self.create_spectrum_plot(title)
+        index = self.calibration_tabs.addTab(plot, title)
+        self.calibration_tabs.setCurrentIndex(index)
+        self.right_tabs.setCurrentWidget(self.calibration_tab)
+        return plot
+
 
     def on_spectrum_hover(self, pos, plot):
         curves = getattr(plot, "_curves", [])
@@ -972,8 +985,8 @@ class MainWindow(QMainWindow):
         self.update_spectrum_plot(plot, spectrum_data, name=title)
 
         self.calibration_tabs.addTab(plot, title)
-        self.last_acquired_plot = plot
-        self.last_acquired_title = title
+        # self.last_acquired_plot = plot
+        # self.last_acquired_title = title
         self.pending_filename = None
 
     def close_calibration_tab(self, index):
@@ -984,9 +997,9 @@ class MainWindow(QMainWindow):
             self.live_plot = None
             self.live_tab_index = None
         
-        if widget is self.last_acquired_plot:
-            self.last_acquired_plot = None
-            self.last_acquired_title = None
+        # if widget is self.last_acquired_plot:
+        #     self.last_acquired_plot = None
+        #     self.last_acquired_title = None
 
         self.calibration_tabs.removeTab(index)
         widget.deleteLater()
@@ -1074,34 +1087,27 @@ class MainWindow(QMainWindow):
 
             spectrum = data["spectrum"]
             pixel = data["pixel"]
-            spectrum_data = (pixel,spectrum)
+            spectrum_data = (pixel, spectrum)
 
             metadata = None
             if "metadata" in data:
                 metadata = data["metadata"].item()
 
             name = Path(file).name
-            plot_still_open = False
-            if self.last_acquired_plot is not None:
-                for i in range(self.calibration_tabs.count()):
-                    if self.calibration_tabs.widget(i) is self.last_acquired_plot:
-                        plot_still_open = True
-            
 
-            if plot_still_open:
-                self.add_curve_to_spectrum_plot(
-                    self.last_acquired_plot,
-                    spectrum_data,
-                    name=name
-                )
-                self.calibration_tabs.setCurrentWidget(self.last_acquired_plot)
-                self.right_tabs.setCurrentWidget(self.calibration_tab)
+            current_plot = self.calibration_tabs.currentWidget()
+            if current_plot is None:
+                current_plot = self.create_empty_spectrum_tab(title=name)
             else:
-                self.last_acquired_plot = None
-                self.last_acquired_title = None
-                self.show_calibration_result(spectrum_data, title=name)
+                self.calibration_tabs.setTabText(self.calibration_tabs.currentIndex(), name)
 
-            # ask user if they want to load settings
+            self.update_spectrum_plot(current_plot, spectrum_data, name=name)
+
+            # self.last_acquired_plot = current_plot
+            # self.last_acquired_title = name
+
+            self.right_tabs.setCurrentWidget(self.calibration_tab)
+
             if metadata:
                 reply = QMessageBox.question(
                     self,
@@ -1113,7 +1119,7 @@ class MainWindow(QMainWindow):
 
                 if reply == QMessageBox.Yes:
                     self.load_settings_from_metadata(metadata)
-                    self.set_settings()  # apply loaded settings to camera
+                    self.set_settings()
 
         except Exception as e:
             QMessageBox.critical(
