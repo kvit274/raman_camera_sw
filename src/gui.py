@@ -984,6 +984,10 @@ class MainWindow(QMainWindow):
             self.live_plot = None
             self.live_tab_index = None
         
+        if widget is self.last_acquired_plot:
+            self.last_acquired_plot = None
+            self.last_acquired_title = None
+
         self.calibration_tabs.removeTab(index)
         widget.deleteLater()
         
@@ -1077,8 +1081,14 @@ class MainWindow(QMainWindow):
                 metadata = data["metadata"].item()
 
             name = Path(file).name
-
+            plot_still_open = False
             if self.last_acquired_plot is not None:
+                for i in range(self.calibration_tabs.count()):
+                    if self.calibration_tabs.widget(i) is self.last_acquired_plot:
+                        plot_still_open = True
+            
+
+            if plot_still_open:
                 self.add_curve_to_spectrum_plot(
                     self.last_acquired_plot,
                     spectrum_data,
@@ -1087,6 +1097,8 @@ class MainWindow(QMainWindow):
                 self.calibration_tabs.setCurrentWidget(self.last_acquired_plot)
                 self.right_tabs.setCurrentWidget(self.calibration_tab)
             else:
+                self.last_acquired_plot = None
+                self.last_acquired_title = None
                 self.show_calibration_result(spectrum_data, title=name)
 
             # ask user if they want to load settings
