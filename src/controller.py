@@ -26,8 +26,8 @@ class RamanCameraController(QObject):
         super().__init__()
 
         # self.view = view
-        self.camera = RamanCameraModel()
-        # self.camera = TestCameraModel()
+        # self.camera = RamanCameraModel()
+        self.camera = TestCameraModel()
         self.acquisition_service = AcquisitionService()
         self.spec = TestSpectrometerModel() # delete
 
@@ -88,14 +88,17 @@ class RamanCameraController(QObject):
 
     @handle_errors
     def connect_cam(self):
-        self.camera.connect_cam()
-        self.load_amp_modes()
-        self.load_vsspeeds()
+        try:
+            self.camera.connect_cam()
+            self.load_amp_modes()
+            self.load_vsspeeds()
 
-        self.user_config = self.cam_settings_to_user_config()
+            self.user_config = self.cam_settings_to_user_config()
 
-        self.display_shutter_state()
-        self.cool_cam(target_temp=-85)
+            self.display_shutter_state()
+            self.cool_cam(target_temp=-85)
+        except:
+            self.display_msg("No camera found")
         return
 
     def is_camera_alive(self):

@@ -731,14 +731,15 @@ class MainWindow(QMainWindow):
 
         plot.addLegend()
 
-        marker = pg.ScatterPlotItem(size=8, brush=pg.mkBrush(255, 80, 80))
-        plot.addItem(marker)
+        # marker = pg.ScatterPlotItem(size=8, brush=pg.mkBrush(255, 80, 80))
+        # plot.addItem(marker)
 
-        label = pg.TextItem("", anchor=(0.5, 1.4))
+        label = pg.TextItem("", anchor=(0.5, 1), fill =pg.mkBrush(0,0,0),border=pg.mkPen(255,255,255))
+        label.setZValue(500)
         label.setVisible(False)
         plot.addItem(label)
 
-        plot._marker = marker
+        # plot._marker = marker
         plot._label = label
         plot._x = None
         plot._y = None
@@ -765,10 +766,10 @@ class MainWindow(QMainWindow):
                 plot.removeItem(item["curve"])
             plot._curves = []
 
-            # also rebuild legend cleanly
-            if plot.plotItem.legend is not None:
-                plot.plotItem.legend.scene().removeItem(plot.plotItem.legend)
-            plot.addLegend()
+            # # also rebuild legend cleanly
+            # if plot.plotItem.legend is not None:
+            #     plot.plotItem.legend.scene().removeItem(plot.plotItem.legend)
+            # plot.addLegend()
 
         if pen is None:
             pen = self._get_next_pen()
@@ -802,7 +803,7 @@ class MainWindow(QMainWindow):
         plot.setXRange(xmin, xmax, padding=0)
         plot.setYRange(ymin - ypad, ymax + ypad, padding=0)
 
-        plot._marker.setData([], [])
+        # plot._marker.setData([], [])
         plot._label.setVisible(False)
 
 
@@ -826,12 +827,14 @@ class MainWindow(QMainWindow):
 
         mouse_point = vb.mapSceneToView(pos)
 
-        best = None
-        best_dist = None
+        entries = []
+        x_for_label = None
+        y_for_label = None
 
         for item in curves:
             x = item["x"]
             y = item["y"]
+            name = item["name"]
 
             if len(x) == 0:
                 continue
@@ -844,21 +847,26 @@ class MainWindow(QMainWindow):
             px = float(x[idx])
             py = float(y[idx])
 
-            dist = abs(px - mouse_point.x())
+            entries.append((name,px,py))
 
-            if best is None or dist < best_dist:
-                best = (px, py)
-                best_dist = dist
-
-        if best is None:
-            plot._marker.setData([], [])
+            if x_for_label is None:
+                x_for_label = px
+                y_for_label = py
+            else:
+                if py>y_for_label:
+                    x_for_label = px
+                    y_for_label = py
+        
+        if not entries:
             plot._label.setVisible(False)
             return
 
-        px, py = best
-        plot._marker.setData([px], [py])
-        plot._label.setText(f"{py:.0f} counts")
-        plot._label.setPos(px, py)
+        lines = [f"x={entries[0][1]:.0f}"]
+        for name, _, py in entries:
+            lines.append(f"{name}: {py:.0f}")
+
+        plot._label.setText("\n".join(lines))
+        plot._label.setPos(x_for_label,y_for_label)
         plot._label.setVisible(True)
 
 
