@@ -239,7 +239,9 @@ class TestCameraModel:
         Initializes default (safe) parameters for the camera
         (might delete in future)
         """
-        print("Default camera settings applied")
+        self.setup_single_mode()
+
+        print(f"Camera initialized")
         return
 
     @requires_cam_connected

@@ -327,7 +327,7 @@ class MainWindow(QMainWindow):
 
         self.btn_new_spectrum_tab = QPushButton("+")
         self.btn_new_spectrum_tab.setFixedWidth(30)
-        self.btn_new_spectrum_tab.clicked.connect(self.create_empty_spectrum_tab)
+        self.btn_new_spectrum_tab.clicked.connect(lambda: self.create_empty_spectrum_tab())
 
         self.calibration_tabs.setCornerWidget(self.btn_new_spectrum_tab, Qt.TopRightCorner)
 
@@ -336,8 +336,8 @@ class MainWindow(QMainWindow):
         self.right_tabs.addTab(self.calibration_tab, "Spectrogram")
 
         # init common plots
-        self.live_plot = None       # to display live mode spectrogram
-        self.live_tab_index = None
+        self.live_plot = self.create_spectrum_plot("Live")
+        self.live_tab_index = self.calibration_tabs.addTab(self.live_plot, "Live")
         # self.last_acquired_plot = None
         # self.last_acquired_title = None
         self.pending_filename = None
@@ -348,6 +348,7 @@ class MainWindow(QMainWindow):
             pg.mkPen("g", width=1.8),
             pg.mkPen("w", width=1.8),
         ]
+        self.orange_pen = pg.mkPen((255,165,9),width=1.8)
         self.next_plot_pen_idx = 0
 
 
@@ -609,11 +610,11 @@ class MainWindow(QMainWindow):
             b.setEnabled(False)
 
     def disable_live_buttons(self):
-        for b in [self.btn_acquire, self.btn_connect_cam, self.btn_live, self.btn_preview, self.btn_acquire, self.btn_set_temp,self.set_settings_button,self.btn_stop_acq]:
+        for b in [self.btn_acquire, self.btn_connect_cam, self.btn_live, self.btn_preview, self.btn_acquire, self.btn_set_temp,self.set_settings_button,self.btn_stop_acq,self.btn_open_npz]:
             b.setEnabled(False)
     
     def enable_buttons(self):
-        for b in [self.btn_connect_cam, self.btn_disconnect_cam, self.btn_live, self.btn_stop, self.btn_preview, self.btn_acquire, self.btn_stop_acq, self.btn_set_temp, self.set_settings_button]:
+        for b in [self.btn_connect_cam, self.btn_disconnect_cam, self.btn_live, self.btn_stop, self.btn_preview, self.btn_acquire, self.btn_stop_acq, self.btn_set_temp, self.set_settings_button,self.btn_open_npz]:
             b.setEnabled(True)
 
     def apply_temperature(self):
@@ -813,11 +814,12 @@ class MainWindow(QMainWindow):
         plot._label.setVisible(False)
 
 
-    def update_spectrum_plot(self, plot, spectrum_data, name="Spectrum"):
+    def update_spectrum_plot(self, plot, spectrum_data, name="Spectrum",pen=None):
         self.add_curve_to_spectrum_plot(
             plot,
             spectrum_data,
             name=name,
+            pen=pen,
             clear_existing=True
         )
 
@@ -973,7 +975,7 @@ class MainWindow(QMainWindow):
             self.live_plot = self.create_spectrum_plot("Live")
             self.live_tab_index = self.calibration_tabs.addTab(self.live_plot, "Live")
 
-        self.update_spectrum_plot(self.live_plot, spectrum_data, name="Live")
+        self.update_spectrum_plot(self.live_plot, spectrum_data, name="Live",pen=self.orange_pen)
         # self.calibration_tabs.setCurrentWidget(self.live_plot)
         # self.right_tabs.setCurrentWidget(self.calibration_tab)
 
@@ -982,7 +984,7 @@ class MainWindow(QMainWindow):
             title = self.pending_filename
 
         plot = self.create_spectrum_plot(title)
-        self.update_spectrum_plot(plot, spectrum_data, name=title)
+        self.update_spectrum_plot(plot, spectrum_data, name=title, pen=self.orange_pen)
 
         self.calibration_tabs.addTab(plot, title)
         # self.last_acquired_plot = plot

@@ -97,6 +97,7 @@ class RamanCameraController(QObject):
 
             self.display_shutter_state()
             self.cool_cam(target_temp=-85)
+            self.camera.set_default_settings()
         except:
             self.display_msg("No camera found")
         return

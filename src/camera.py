@@ -149,13 +149,7 @@ class RamanCameraModel:
         Initializes default (safe) parameters for the camera
         (might delete in future)
         """
-        self.cam.init_amp_mode()
-        w,h = self.cam.get_detector_size()  # get the size of the camera
-        self.cam.setup_image_mode(hstart=0,hend=w,vstart=0,vend=h,hbin=1,vbin=1)         # takes extreme values by default, but just a precaution
-        self.cam.set_read_mode("image")     # reads images (read about this one, not sure)
-
-        self.cam.set_frame_format("list")   # 2D array
-        self.cam.set_image_indexing("rct")  # (row,column) format of the image indexing
+        self.setup_single_mode()
 
         print(f"Camera initialized")
         return
