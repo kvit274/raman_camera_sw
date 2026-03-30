@@ -329,8 +329,21 @@ class MainWindow(QMainWindow):
 
         self.right_tabs.addTab(self.calibration_tab, "Spectrogram")
 
+        # init common plots
         self.live_plot = None       # to display live mode spectrogram
         self.live_tab_index = None
+        self.last_acquired_plot = None
+        self.last_acquired_title = None
+        self.pending_filename = None
+        self.plot_pens = [
+            pg.mkPen("y", width=1.8),
+            pg.mkPen("c", width=1.8),
+            pg.mkPen("m", width=1.8),
+            pg.mkPen("g", width=1.8),
+            pg.mkPen("w", width=1.8),
+        ]
+        self.next_plot_pen_idx = 0
+
 
         # ============================================================
         # SPLITTER (DRAGGABLE)
@@ -714,10 +727,9 @@ class MainWindow(QMainWindow):
 
         vb = plot.getViewBox()
         vb.setMouseEnabled(x=True, y=True)
-        
         vb.setDefaultPadding(0.0)
 
-        curve = plot.plot([], [], pen=pg.mkPen("y", width=1.5))
+        plot.addLegend()
 
         marker = pg.ScatterPlotItem(size=8, brush=pg.mkBrush(255, 80, 80))
         plot.addItem(marker)
@@ -726,34 +738,60 @@ class MainWindow(QMainWindow):
         label.setVisible(False)
         plot.addItem(label)
 
-        plot._curve = curve
         plot._marker = marker
         plot._label = label
         plot._x = None
         plot._y = None
+        plot._curves = []   # list of dicts: {"curve":..., "x":..., "y":..., "name":...}
 
         plot.scene().sigMouseMoved.connect(lambda pos, p=plot: self.on_spectrum_hover(pos, p))
         plot.setMouseTracking(True)
 
         return plot
+    
+    def _get_next_pen(self):
+        pen = self.plot_pens[self.next_plot_pen_idx % len(self.plot_pens)]
+        self.next_plot_pen_idx += 1
+        return pen
 
 
-    def update_spectrum_plot(self, plot, spectrum_data):
+    def add_curve_to_spectrum_plot(self, plot, spectrum_data, name, pen=None, clear_existing=False):
         x, y = spectrum_data
         x = np.asarray(x)
         y = np.asarray(y)
 
+        if clear_existing:
+            for item in getattr(plot, "_curves", []):
+                plot.removeItem(item["curve"])
+            plot._curves = []
+
+            # also rebuild legend cleanly
+            if plot.plotItem.legend is not None:
+                plot.plotItem.legend.scene().removeItem(plot.plotItem.legend)
+            plot.addLegend()
+
+        if pen is None:
+            pen = self._get_next_pen()
+
+        curve = plot.plot(x, y, pen=pen, name=name)
+        plot._curves.append({
+            "curve": curve,
+            "x": x,
+            "y": y,
+            "name": name
+        })
+
+        # hover works on the most recently added curve
         plot._x = x
         plot._y = y
-        plot._curve.setData(x, y)
 
-        if len(x) == 0:
-            return
+        all_x = np.concatenate([c["x"] for c in plot._curves]) if plot._curves else x
+        all_y = np.concatenate([c["y"] for c in plot._curves]) if plot._curves else y
 
-        xmin = float(x.min())
-        xmax = float(x.max())
-        ymin = float(y.min())
-        ymax = float(y.max())
+        xmin = float(all_x.min())
+        xmax = float(all_x.max())
+        ymin = float(all_y.min())
+        ymax = float(all_y.max())
 
         if ymin == ymax:
             ymax = ymin + 1
@@ -768,8 +806,18 @@ class MainWindow(QMainWindow):
         plot._label.setVisible(False)
 
 
+    def update_spectrum_plot(self, plot, spectrum_data, name="Spectrum"):
+        self.add_curve_to_spectrum_plot(
+            plot,
+            spectrum_data,
+            name=name,
+            clear_existing=True
+        )
+
+
     def on_spectrum_hover(self, pos, plot):
-        if plot._x is None or plot._y is None or len(plot._x) == 0:
+        curves = getattr(plot, "_curves", [])
+        if not curves:
             return
 
         vb = plot.getViewBox()
@@ -777,17 +825,37 @@ class MainWindow(QMainWindow):
             return
 
         mouse_point = vb.mapSceneToView(pos)
-        x_min, x_max = float(plot._x.min()), float(plot._x.max())
 
-        if mouse_point.x() < x_min or mouse_point.x() > x_max:
+        best = None
+        best_dist = None
+
+        for item in curves:
+            x = item["x"]
+            y = item["y"]
+
+            if len(x) == 0:
+                continue
+
+            x_min, x_max = float(x.min()), float(x.max())
+            if mouse_point.x() < x_min or mouse_point.x() > x_max:
+                continue
+
+            idx = int(np.argmin(np.abs(x - mouse_point.x())))
+            px = float(x[idx])
+            py = float(y[idx])
+
+            dist = abs(px - mouse_point.x())
+
+            if best is None or dist < best_dist:
+                best = (px, py)
+                best_dist = dist
+
+        if best is None:
             plot._marker.setData([], [])
             plot._label.setVisible(False)
             return
 
-        idx = int(np.argmin(np.abs(plot._x - mouse_point.x())))
-        px = float(plot._x[idx])
-        py = float(plot._y[idx])
-
+        px, py = best
         plot._marker.setData([px], [py])
         plot._label.setText(f"{py:.0f} counts")
         plot._label.setPos(px, py)
@@ -884,14 +952,21 @@ class MainWindow(QMainWindow):
             self.live_plot = self.create_spectrum_plot("Live")
             self.live_tab_index = self.calibration_tabs.addTab(self.live_plot, "Live")
 
-        self.update_spectrum_plot(self.live_plot, spectrum_data)
+        self.update_spectrum_plot(self.live_plot, spectrum_data, name="Live")
         # self.calibration_tabs.setCurrentWidget(self.live_plot)
         # self.right_tabs.setCurrentWidget(self.calibration_tab)
 
     def show_calibration_result(self, spectrum_data, title="Acquisition"):
+        if self.pending_filename:
+            title = self.pending_filename
+
         plot = self.create_spectrum_plot(title)
-        self.update_spectrum_plot(plot, spectrum_data)
-        self.calibration_tabs.addTab(plot, f"{title}{self.calibration_tabs.count()+1}")
+        self.update_spectrum_plot(plot, spectrum_data, name=title)
+
+        self.calibration_tabs.addTab(plot, title)
+        self.last_acquired_plot = plot
+        self.last_acquired_title = title
+        self.pending_filename = None
 
     def close_calibration_tab(self, index):
 
@@ -994,7 +1069,17 @@ class MainWindow(QMainWindow):
                 metadata = data["metadata"].item()
 
             name = Path(file).name
-            self.show_calibration_result(spectrum_data, title=name)
+
+            if self.last_acquired_plot is not None:
+                self.add_curve_to_spectrum_plot(
+                    self.last_acquired_plot,
+                    spectrum_data,
+                    name=name
+                )
+                self.calibration_tabs.setCurrentWidget(self.last_acquired_plot)
+                self.right_tabs.setCurrentWidget(self.calibration_tab)
+            else:
+                self.show_calibration_result(spectrum_data, title=name)
 
             # ask user if they want to load settings
             if metadata:
