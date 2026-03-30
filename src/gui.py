@@ -191,7 +191,9 @@ class MainWindow(QMainWindow):
         self.top_controls_layout = QHBoxLayout(self.top_controls_container)
         self.top_controls_layout.setContentsMargins(10, 10, 10, 0)
         self.top_controls_layout.setSpacing(8)
+        self.top_controls_layout.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
 
+        self.top_controls_layout.addStretch()
         self.top_controls_layout.addWidget(self.btn_connect_cam)
         self.top_controls_layout.addWidget(self.btn_disconnect_cam)
         self.top_controls_layout.addWidget(self.btn_live)
@@ -199,7 +201,7 @@ class MainWindow(QMainWindow):
         self.top_controls_layout.addWidget(self.btn_preview)
         self.top_controls_layout.addWidget(self.btn_acquire)
         self.top_controls_layout.addWidget(self.btn_stop_acq)
-        self.top_controls_layout.addStretch()
+        
 
         # self.left_layout.addLayout(self.control_layout)
 
@@ -414,7 +416,7 @@ class MainWindow(QMainWindow):
 
             "exposure": self.exposure_input,
             "trigger_mode": self.trigger_mode_input,
-            "result_mode": self.result_mode_input,
+            # "result_mode": self.result_mode_input,
 
             ("shutter","mode"): self.shutter_mode_input,
             ("shutter","ttl_mode"): self.ttl_mode_input,
@@ -883,8 +885,8 @@ class MainWindow(QMainWindow):
             self.live_tab_index = self.calibration_tabs.addTab(self.live_plot, "Live")
 
         self.update_spectrum_plot(self.live_plot, spectrum_data)
-        self.calibration_tabs.setCurrentWidget(self.live_plot)
-        self.right_tabs.setCurrentWidget(self.calibration_tab)
+        # self.calibration_tabs.setCurrentWidget(self.live_plot)
+        # self.right_tabs.setCurrentWidget(self.calibration_tab)
 
     def show_calibration_result(self, spectrum_data, title="Acquisition"):
         plot = self.create_spectrum_plot(title)

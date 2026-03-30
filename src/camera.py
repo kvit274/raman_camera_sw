@@ -349,19 +349,19 @@ class RamanCameraModel:
         return
 
     @requires_cam_connected
-    def setup_accum_mode(self, num_acc:int, cycle_time_acc:Optional[float]=0, mode:Optional[str]="accum"):
+    def setup_accum_mode(self, num_acc:int, cycle_time_acc:Optional[float]=0, mode:Optional[str]="accum",result_mode="sum"):
         # validation?
         self.cam.setup_accum_mode(num_acc, cycle_time_acc)
         return
 
     @requires_cam_connected
-    def setup_kinetic_mode(self, num_cycle:int, cycle_time:Optional[float]=0, num_acc:Optional[int]=1, cycle_time_acc:Optional[float]=0, num_prescan:Optional[int]=0, mode:Optional[str]="kinetic"):
+    def setup_kinetic_mode(self, num_cycle:int, cycle_time:Optional[float]=0, num_acc:Optional[int]=1, cycle_time_acc:Optional[float]=0, num_prescan:Optional[int]=0, mode:Optional[str]="kinetic",result_mode="sum"):
         # validation?
         self.cam.setup_kinetic_mode(num_cycle, cycle_time, num_acc, cycle_time_acc, num_prescan)
         return
 
     @requires_cam_connected
-    def setup_fast_kinetic_mode(self, num_acc:int, cycle_time_acc:Optional[float]=0, mode:Optional[str]="fast_kinetic"):
+    def setup_fast_kinetic_mode(self, num_acc:int, cycle_time_acc:Optional[float]=0, mode:Optional[str]="fast_kinetic",result_mode="sum"):
         # validation?
         self.cam.setup_fast_kinetic_mode(num_acc, cycle_time_acc)
         return

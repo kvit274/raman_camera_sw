@@ -351,19 +351,19 @@ class TestCameraModel:
         return
 
     @requires_cam_connected
-    def setup_accum_mode(self,mode,num_acc:int, cycle_time_acc:Optional[float]=0):
+    def setup_accum_mode(self,mode,num_acc:int, cycle_time_acc:Optional[float]=0, result_mode="sum"):
         # validation?
         self.acquisition_mode = "accum"
         return
 
     @requires_cam_connected
-    def setup_kinetic_mode(self,mode, num_cycle:int, cycle_time:Optional[float]=0, num_acc:Optional[int]=1, cycle_time_acc:Optional[float]=0, num_prescan:Optional[int]=0):
+    def setup_kinetic_mode(self,mode, num_cycle:int, cycle_time:Optional[float]=0, num_acc:Optional[int]=1, cycle_time_acc:Optional[float]=0, num_prescan:Optional[int]=0,result_mode="sum"):
         # validation?
         self.acquisition_mode = "kinetic"
         return
 
     @requires_cam_connected
-    def setup_fast_kinetic_mode(self, mode,num_acc:int, cycle_time_acc:Optional[float]=0):
+    def setup_fast_kinetic_mode(self, mode,num_acc:int, cycle_time_acc:Optional[float]=0,result_mode="sum"):
         # validation?
         self.acquisition_mode = "fast_kinetic"
         return

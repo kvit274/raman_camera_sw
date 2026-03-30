@@ -224,11 +224,21 @@ class AcquisitionService:
             png_path = self.save_path / f"{filename.replace('.npz', '.png')}"
             # csv_path = self.save_path_csv / f"{filename.replace('.npz', '.csv')}"
 
-        for idx,frame in enumerate(frames):
+        if isinstance(frames,list) and len(frames) == 1 and isinstance(frames[0],list):
+            frames = frames[0]
 
-            if frame.size == 0:
-                print("Empty frame")
-                return
+        for frame in frames:
+            frame = np.asarray(frame)
+
+            if frame.ndim == 1:
+                frame = frame[np.newaxis, :]
+
+            if frame.ndim != 2:
+                raise ValueError(f"Invalid frame shape: {frame.shape}")
+
+            if frame.dtype != np.uint8:
+                m = frame.max()
+                frame = (frame/m*255).astype(np.uint8) if m != 0 else frame.astype(np.uint8)
 
             plt.imsave(png_path, frame,cmap="gray")
             # np.savetxt(csv_path,frame,delimiter=",",fmt="%d")
