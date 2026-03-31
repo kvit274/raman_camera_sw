@@ -54,17 +54,37 @@ class RamanCameraController(QObject):
                 traceback.print_exc()
                 print("===================================")
 
-                if self.camera is None or self.camera.cam is None:
-                    self.fsm.set_state(CameraState.DISCONNECTED)
-                else:
-                    self.fsm.set_state(CameraState.ERROR)
+                msg = str(e) if str(e) else e.__class__.__name__
 
+                cam_exists = self.camera is not None
+                cam_connected = cam_exists and getattr(self.camera, "cam", None) is not None
+
+                # --- critical: camera disappeared / connection lost ---
+                if cam_exists and not cam_connected:
+                    self.fsm.set_state(CameraState.DISCONNECTED)
+
+                    if not self._error_active:
+                        self._error_active = True
+                        self.camera_lost_signal.emit()
+                    return None
+
+                # try extra health check only when camera is expected to be connected
+                if cam_connected:
+                    try:
+                        self.camera.get_device_info()
+                    except Exception:
+                        self.fsm.set_state(CameraState.DISCONNECTED)
+
+                        if not self._error_active:
+                            self._error_active = True
+                            self.camera_lost_signal.emit()
+                        return None
+
+                # --- non-critical / recoverable ---
+                # keep current FSM state, only show message in UI
                 if not self._error_active:
                     self._error_active = True
-                    if self.camera is None or self.camera.cam is None:
-                        self.camera_lost_signal.emit()
-                    else:
-                        self.error_signal.emit(str(e))
+                    self.error_signal.emit(msg)
 
                 return None
 

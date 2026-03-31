@@ -1342,7 +1342,25 @@ atexit.register(_safe_exit_close)
 
 def excepthook(exc_type, exc_value, exc_traceback):
     traceback.print_exception(exc_type, exc_value, exc_traceback)
-    _safe_exit_close()
+
+    # allow normal hard-exit cases
+    if issubclass(exc_type, (KeyboardInterrupt, SystemExit)):
+        _safe_exit_close()
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+        return
+
+    app = QApplication.instance()
+    window = app.activeWindow() if app else None
+
+    if window and hasattr(window, "display_msg"):
+        try:
+            window.display_msg(f"Unexpected error: {exc_value}")
+            return
+        except Exception:
+            pass
+
+    # last fallback: print only, do not force shutdown
+    print(f"[GUI] Unhandled non-fatal exception: {exc_value}")
 
 sys.excepthook = excepthook
 
