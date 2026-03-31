@@ -70,6 +70,8 @@ class AcquisitionWorker(QThread):
 
         except Exception:
             self.finished.emit(None)
+        finally:
+            self.controller.stop_acquisition()
             
        
 class LiveWorker(QThread):

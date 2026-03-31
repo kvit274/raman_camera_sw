@@ -12,6 +12,7 @@ from controller import RamanCameraController
 from widgets import MultiTrackWidget, SingleTrackWidget, FVBWidget, ImageWidget, RandomTrackWidget, SingleWidget, AccumWidget, KineticWidget, FastKineticWidget, ContinuousWidget, CollapsibleSection, QNoScrollComboBox, PreviewWidget, RulerContainer, TemperaturePopUp
 from typing import Dict
 from threads import AcquisitionWorker, LiveWorker
+from fsm import CameraState
 
 class MainWindow(QMainWindow):
 
@@ -34,7 +35,8 @@ class MainWindow(QMainWindow):
         self.controller.shutter_state_changed.connect(self.display_shutter_state)
         self.controller.amp_modes_loaded.connect(self.load_amp_modes)
         self.controller.vsspeeds_loaded.connect(self.load_vsspeeds)
-        self.controller.ui_busy_changed.connect(self.set_ui_busy)
+        # self.controller.ui_busy_changed.connect(self.set_ui_busy)
+        self.controller.ui_state_changed.connect(self.apply_state_to_ui)
 
         # Camera preview and controls
         self.preview = PreviewWidget()
@@ -52,7 +54,7 @@ class MainWindow(QMainWindow):
         self.btn_set_temp.setFixedWidth(70)
 
         # Save path directories
-        self.save_frame_path_button = QPushButton("Save data to:")
+        self.btn_save_frame_path = QPushButton("Save data to:")
         self.save_frame_path_label = QLabel("Data saved to: ./data")
         self.save_frame_path_label.setWordWrap(True)
 
@@ -75,7 +77,7 @@ class MainWindow(QMainWindow):
         self.save_frame_path_layout.addWidget(self.file_index_label)
         self.save_frame_path_layout.addWidget(self.file_index_input)
 
-        self.btn_open_npz = QPushButton("Load NPZ")
+        self.btn_open_npz = QPushButton("Load experiment")
 
         # Camera settings
 
@@ -159,7 +161,7 @@ class MainWindow(QMainWindow):
         self.emccd_gain_input.setValidator(QDoubleValidator())
         self.emccd_advanced_checkbox = QCheckBox("Advanced EMCCD (>300)")
 
-        self.set_settings_button = QPushButton("Apply Settings")
+        self.btn_set_settings = QPushButton("Apply Settings")
 
         # ==== Acquisition progress ====
         # self.acquisition_state = QLabel("Acquisition in progress: False")
@@ -207,7 +209,7 @@ class MainWindow(QMainWindow):
 
         # -------- File / save controls --------
         self.file_controls_layout = QVBoxLayout()
-        self.file_controls_layout.addWidget(self.save_frame_path_button)
+        self.file_controls_layout.addWidget(self.btn_save_frame_path)
         self.file_controls_layout.addWidget(self.save_frame_path_label)
         self.file_controls_layout.addLayout(self.save_frame_path_layout)
         self.file_controls_layout.addWidget(self.btn_open_npz)
@@ -281,7 +283,7 @@ class MainWindow(QMainWindow):
         self.section_amp.setContentLayout(self.amp_layout)
         self.left_layout.addWidget(self.section_amp)
 
-        self.left_layout.addWidget(self.set_settings_button)
+        self.left_layout.addWidget(self.btn_set_settings)
         self.left_layout.addStretch()
 
         self.scroll = QScrollArea()
@@ -412,12 +414,12 @@ class MainWindow(QMainWindow):
         self.btn_acquire.clicked.connect(self.start_acquisition)
         self.btn_stop_acq.clicked.connect(self.stop_acquisition)
         self.btn_disconnect_cam.clicked.connect(self.disconnect_cam)
-        self.set_settings_button.clicked.connect(self.set_settings)
+        self.btn_set_settings.clicked.connect(self.set_settings)
         self.read_mode_input.currentTextChanged.connect(self.on_read_mode_changed)
         self.on_read_mode_changed("image")      # update ui for image
         self.acquisition_mode_input.currentTextChanged.connect(self.on_acquisition_mode_changed)
         self.on_acquisition_mode_changed("single")
-        self.save_frame_path_button.clicked.connect(self.select_save_frame_path)
+        self.btn_save_frame_path.clicked.connect(self.select_save_frame_path)
         self.btn_open_npz.clicked.connect(self.open_npz)
         self.preview.roi_changed.connect(self.update_roi_inputs)
         self.preview.bit_shift_region_changed.connect(self.update_bit_shift_inputs)
@@ -453,13 +455,113 @@ class MainWindow(QMainWindow):
         }
 
         # disable buttons before camera connection
-        self.disable_not_connected_buttons()
+        # self.disable_not_connected_buttons()
+        for b in [self.btn_live, self.btn_stop, self.btn_preview, self.btn_acquire, self.btn_stop_acq, self.btn_set_temp,self.btn_set_settings]:
+            b.setEnabled(False)
 
-    def set_ui_busy(self, busy:bool):
-        if busy:
-            self.disable_buttons()
-        else:
-            self.enable_buttons()
+    # def set_ui_busy(self, busy:bool):
+    #     if busy:
+    #         self.disable_buttons()
+    #     else:
+    #         self.enable_buttons()
+
+    def apply_state_to_ui(self,state):
+        buttons = {
+            "connect": self.btn_connect_cam,
+            "disconnect": self.btn_disconnect_cam,
+            "live": self.btn_live,
+            "stop_live": self.btn_stop,
+            "preview": self.btn_preview,
+            "acquire": self.btn_acquire,
+            "stop_acq": self.btn_stop_acq,
+            "set_temp": self.btn_set_temp,
+            "apply_settings": self.btn_set_settings,
+            "open_npz": self.btn_open_npz,
+        }
+
+        if state == CameraState.DISCONNECTED:
+            buttons["connect"].setEnabled(True)
+            buttons["disconnect"].setEnabled(False)
+            buttons["live"].setEnabled(False)
+            buttons["stop_live"].setEnabled(False)
+            buttons["preview"].setEnabled(False)
+            buttons["acquire"].setEnabled(False)
+            buttons["stop_acq"].setEnabled(False)
+            buttons["set_temp"].setEnabled(False)
+            buttons["apply_settings"].setEnabled(False)
+            buttons["open_npz"].setEnabled(True)
+
+        elif state == CameraState.CONNECTED:
+            buttons["connect"].setEnabled(False)
+            buttons["disconnect"].setEnabled(True)
+            buttons["live"].setEnabled(False)
+            buttons["stop_live"].setEnabled(False)
+            buttons["preview"].setEnabled(False)
+            buttons["acquire"].setEnabled(False)
+            buttons["stop_acq"].setEnabled(False)
+            buttons["set_temp"].setEnabled(True)
+            buttons["apply_settings"].setEnabled(False)
+            buttons["open_npz"].setEnabled(True)
+
+        elif state == CameraState.COOLING:
+            buttons["connect"].setEnabled(False)
+            buttons["disconnect"].setEnabled(True)
+            buttons["live"].setEnabled(False)
+            buttons["stop_live"].setEnabled(False)
+            buttons["preview"].setEnabled(False)
+            buttons["acquire"].setEnabled(False)
+            buttons["stop_acq"].setEnabled(False)
+            buttons["set_temp"].setEnabled(True)
+            buttons["apply_settings"].setEnabled(False)
+            buttons["open_npz"].setEnabled(True)
+
+        elif state == CameraState.READY:
+            buttons["connect"].setEnabled(False)
+            buttons["disconnect"].setEnabled(True)
+            buttons["live"].setEnabled(True)
+            buttons["stop_live"].setEnabled(False)
+            buttons["preview"].setEnabled(True)
+            buttons["acquire"].setEnabled(True)
+            buttons["stop_acq"].setEnabled(False)
+            buttons["set_temp"].setEnabled(True)
+            buttons["apply_settings"].setEnabled(True)
+            buttons["open_npz"].setEnabled(True)
+
+        elif state == CameraState.LIVE:
+            buttons["connect"].setEnabled(False)
+            buttons["disconnect"].setEnabled(False)
+            buttons["live"].setEnabled(False)
+            buttons["stop_live"].setEnabled(True)
+            buttons["preview"].setEnabled(False)
+            buttons["acquire"].setEnabled(False)
+            buttons["stop_acq"].setEnabled(False)
+            buttons["set_temp"].setEnabled(False)
+            buttons["apply_settings"].setEnabled(False)
+            buttons["open_npz"].setEnabled(True)
+
+        elif state == CameraState.ACQUIRING:
+            buttons["connect"].setEnabled(False)
+            buttons["disconnect"].setEnabled(False)
+            buttons["live"].setEnabled(False)
+            buttons["stop_live"].setEnabled(False)
+            buttons["preview"].setEnabled(False)
+            buttons["acquire"].setEnabled(False)
+            buttons["stop_acq"].setEnabled(True)
+            buttons["set_temp"].setEnabled(False)
+            buttons["apply_settings"].setEnabled(False)
+            buttons["open_npz"].setEnabled(True)
+
+        elif state == CameraState.ERROR:
+            buttons["connect"].setEnabled(True)
+            buttons["disconnect"].setEnabled(False)
+            buttons["live"].setEnabled(False)
+            buttons["stop_live"].setEnabled(False)
+            buttons["preview"].setEnabled(False)
+            buttons["acquire"].setEnabled(False)
+            buttons["stop_acq"].setEnabled(False)
+            buttons["set_temp"].setEnabled(False)
+            buttons["apply_settings"].setEnabled(False)
+            buttons["open_npz"].setEnabled(True)
 
     def load_amp_modes(self,amp_modes):
         self.amp_mode_input.clear()
@@ -595,27 +697,27 @@ class MainWindow(QMainWindow):
         self.controller.disconnect_cam()
         self.disable_not_connected_buttons()
 
-    def disable_buttons(self):
-        for b in [self.btn_connect_cam, self.btn_live, self.btn_stop, self.btn_preview, self.btn_acquire, self.btn_stop_acq]:
-            b.setEnabled(False)
+    # def disable_buttons(self):
+    #     for b in [self.btn_connect_cam, self.btn_live, self.btn_stop, self.btn_preview, self.btn_acquire, self.btn_stop_acq]:
+    #         b.setEnabled(False)
 
-    def disable_not_connected_buttons(self):
-        for b in [self.btn_live, self.btn_stop, self.btn_preview, self.btn_acquire, self.btn_stop_acq, self.btn_set_temp,self.set_settings_button]:
-            b.setEnabled(False)
+    # def disable_not_connected_buttons(self):
+    #     for b in [self.btn_live, self.btn_stop, self.btn_preview, self.btn_acquire, self.btn_stop_acq, self.btn_set_temp,self.btn_set_settings]:
+    #         b.setEnabled(False)
 
     
     
-    def disable_acq_buttons(self):
-        for b in [self.btn_acquire, self.btn_connect_cam, self.btn_live, self.btn_stop, self.btn_preview, self.btn_acquire, self.btn_set_temp,self.set_settings_button]:
-            b.setEnabled(False)
+    # def disable_acq_buttons(self):
+    #     for b in [self.btn_acquire, self.btn_connect_cam, self.btn_live, self.btn_stop, self.btn_preview, self.btn_acquire, self.btn_set_temp,self.btn_set_settings]:
+    #         b.setEnabled(False)
 
-    def disable_live_buttons(self):
-        for b in [self.btn_acquire, self.btn_connect_cam, self.btn_live, self.btn_preview, self.btn_acquire, self.btn_set_temp,self.set_settings_button,self.btn_stop_acq,self.btn_open_npz]:
-            b.setEnabled(False)
+    # def disable_live_buttons(self):
+    #     for b in [self.btn_acquire, self.btn_connect_cam, self.btn_live, self.btn_preview, self.btn_acquire, self.btn_set_temp,self.btn_set_settings,self.btn_stop_acq,self.btn_open_npz]:
+    #         b.setEnabled(False)
     
-    def enable_buttons(self):
-        for b in [self.btn_connect_cam, self.btn_disconnect_cam, self.btn_live, self.btn_stop, self.btn_preview, self.btn_acquire, self.btn_stop_acq, self.btn_set_temp, self.set_settings_button,self.btn_open_npz]:
-            b.setEnabled(True)
+    # def enable_buttons(self):
+    #     for b in [self.btn_connect_cam, self.btn_disconnect_cam, self.btn_live, self.btn_stop, self.btn_preview, self.btn_acquire, self.btn_stop_acq, self.btn_set_temp, self.btn_set_settings,self.btn_open_npz]:
+    #         b.setEnabled(True)
 
     def apply_temperature(self):
         target_temp = self.temp_popup.get_value()
@@ -909,7 +1011,7 @@ class MainWindow(QMainWindow):
 
     def start_live(self):
         
-        self.disable_live_buttons()
+        # self.disable_live_buttons()
 
         self.controller.restore_user_config()
 
@@ -1012,7 +1114,7 @@ class MainWindow(QMainWindow):
 
     def start_acquisition(self):
         if self.check_filename():
-            self.disable_acq_buttons()
+            # self.disable_acq_buttons()
             name = self.filename_input.text().strip()
             idx = self.file_index_input.text().strip()
             filename = f"{name}_{idx}.npz"
@@ -1179,7 +1281,7 @@ class MainWindow(QMainWindow):
     def handle_camera_loss(self):
 
         self.display_msg("Camera connection lost!")
-        self.disable_buttons()
+        # self.disable_buttons()
 
         if self.acq_worker and self.acq_worker.isRunning():
             self.acq_worker.stop()

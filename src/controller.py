@@ -9,6 +9,7 @@ from PyQt5.QtCore import QObject, pyqtSignal
 import traceback
 from acquisition_service import AcquisitionService
 import numpy as np
+from fsm import CameraStateMachine, CameraState
 
 class RamanCameraController(QObject):
 
@@ -20,7 +21,8 @@ class RamanCameraController(QObject):
     amp_modes_loaded = pyqtSignal(object)
     vsspeeds_loaded = pyqtSignal(object)
     message_signal = pyqtSignal(str)
-    ui_busy_changed = pyqtSignal(bool)
+    # ui_busy_changed = pyqtSignal(bool)
+    ui_state_changed = pyqtSignal(object)
 
     def __init__(self):
         super().__init__()
@@ -34,6 +36,8 @@ class RamanCameraController(QObject):
         self.user_config = {}     # should be moved to model?
         self.cooling_worker = None
         self._error_active = False
+        self.fsm = CameraStateMachine()
+        self.fsm.state_changed.connect(self.ui_state_changed.emit)
 
 
     # ==== Decorators =====
@@ -42,8 +46,7 @@ class RamanCameraController(QObject):
         def wrapper(self, *args, **kwargs):
             try:
                 result = func(self, *args, **kwargs)
-
-                self._error_active = False  # reset error state on successful execution
+                self._error_active = False
                 return result
 
             except Exception as e:
@@ -51,12 +54,13 @@ class RamanCameraController(QObject):
                 traceback.print_exc()
                 print("===================================")
 
+                if self.camera is None or self.camera.cam is None:
+                    self.fsm.set_state(CameraState.DISCONNECTED)
+                else:
+                    self.fsm.set_state(CameraState.ERROR)
+
                 if not self._error_active:
                     self._error_active = True
-
-                    # if isinstance(e, (ValueError, RuntimeError)):
-                    #      self.camera_lost_signal.emit(str(e))
-                    # else:
                     if self.camera is None or self.camera.cam is None:
                         self.camera_lost_signal.emit()
                     else:
@@ -65,6 +69,9 @@ class RamanCameraController(QObject):
                 return None
 
         return wrapper
+    
+    def get_state(self):
+        return self.fsm.get_state()
 
     def display_msg(self,msg:str):
         self.message_signal.emit(msg)
@@ -89,15 +96,16 @@ class RamanCameraController(QObject):
     @handle_errors
     def connect_cam(self):
         try:
+            self.fsm.require("connect")
             self.camera.connect_cam()
             self.load_amp_modes()
             self.load_vsspeeds()
-
             self.user_config = self.cam_settings_to_user_config()
-
             self.display_shutter_state()
+
+            self.fsm.set_state(CameraState.CONNECTED)
             self.cool_cam(target_temp=-85)
-            self.camera.set_default_settings()
+            # self.camera.set_default_settings()
         except:
             self.display_msg("No camera found")
         return
@@ -124,16 +132,31 @@ class RamanCameraController(QObject):
 
     @handle_errors
     def cool_cam(self,target_temp):
-        
+        self.fsm.require("start_cooling")
         if self.cooling_worker and self.cooling_worker.isRunning():
             self.camera.cancel_cooling = True
             self.cooling_worker.wait()
 
-        self.ui_busy_changed.emit(True)
+        # self.ui_busy_changed.emit(True)
         self.cooling_worker = CoolingWorker(self.camera, target_temp)
-        self.cooling_worker.finished.connect(lambda: self.ui_busy_changed.emit(False))
+        self.fsm.set_state(CameraState.COOLING)
+
+        self.cooling_worker.finished.connect(self.on_cooling_finished)
+        # self.cooling_worker.finished.connect(lambda: self.ui_busy_changed.emit(False))
         self.cooling_worker.start()
         return
+    
+    def on_cooling_finished(self):
+        try:
+            if not self.is_camera_alive():
+                self.fsm.set_state(CameraState.ERROR)
+                return
+
+            self.restore_user_config()
+            self.fsm.set_state(CameraState.READY)
+        except Exception:
+            self.fsm.set_state(CameraState.ERROR)
+            self.error_signal.emit("Cooling finished but failed to finalize camera setup.")
 
     @handle_errors
     def stop_cooling(self):
@@ -146,21 +169,24 @@ class RamanCameraController(QObject):
     @handle_errors
     def disconnect_cam(self):
         self.camera.close_cam()
+        self.fsm.set_state(CameraState.DISCONNECTED)
         return
 
     @handle_errors
     def safe_disconnect_cam(self):
-        self.ui_busy_changed.emit(True)
+        # self.ui_busy_changed.emit(True)
         self.warmup_close_worker = WarmUpCloseWorker(self.camera, target_temp=20.0)
-        self.warmup_close_worker.finished.connect(self.ui_busy_changed.emit(False))
+        # self.warmup_close_worker.finished.connect(self.ui_busy_changed.emit(False))
         self.warmup_close_worker.start()
         return
 
     @handle_errors
     def start_live(self):
+        self.fsm.require("start_live")
+        self.fsm.set_state(CameraState.LIVE)
         frames = self.camera.start_live()
         if not frames:
-            raise RuntineError("No live frames captured")
+            raise RuntimeError("No live frames captured")
 
         read_mode = self.camera.get_read_mode()
         roi = self.camera.get_roi()
@@ -202,7 +228,9 @@ class RamanCameraController(QObject):
     
     @handle_errors
     def stop_live(self):
+        self.fsm.require("stop_live")
         self.camera.stop_live()
+        self.fsm.set_state(CameraState.READY)
         return
 
     @handle_errors
@@ -248,7 +276,7 @@ class RamanCameraController(QObject):
             },
 
             "acquisition_mode": {
-                "mode": settings["acq_mode"]
+                "mode": "single"
             },
 
             "trigger_mode": settings["trigger_mode"],
@@ -282,6 +310,8 @@ class RamanCameraController(QObject):
 
     @handle_errors
     def single_preview(self):
+        self.fsm.require("preview")
+
         self.restore_user_config()
         frame = self.camera.single_preview()
         roi = self.camera.get_roi()
@@ -303,17 +333,24 @@ class RamanCameraController(QObject):
 
     @handle_errors
     def start_acquisition(self, filename=None):
+        self.fsm.require("start_acquisition")
+        self.fsm.set_state(CameraState.ACQUIRING)
+
         self.restore_user_config()
         frames = self.camera.start_acquisition()
+
+        if not frames:
+            raise RuntimeError("No frames acquired during acquisition")
+
         self.acquisition_service.save_csv_frame(frames[0],filename)        # temp DELETE THIS testing only
 
         acq_mode = self.user_config.get("acquisition_mode",{}).get("mode","single")
         roi = self.camera.get_roi()
 
-        before_shift_filename = f'{filename.strip(".npz")}_before_shifting.npz'
-        self.acquisition_service.save_image(frames,filename=before_shift_filename)  # save raw image
-
         if self.should_apply_bit_shift():
+
+            before_shift_filename = f'{filename.strip(".npz")}_before_shifting.npz'
+            self.acquisition_service.save_image(frames,filename=before_shift_filename)  # save raw image
 
             bit_shift_pixels,bit_shift_vstart,bit_shift_vend = self.camera.get_bit_shifting()
 
@@ -351,7 +388,9 @@ class RamanCameraController(QObject):
 
     @handle_errors
     def stop_acquisition(self):
+        self.fsm.require("stop_acquisition")
         self.camera.stop_acquisition()
+        self.fsm.set_state(CameraState.READY)
         return
     
     @handle_errors
@@ -363,6 +402,7 @@ class RamanCameraController(QObject):
 
     @handle_errors
     def apply_cam_settings(self,shutter,read_mode,acquisition_mode,trigger_mode,exposure,amp,vsspeed,emccd_gain):
+        self.fsm.require("apply_settings")
         # create cameraconfig as a dataclass instead of user_config
         if acquisition_mode["mode"] == "cont":
             raise RuntimeError("Cannot apply settings while in continuous acquisition mode. Please stop live mode or continuous acquisition before applying new settings.")
@@ -678,7 +718,7 @@ class RamanCameraController(QObject):
             mode=params["mode"],
         )
 
-        if params.get("processsing_mode","binning") == "bit_shift":
+        if params.get("processing_mode","binning") == "bit_shift":
             bit_shift_pixels = int(params["bit_shift_pixels"]) if params.get("bit_shift_pixels") not in ("", None) else None
             bit_shift_vstart = int(params["bit_shift_vstart"]) if params.get("bit_shift_vstart") not in ("", None) else None
             bit_shift_vend = int(params["bit_shift_vend"]) if params.get("bit_shift_vend") not in ("", None) else None
