@@ -456,7 +456,7 @@ class MainWindow(QMainWindow):
 
         # disable buttons before camera connection
         # self.disable_not_connected_buttons()
-        for b in [self.btn_live, self.btn_stop, self.btn_preview, self.btn_acquire, self.btn_stop_acq, self.btn_set_temp,self.btn_set_settings]:
+        for b in [self.btn_live, self.btn_disconnect_cam, self.btn_stop, self.btn_preview, self.btn_acquire, self.btn_stop_acq, self.btn_set_temp,self.btn_set_settings]:
             b.setEnabled(False)
 
     # def set_ui_busy(self, busy:bool):
@@ -1017,7 +1017,7 @@ class MainWindow(QMainWindow):
 
         self.live_worker = LiveWorker(self.controller)
         self.live_worker.frame_ready.connect(self.handle_live_results)
-        self.live_worker.finished.connect(self.enable_buttons)
+        # self.live_worker.finished.connect(self.enable_buttons)
 
         self.live_worker.start()
         self.display_msg("Live mode started.", success=True)
@@ -1030,7 +1030,7 @@ class MainWindow(QMainWindow):
             self.live_worker.wait()
 
         # self.controller.stop_live()
-        self.enable_buttons()
+        # self.enable_buttons()
 
         self.display_msg("Live mode stopped.", success=True)
 
@@ -1044,7 +1044,7 @@ class MainWindow(QMainWindow):
 
     def handle_acq_result(self, spectrum):
 
-        self.enable_buttons()
+        # self.enable_buttons()
 
         if spectrum is None:
             self.display_msg("Acquisition failed or camera lost during acquisition.")
@@ -1120,7 +1120,7 @@ class MainWindow(QMainWindow):
             filename = f"{name}_{idx}.npz"
             self.acq_worker = AcquisitionWorker(self.controller,filename=filename)
             self.acq_worker.finished.connect(self.handle_acq_result)
-            self.acq_worker.finished.connect(self.enable_buttons)
+            # self.acq_worker.finished.connect(self.enable_buttons)
 
             self.acq_worker.start()
 
@@ -1130,7 +1130,7 @@ class MainWindow(QMainWindow):
             self.acq_worker.stop()
             self.acq_worker.wait()
 
-        self.enable_buttons()
+        # self.enable_buttons()
         return
 
     def check_filename(self):

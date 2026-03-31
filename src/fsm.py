@@ -33,7 +33,7 @@ class CameraStateMachine(QObject):
                 "disconnect",
                 "start_cooling",
             },
-            CameraState.LIVE: {"stop_live", "disconnect"},
+            CameraState.LIVE: {"stop_live", "disconnect","start_live"},
             CameraState.ACQUIRING: {"stop_acquisition", "disconnect"},
             CameraState.ERROR: {"disconnect", "reset"},
         }

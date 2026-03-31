@@ -13,8 +13,8 @@ class TestCameraModel:
     def __init__(self):
 
         self.cam = None
-        self.is_live = False    # if camera is capturing live images
-        self.busy = False
+        # self.is_live = False    # if camera is capturing live images
+        # self.busy = False
         self.temp = 20.0  # current temperature
 
         # roi params
@@ -439,7 +439,7 @@ class TestCameraModel:
 
     @requires_cam_connected
     def cool_cam(self,target_temp:float=-85.0):
-        self.busy = True
+        # self.busy = True
         self.cancel = False
         print(f"Cooling to {target_temp} C")
         
@@ -457,11 +457,11 @@ class TestCameraModel:
                 break
 
             time.sleep(0.1)
-        self.busy = False
+        # self.busy = False
 
     @requires_cam_connected
     def warm_cam(self,safe_temp:float=-20):
-        self.busy = True
+        # self.busy = True
         self.cancel = True
 
         print("Warming (cooler OFF)")
@@ -475,7 +475,7 @@ class TestCameraModel:
             self.temp += 20
             time.sleep(0.1)
 
-        self.busy = False
+        # self.busy = False
 
 
     # ===== DISCONNECT =====
@@ -514,9 +514,9 @@ class TestCameraModel:
         """
         Start capturing what camera sees until stop live is clicked.
         """
-        if not self.is_live:
-            self.is_live = True
-            print("Live mode started")
+        # if not self.is_live:
+        #     self.is_live = True
+        print("Live mode started")
         
         frame = self.generate_fake_frame()
 
@@ -524,7 +524,7 @@ class TestCameraModel:
 
     @requires_cam_connected
     def stop_live(self):
-        if not self.cam or not self.is_live:
+        if not self.cam:
             return
 
         print("Live mode stopped")
@@ -532,8 +532,8 @@ class TestCameraModel:
 
     @requires_cam_connected
     def get_live_frame(self):
-        if self.cam is None or not self.is_live:
-            print(f"Could not obtain the frame for the preview. Cam: {self.cam} | live state: {self.is_live}")
+        if self.cam is None:
+            print(f"Could not obtain the frame for the preview. Cam: {self.cam}")
             return None
         
         frame = self.generate_fake_frame()
@@ -650,7 +650,8 @@ class TestCameraModel:
 
     @requires_cam_connected
     def stop_acquisition(self):
-        return 
+        print("Acquistion stopped")
+        return
 
     # ===== FILE MANAGEMENT =====
     

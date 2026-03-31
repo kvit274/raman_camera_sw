@@ -152,8 +152,9 @@ class RamanCameraController(QObject):
                 self.fsm.set_state(CameraState.ERROR)
                 return
 
-            self.restore_user_config()
             self.fsm.set_state(CameraState.READY)
+            self.restore_user_config()
+
         except Exception:
             self.fsm.set_state(CameraState.ERROR)
             self.error_signal.emit("Cooling finished but failed to finalize camera setup.")
@@ -168,6 +169,10 @@ class RamanCameraController(QObject):
 
     @handle_errors
     def disconnect_cam(self):
+        if self.get_state() == CameraState.LIVE:
+            self.stop_live()
+        if self.get_state() == CameraState.ACQUIRING:
+            self.stop_acquisition()
         self.camera.close_cam()
         self.fsm.set_state(CameraState.DISCONNECTED)
         return
@@ -406,8 +411,10 @@ class RamanCameraController(QObject):
         # create cameraconfig as a dataclass instead of user_config
         if acquisition_mode["mode"] == "cont":
             raise RuntimeError("Cannot apply settings while in continuous acquisition mode. Please stop live mode or continuous acquisition before applying new settings.")
-        self.stop_live()
-        self.camera.stop_acquisition()
+        if self.get_state() == CameraState.LIVE:
+            self.stop_live()
+        if self.get_state() == CameraState.ACQUIRING:
+            self.stop_acquisition()
         self.set_acquisition_mode(acquisition_mode)
         self.set_read_mode(read_mode)
         self.set_exposure(exposure)
