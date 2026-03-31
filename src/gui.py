@@ -811,11 +811,9 @@ class MainWindow(QMainWindow):
 
         result = self.controller.apply_cam_settings(shutter, read_mode_params, acquisition_mode_params, trigger_mode, exposure, amp, vsspeed, emccd_gain)
 
-        # self.get_preview_roi_limits()
-        self.display_msg("Settings applied",True)
-
         if result is None:  # testing 
             return
+        self.display_msg("Settings applied",True)
 
     def show_preview(self):
         result = self.controller.single_preview()

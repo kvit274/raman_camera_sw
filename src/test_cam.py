@@ -632,7 +632,7 @@ class TestCameraModel:
 
     def validate_bit_shift(self,bit_shift_pixels,bit_shift_vstart,bit_shift_vend):
         if bit_shift_pixels is None:
-            bit_shift = 0
+            bit_shift_pixels = 0
 
         _,_,vstart,vend,_,_ = self.get_roi()
         if bit_shift_vstart is None or bit_shift_vstart<vstart:

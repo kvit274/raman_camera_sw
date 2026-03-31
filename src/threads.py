@@ -26,19 +26,6 @@ class WarmUpCloseWorker(QThread):
         self.camera.safe_close()
         self.finished.emit()
 
-# TOD0!!
-# class AcquisitionStatusWorker(QThread):
-#     finished = pyqtSignal()
-
-#     def __init__(self, camera):
-#         super().__init__()
-#         self.camera = camera
-
-#     def run(self):
-#         self.camera.wait_for_frame()
-#         self.camera.safe_close()
-#         self.finished.emit()
-
 class AcquisitionWorker(QThread):
     finished = pyqtSignal(object)
 
@@ -71,7 +58,10 @@ class AcquisitionWorker(QThread):
         except Exception:
             self.finished.emit(None)
         finally:
-            self.controller.stop_acquisition()
+            try:
+                self.controller.stop_acquisition()
+            except Exception:
+                pass
             
        
 class LiveWorker(QThread):
