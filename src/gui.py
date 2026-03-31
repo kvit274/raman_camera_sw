@@ -695,7 +695,7 @@ class MainWindow(QMainWindow):
         # self.timer_acquisition.stop()
         self.timer_temp.stop()
         self.controller.disconnect_cam()
-        self.disable_not_connected_buttons()
+        # self.disable_not_connected_buttons()
 
     # def disable_buttons(self):
     #     for b in [self.btn_connect_cam, self.btn_live, self.btn_stop, self.btn_preview, self.btn_acquire, self.btn_stop_acq]:

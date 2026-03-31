@@ -14,8 +14,8 @@ class RamanCameraModel:
     def __init__(self):
 
         self.cam = None
-        self.is_live = False    # if camera is capturing live images
-        self.busy = False
+        # self.is_live = False    # if camera is capturing live images
+        # self.busy = False
         self.cancel_cooling = False
 
         # acquisiton settings
@@ -43,13 +43,13 @@ class RamanCameraModel:
             return func(self, *args, **kwargs)
         return wrapper
 
-    def requires_live_stopped(func):
-        @wraps(func)
-        def wrapper(self, *args, **kwargs):
-            if self.is_live:
-                self.stop_live()
-            return func(self, *args, **kwargs)
-        return wrapper
+    # def requires_live_stopped(func):
+    #     @wraps(func)
+    #     def wrapper(self, *args, **kwargs):
+    #         if self.is_live:
+    #             self.stop_live()
+    #         return func(self, *args, **kwargs)
+    #     return wrapper
 
     # ===== CAMERA SETTINGS =====
 
@@ -421,7 +421,7 @@ class RamanCameraModel:
 
     @requires_cam_connected
     def cool_cam(self,target_temp:float=-85.0):
-        self.busy = True
+        # self.busy = True
         self.cancel_cooling = False
         self.cam.set_temperature(target_temp, enable_cooler=True)
         self.cam.set_fan_mode("full")
@@ -442,7 +442,7 @@ class RamanCameraModel:
 
             time.sleep(1)
 
-        self.busy = False
+        # self.busy = False
 
     @requires_cam_connected
     def stop_cooling(self):
@@ -451,7 +451,7 @@ class RamanCameraModel:
     @requires_cam_connected
     def warm_cam(self,safe_temp:float=-20):
         self.cam.set_fan_mode("off")
-        self.busy = True
+        # self.busy = True
         self.cancel_cooling = True
 
         self.cam.set_cooler(on=False)
@@ -466,7 +466,7 @@ class RamanCameraModel:
                 break
 
             time.sleep(1)
-        self.busy = False
+        # self.busy = False
         
     def get_temp(self):
         if not self.cam:
@@ -475,7 +475,7 @@ class RamanCameraModel:
 
     
     # ==== DISCONNECT CAMERA =====
-    @requires_live_stopped
+    # @requires_live_stopped
     def safe_close(self):
         """
         Turn off the cooler and wait until the temperature is at least -20
@@ -497,7 +497,7 @@ class RamanCameraModel:
         self.close_cam()
         return
 
-    @requires_live_stopped
+    # @requires_live_stopped
     def close_cam(self):
         if self.cam:
             self.cam.set_fan_mode("off")
@@ -513,9 +513,9 @@ class RamanCameraModel:
         """
         Start capturing what camera sees until stop live is clicked.
         """
-        if not self.is_live:    # might delete this later
-            self.is_live = True  
-            print("Live mode started")
+        # if not self.is_live:    # might delete this later
+        #     self.is_live = True  
+        print("Live mode started")
 
         self.cam.stop_acquisition()      # stop acquisition if it is already in progress, just in case
         acquisition_mode = self.cam.get_acquisition_mode()
@@ -537,18 +537,18 @@ class RamanCameraModel:
 
     @requires_cam_connected
     def stop_live(self):
-        if not self.is_live:
-            return
+        # if not self.is_live:
+        #     return
         self.cam.stop_acquisition()      # stop acquisition if it is already in progress
         self.cam.clear_acquisition()    # clear the buffer
-        self.is_live=False
+        # self.is_live=False
         print("Live mode stopped")
         return
 
     @requires_cam_connected
     def get_live_frame(self):
-        if not self.is_live:
-            print(f"Could not obtain the frame for the preview. Cam: {self.cam} | live state: {self.is_live}")
+        if not self.cam:
+            print(f"Could not obtain the frame for the preview. Cam: {self.cam}")
             return None
         return self.cam.snap(timeout=5.0,return_info=False)    # temperary change to use snap instead of acquition
 
@@ -568,7 +568,7 @@ class RamanCameraModel:
         return self.cam.get_acquisition_progress()
 
     @requires_cam_connected
-    @requires_live_stopped
+    # @requires_live_stopped
     def single_preview(self):
         """
         Perform single snap to preview the result
@@ -587,15 +587,15 @@ class RamanCameraModel:
         return frame
 
     @requires_cam_connected
-    @requires_live_stopped
+    # @requires_live_stopped
     def start_acquisition(self):
         """
 
 
         """
         timeout = self.calc_frame_timeout()
-        if self.is_live:
-            self.stop_live()
+        # if self.is_live:
+        #     self.stop_live()
 
         print(f"Acquisition parameters: {self.cam.get_acquisition_parameters()}")
         print(f"Acquisition mode: {self.cam.get_acquisition_mode()}")
@@ -639,11 +639,11 @@ class RamanCameraModel:
         return
 
     @requires_cam_connected
-    @requires_live_stopped
+    # @requires_live_stopped
     def simple_acq(self,num_frames:int=0):
         
-        if self.is_live:
-            self.stop_live()
+        # if self.is_live:
+        #     self.stop_live()
 
         if num_frames == 0:
             frame = self.cam.snap()   # grab single frame
