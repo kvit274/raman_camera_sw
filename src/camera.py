@@ -174,10 +174,9 @@ class RamanCameraModel:
         return
     
     @requires_cam_connected
-    def calc_frame_timeout(self, extra=5.0, min_timeout=5.0):
-        # FIX THIS
-        exp = float(self.get_exposure())
-        return max(min_timeout, exp + extra)
+    def calc_frame_timeout(self, extra=5.0):
+        exp, frame_period = self.cam.get_frame_timings()
+        return max(frame_period + extra, 5.0)
     
     @requires_cam_connected
     def get_exposure(self):
@@ -604,6 +603,15 @@ class RamanCameraModel:
         acquisition_mode = self.cam.get_acquisition_mode()
         frames = None
 
+        print("acq mode:", self.cam.get_acquisition_mode())
+        print("accum params:", self.cam.get_accum_mode_parameters())
+        print("timings:", self.cam.get_cycle_timings())
+        print("frame timings:", self.cam.get_frame_timings())
+        print("read mode:", self.cam.get_read_mode())
+        print("amp mode:", self.cam.get_amp_mode())
+        print("vsspeed:", self.cam.get_vsspeed())
+        print("trigger:", self.cam.get_trigger_mode())
+
         try:
             if acquisition_mode == "single":
                 self.cam.set_acquisition_mode("single",setup_params=True)    # testing this
@@ -611,6 +619,14 @@ class RamanCameraModel:
                 frames = [self.cam.snap(timeout=timeout,return_info=False)]
             elif acquisition_mode == "accum":
                 self.cam.set_acquisition_mode("accum",setup_params=True)    # testing this
+                print("acq mode:", self.cam.get_acquisition_mode())
+                print("accum params:", self.cam.get_accum_mode_parameters())
+                print("timings:", self.cam.get_cycle_timings())
+                print("frame timings:", self.cam.get_frame_timings())
+                print("read mode:", self.cam.get_read_mode())
+                print("amp mode:", self.cam.get_amp_mode())
+                print("vsspeed:", self.cam.get_vsspeed())
+                print("trigger:", self.cam.get_trigger_mode())
                 frames = [self.cam.snap(timeout=timeout,return_info=False)]       # since 1 frame produced
             elif acquisition_mode == "kinetic":
                 self.cam.set_acquisition_mode("kinetic",setup_params=True)    # testing this

@@ -10,6 +10,7 @@ import traceback
 from acquisition_service import AcquisitionService
 import numpy as np
 from fsm import CameraStateMachine, CameraState
+from camera_config import CameraConfig, CameraConfigModel
 
 class RamanCameraController(QObject):
 
@@ -33,7 +34,8 @@ class RamanCameraController(QObject):
         self.acquisition_service = AcquisitionService()
         self.spec = TestSpectrometerModel() # delete
 
-        self.user_config = {}     # should be moved to model?
+        # self.user_config = {}     # should be moved to model?
+        self.config_model = CameraConfigModel()
         self.cooling_worker = None
         self._error_active = False
         self.fsm = CameraStateMachine()
@@ -120,7 +122,8 @@ class RamanCameraController(QObject):
             self.camera.connect_cam()
             self.load_amp_modes()
             self.load_vsspeeds()
-            self.user_config = self.cam_settings_to_user_config()
+            # self.user_config = self.cam_settings_to_user_config()
+            self.config_model.update_from_dict(self.cam_settings_to_user_config())
             self.display_shutter_state()
 
             self.fsm.set_state(CameraState.CONNECTED)
@@ -229,7 +232,8 @@ class RamanCameraController(QObject):
         else:
             processed_frames = frames
 
-        acq_cfg = self.user_config.get("acquisition_mode", {}) if self.user_config else {}
+        user_config = self.get_user_config()
+        acq_cfg = user_config.get("acquisition_mode",{})
         acq_mode = acq_cfg.get("mode", "single")
 
         num_frames = 1
@@ -262,13 +266,21 @@ class RamanCameraController(QObject):
     def acquisition_in_progress(self):
         return self.camera.acquisition_in_progress()
 
+    # @handle_errors
+    # def restore_user_config(self):
+    #     if not self.user_config:
+    #         raise RuntimeError("You must set parameters before acquisition")
+    #         return
+
+    #     self.apply_cam_settings(**self.user_config)
+
     @handle_errors
     def restore_user_config(self):
-        if not self.user_config:
+        user_config = self.get_user_config()
+        if not user_config or not user_config.get("read_mode"):
             raise RuntimeError("You must set parameters before acquisition")
-            return
 
-        self.apply_cam_settings(**self.user_config)
+        self.apply_cam_settings(**user_config)
 
     @handle_errors
     def cam_settings_to_user_config(self):
@@ -320,6 +332,9 @@ class RamanCameraController(QObject):
             "emccd_gain": {"emccd_gain": "", "emccd_advanced": False},
         }
     
+    def get_user_config(self):
+        return self.config_model.as_dict()
+    
     def get_temp(self):
         return self.camera.get_temp()
     
@@ -340,7 +355,10 @@ class RamanCameraController(QObject):
         self.restore_user_config()
         frame = self.camera.single_preview()
         roi = self.camera.get_roi()
-        read_cfg = self.user_config.get("read_mode", {})
+        
+        user_config = self.get_user_config()
+        read_cfg = user_config.get("read_mode", {})
+        # read_cfg = self.user_config.get("read_mode", {})
 
         if self.should_apply_bit_shift():
 
@@ -369,7 +387,8 @@ class RamanCameraController(QObject):
 
         self.acquisition_service.save_csv_frame(frames[0],filename)        # temp DELETE THIS testing only
 
-        acq_mode = self.user_config.get("acquisition_mode",{}).get("mode","single")
+        user_config = self.get_user_config()
+        acq_mode = user_config.get("acquisition_mode",{}).get("mode","single")
         roi = self.camera.get_roi()
 
         if self.should_apply_bit_shift():
@@ -393,11 +412,11 @@ class RamanCameraController(QObject):
         if acq_mode in ["kinetic","fast_kinetic"]:
             num_frames = len(processed_frames)
         if acq_mode == "accum":
-            num_frames = int(self.user_config.get("acquisition_mode",{}).get("num_acc",1))
+            num_frames = int(user_config.get("acquisition_mode",{}).get("num_acc",1))
         
 
         if acq_mode in {"accum", "kinetic", "fast_kinetic"}:
-            result_mode = self.user_config.get("acquisition_mode",{}).get("result_mode","sum")
+            result_mode = user_config.get("acquisition_mode",{}).get("result_mode","sum")
             combined_frame = self.acquisition_service.combine_frames(processed_frames,acq_mode,num_frames,result_mode)
         else:
             print(f"frame not combined")
@@ -406,7 +425,7 @@ class RamanCameraController(QObject):
         self.acquisition_service.save_image(combined_frame if isinstance(combined_frame, list) else [combined_frame],filename=filename)
 
         spectrum_data = self.acquisition_service.convert_to_spectrum(combined_frame, roi)
-        self.acquisition_service.save_npz(spectrum_data, metadata=self.user_config,filename=filename)
+        self.acquisition_service.save_npz(spectrum_data, metadata=user_config,filename=filename)
         self.acquisition_service.save_csv(combined_frame, roi, filename=filename)
 
         return combined_frame, spectrum_data, frames[0]
@@ -444,18 +463,30 @@ class RamanCameraController(QObject):
         self.set_vsspeed(vsspeed)
         self.set_EMCCD_gain(**emccd_gain)
 
-        self.user_config = {
-            "shutter": shutter,
-            "read_mode": read_mode,
-            "acquisition_mode": acquisition_mode,
-            "trigger_mode": trigger_mode,
-            "exposure": exposure,
-            "amp": amp,
-            "vsspeed": vsspeed,
-            "emccd_gain": emccd_gain
-        }
+        # self.user_config = {
+        #     "shutter": shutter,
+        #     "read_mode": read_mode,
+        #     "acquisition_mode": acquisition_mode,
+        #     "trigger_mode": trigger_mode,
+        #     "exposure": exposure,
+        #     "amp": amp,
+        #     "vsspeed": vsspeed,
+        #     "emccd_gain": emccd_gain
+        # }
+        self.config_model.set_config(
+            CameraConfig(
+                shutter=shutter,
+                read_mode=read_mode,
+                acquisition_mode=acquisition_mode,
+                trigger_mode=trigger_mode,
+                exposure=exposure,
+                amp=amp,
+                vsspeed=vsspeed,
+                emccd_gain=emccd_gain,
+            )
+        )
 
-        print(f"User config: {self.user_config}")
+        print(f"User config: {self.get_user_config()}")
         return
 
     @handle_errors
@@ -797,7 +828,7 @@ class RamanCameraController(QObject):
         return
     
     def should_apply_bit_shift(self):
-        read_cfg = self.user_config.get("read_mode", {})
+        read_cfg = self.get_user_config().get("read_mode", {})
         if read_cfg.get("mode") != "image":
             return False
 

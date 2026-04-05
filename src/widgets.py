@@ -345,6 +345,8 @@ class RulerContainer(QWidget):
             painter.drawLine(px, image_rect.top() - 6, px, image_rect.top())
             painter.drawText(px - 15, image_rect.top() - 10, str(x))
 
+        painter.drawText(image_rect.center().x() - 30, image_rect.top() - 22, "Horizontal Pixel")
+
         # ---------- Y axis (LEFT) ----------
         step_y = 64
         for y in range(0, detector_h + 1, step_y):
@@ -357,7 +359,12 @@ class RulerContainer(QWidget):
 
             painter.drawText(5, py + 5, str(y))
 
-
+        painter.save()
+        painter.translate(18, image_rect.center().y() + 30)
+        painter.rotate(-90)
+        painter.drawText(0, 0, "Vertical Pixel")
+        painter.restore()
+        
 # ==== UNSCROLLABLE COMBO BOX ====
 
 class QNoScrollComboBox(QComboBox):
