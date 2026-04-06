@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from copy import deepcopy
+from typing import Optional
 
 
 @dataclass
@@ -10,7 +11,7 @@ class CameraConfig:
     trigger_mode: str = ""
     exposure: str = ""
     amp: dict = field(default_factory=dict)
-    vsspeed: int | None = None
+    vsspeed: Optional[int] = None
     emccd_gain: dict = field(default_factory=dict)
 
     def to_dict(self):

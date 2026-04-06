@@ -11,7 +11,6 @@ import os
 from controller import RamanCameraController
 from widgets import MultiTrackWidget, SingleTrackWidget, FVBWidget, ImageWidget, RandomTrackWidget, SingleWidget, AccumWidget, KineticWidget, FastKineticWidget, ContinuousWidget, CollapsibleSection, QNoScrollComboBox, PreviewWidget, RulerContainer, TemperaturePopUp
 from typing import Dict
-from threads import AcquisitionWorker, LiveWorker
 from fsm import CameraState
 
 class MainWindow(QMainWindow):
@@ -24,8 +23,8 @@ class MainWindow(QMainWindow):
         self.temp_popup = TemperaturePopUp(self)
         self.status.setSizeGripEnabled(False)
 
-        self.acq_worker = None
-        self.live_worker = None
+        # self.acq_worker = None
+        # self.live_worker = None
 
         # attach controller
         self.controller = RamanCameraController()
@@ -37,6 +36,9 @@ class MainWindow(QMainWindow):
         self.controller.vsspeeds_loaded.connect(self.load_vsspeeds)
         # self.controller.ui_busy_changed.connect(self.set_ui_busy)
         self.controller.ui_state_changed.connect(self.apply_state_to_ui)
+        self.controller.live_frame_ready.connect(self.handle_live_results)
+        self.controller.live_finished.connect(lambda: self.display_msg("Live mode stopped.", success=True))
+        self.controller.acquisition_finished.connect(self.handle_acq_result)
 
         # Camera preview and controls
         self.preview = PreviewWidget()
@@ -1008,28 +1010,11 @@ class MainWindow(QMainWindow):
     #         self.preview.set_roi_limits(None)
 
     def start_live(self):
-        
-        # self.disable_live_buttons()
-
-        self.controller.restore_user_config()
-
-        self.live_worker = LiveWorker(self.controller)
-        self.live_worker.frame_ready.connect(self.handle_live_results)
-        # self.live_worker.finished.connect(self.enable_buttons)
-
-        self.live_worker.start()
+        self.controller.start_live_async()
         self.display_msg("Live mode started.", success=True)
 
     def stop_live(self):
-        
-        if self.live_worker and self.live_worker.isRunning():
-            self.live_worker.stop()
-            # self.controller.stop_live()
-            self.live_worker.wait()
-
-        # self.controller.stop_live()
-        # self.enable_buttons()
-
+        self.controller.stop_live_async()
         self.display_msg("Live mode stopped.", success=True)
 
     def display_image(self,frame):
@@ -1112,24 +1097,13 @@ class MainWindow(QMainWindow):
 
     def start_acquisition(self):
         if self.check_filename():
-            # self.disable_acq_buttons()
             name = self.filename_input.text().strip()
             idx = self.file_index_input.text().strip()
             filename = f"{name}_{idx}.npz"
-            self.acq_worker = AcquisitionWorker(self.controller,filename=filename)
-            self.acq_worker.finished.connect(self.handle_acq_result)
-            # self.acq_worker.finished.connect(self.enable_buttons)
-
-            self.acq_worker.start()
+            self.controller.start_acquisition_async(filename=filename)
 
     def stop_acquisition(self):
-        
-        if self.acq_worker and self.acq_worker.isRunning():
-            self.acq_worker.stop()
-            self.acq_worker.wait()
-
-        # self.enable_buttons()
-        return
+        self.controller.stop_acquisition_async()
 
     def check_filename(self):
         name = self.filename_input.text().strip()
@@ -1281,9 +1255,11 @@ class MainWindow(QMainWindow):
         self.display_msg("Camera connection lost!")
         # self.disable_buttons()
 
-        if self.acq_worker and self.acq_worker.isRunning():
-            self.acq_worker.stop()
-            self.acq_worker.wait()
+        if self.controller.acq_worker and self.controller.acq_worker.isRunning():
+            self.controller.stop_acquisition_async()
+
+        if self.controller.live_worker and self.controller.live_worker.isRunning():
+            self.controller.stop_live_async()
 
         if hasattr(self.controller, "cooling_worker") and self.controller.cooling_worker.isRunning():
             self.controller.stop_cooling()

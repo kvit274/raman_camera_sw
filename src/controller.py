@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 from test_cam import TestCameraModel
 from test_spec import TestSpectrometerModel
 import time
-from threads import CoolingWorker, WarmUpCloseWorker
+from threads import CoolingWorker, WarmUpCloseWorker, AcquisitionWorker, LiveWorker
 from PyQt5.QtCore import QObject, pyqtSignal
 import traceback
 from acquisition_service import AcquisitionService
@@ -22,6 +22,10 @@ class RamanCameraController(QObject):
     amp_modes_loaded = pyqtSignal(object)
     vsspeeds_loaded = pyqtSignal(object)
     message_signal = pyqtSignal(str)
+    live_frame_ready = pyqtSignal(object,object)
+    live_finished = pyqtSignal()
+    acquisition_finished = pyqtSignal(object)
+
     # ui_busy_changed = pyqtSignal(bool)
     ui_state_changed = pyqtSignal(object)
 
@@ -38,6 +42,9 @@ class RamanCameraController(QObject):
         self.config_model = CameraConfigModel()
         self.cooling_worker = None
         self._error_active = False
+        self.live_worker = None
+        self.acq_worker = None
+        self.warmup_close_worker = None
         self.fsm = CameraStateMachine()
         self.fsm.state_changed.connect(self.ui_state_changed.emit)
 
@@ -261,6 +268,30 @@ class RamanCameraController(QObject):
         self.camera.stop_live()
         self.fsm.set_state(CameraState.READY)
         return
+    
+    @handle_errors
+    def start_live_async(self):
+        if self.live_worker and self.live_worker.isRunning():
+            return
+
+        self.restore_user_config()
+
+        self.live_worker = LiveWorker(self)
+        self.live_worker.frame_ready.connect(self.live_frame_ready.emit)
+        self.live_worker.finished.connect(self._on_live_worker_finished)
+        self.live_worker.start()
+
+
+    @handle_errors
+    def stop_live_async(self):
+        if self.live_worker and self.live_worker.isRunning():
+            self.live_worker.stop()
+            self.live_worker.wait()
+
+
+    def _on_live_worker_finished(self):
+        self.live_finished.emit()
+        self.live_worker = None
 
     @handle_errors
     def acquisition_in_progress(self):
@@ -436,6 +467,27 @@ class RamanCameraController(QObject):
         self.camera.stop_acquisition()
         self.fsm.set_state(CameraState.READY)
         return
+    
+    @handle_errors
+    def start_acquisition_async(self, filename=None):
+        if self.acq_worker and self.acq_worker.isRunning():
+            return
+
+        self.acq_worker = AcquisitionWorker(self, filename=filename)
+        self.acq_worker.finished.connect(self._on_acquisition_worker_finished)
+        self.acq_worker.start()
+
+
+    @handle_errors
+    def stop_acquisition_async(self):
+        if self.acq_worker and self.acq_worker.isRunning():
+            self.acq_worker.stop()
+            self.acq_worker.wait()
+
+
+    def _on_acquisition_worker_finished(self, spectrum):
+        self.acquisition_finished.emit(spectrum)
+        self.acq_worker = None
     
     @handle_errors
     def adjust_frame(self,frame):
