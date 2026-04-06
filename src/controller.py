@@ -408,9 +408,9 @@ class RamanCameraController(QObject):
     @handle_errors
     def start_acquisition(self, filename=None):
         self.fsm.require("start_acquisition")
-        self.fsm.set_state(CameraState.ACQUIRING)
 
         self.restore_user_config()
+        self.fsm.set_state(CameraState.ACQUIRING)
         frames = self.camera.start_acquisition()
 
         if not frames:

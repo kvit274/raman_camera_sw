@@ -814,8 +814,8 @@ class MainWindow(QMainWindow):
         result = self.controller.apply_cam_settings(shutter, read_mode_params, acquisition_mode_params, trigger_mode, exposure, amp, vsspeed, emccd_gain)
 
         if result is None:  # testing 
+            self.display_msg("Settings applied",True)
             return
-        self.display_msg("Settings applied",True)
 
     def show_preview(self):
         result = self.controller.single_preview()
@@ -1174,35 +1174,29 @@ class MainWindow(QMainWindow):
             current_plot = self.calibration_tabs.currentWidget()
             if current_plot is None:
                 current_plot = self.create_empty_spectrum_tab(title=name)
-            else:
-                self.calibration_tabs.setTabText(self.calibration_tabs.currentIndex(), name)
+            # else:
+            #     self.calibration_tabs.setTabText(self.calibration_tabs.currentIndex(), name)
 
-            self.update_spectrum_plot(current_plot, spectrum_data, name=name)
+            self.add_curve_to_spectrum_plot(current_plot, spectrum_data, name=name)
 
             # self.last_acquired_plot = current_plot
             # self.last_acquired_title = name
 
             self.right_tabs.setCurrentWidget(self.calibration_tab)
 
-            if metadata:
-                reply = QMessageBox.question(
-                    self,
-                    "Load Settings",
-                    "This file contains acquisition settings.\n"
-                    "Do you want to load them into the GUI?",
-                    QMessageBox.Yes | QMessageBox.No
-                )
+            if self.controller.is_camera_alive():
+                if metadata:
+                    reply = QMessageBox.question(
+                        self,
+                        "Load Settings",
+                        "This file contains acquisition settings.\n"
+                        "Do you want to load them into the GUI?",
+                        QMessageBox.Yes | QMessageBox.No
+                    )
 
-                if reply == QMessageBox.Yes:
-                    self.load_settings_from_metadata(metadata)
-                    self.set_settings()
-
-        except Exception as e:
-            QMessageBox.critical(
-                self,
-                "Error",
-                f"Failed to open NPZ file:\n{str(e)}"
-            )
+                    if reply == QMessageBox.Yes:
+                        self.load_settings_from_metadata(metadata)
+                        self.set_settings()
 
     # ==== VISUALS ====
     def separator(self):

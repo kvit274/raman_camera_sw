@@ -345,7 +345,7 @@ class RulerContainer(QWidget):
             painter.drawLine(px, image_rect.top() - 6, px, image_rect.top())
             painter.drawText(px - 15, image_rect.top() - 10, str(x))
 
-        painter.drawText(image_rect.center().x() - 30, image_rect.top() - 22, "Horizontal Pixel")
+        painter.drawText(image_rect.center().x() - 30, image_rect.top() - 30, "Horizontal Pixel")
 
         # ---------- Y axis (LEFT) ----------
         step_y = 64
@@ -354,7 +354,7 @@ class RulerContainer(QWidget):
                 y * image_rect.height() / detector_h
             )
 
-            painter.drawLine(image_rect.left() - 6, py,
+            painter.drawLine(image_rect.left() + 6, py,
                             image_rect.left(), py)
 
             painter.drawText(5, py + 5, str(y))
@@ -362,7 +362,7 @@ class RulerContainer(QWidget):
         painter.save()
         painter.translate(18, image_rect.center().y() + 30)
         painter.rotate(-90)
-        painter.drawText(0, 0, "Vertical Pixel")
+        painter.drawText(image_rect.center().x() - image_rect.center().x() - 10, 30, "Vertical Pixel")
         painter.restore()
         
 # ==== UNSCROLLABLE COMBO BOX ====

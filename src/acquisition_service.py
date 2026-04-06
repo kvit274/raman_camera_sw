@@ -43,7 +43,10 @@ class AcquisitionService:
             # multiple independent frames
             combined = np.sum(frames, axis=0)
 
+            print(f"summed kinetic mode frame by {num_frames}")
+
             if result_mode == "avg":
+                print(f"averaged kinetic mode frame by {num_frames}")
                 combined = combined / num_frames
 
         else:
@@ -54,6 +57,7 @@ class AcquisitionService:
 
                 if result_mode == "avg":
                     frame = frame / num_frames
+                    print(f"averaged accum mode frame by {num_frames}")
 
             combined = frame
 

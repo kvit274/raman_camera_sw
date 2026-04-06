@@ -519,6 +519,8 @@ class TestCameraModel:
         print("Live mode started")
         
         frame = self.generate_fake_frame()
+        exposure = self.get_exposure()
+        time.sleep(exposure)
 
         return frame
 
