@@ -1,637 +1,262 @@
-1) eposure for n time and do it m times and then average results(sum/average)
-2) implement continuous acquisition
-3) do more appropriate validation
-4) single preview (just snap instead of live)
-5) for each acquisition mode create sub params
-6) out aux port
-7) add on option to do advanced emccd gain by ticking the box
-8 opt) do a way to init all settings
-) frame period?
-) stop live when applying settings DONE
-
-
-!) fix the workflow after connecting to camera
-!) move restore settings to model?
-!!!) controller should stop live, no self stopping in model.
-
-
-!!) user config must live in model
-!!!!!!!!!!)) fix handle errors in controller, use signals
-!!!))) implement advanced tick for emccd gain
-
-
-?) ext_trigger ?
-?) pausing_acquisition ?
-
-) acquisition should block live preview
-?) set_frame_info_format might be useful?
-
-# trigger mode is internal by default
-
-
-
-2) save/load settings
-
-4) might change how roi is being set up using arrow, to see how its being changed on the preview
-5) pop up menu of choosing between safe close(were we warm up the cam) and just close
-6) fix closeEvent in gui -> order should be handled in controller
-7) when closing camera if it was doing acquisition we need to think about handling/managing states
-8) when selecting setup_image_mode its not clear if parameters are different from roi?
-9) setup_multi_track_mode(number=1, height=1, offset=0) should return smth???
-10) Deal with displaying input values back for read mode
-implement fvb
-10) save image should be in the controller.
-
-ask if they want 1 button for applying all settings or button for each type of settings
-ask what is open high, open low in exposure thingy
-why spe file?
-ask how we should display items in dropdown menus (easier for me if we display them in the same way sdk2 uses it)
-ask about types (int/float?)
-Do they need random track?
-where are the frames stored after acquisition?
-
-
-handle the read mode params being sent to controller
-
-
-# they use multi track / image / fvb
-
-
-super last logs:
-
-Acquisition mode: single
-acquisition mode handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x000001C1E383E760>>
-Got to setup_single_mode in controller
-Trying to change acquisition mode to single.. Actual: single
-Trying to set read mode in controller to: image
-Handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x000001C1E383E760>>
-Entered setup_image_mode in controller
-horizontal limits: hmin=2, hmax=1024, hpstep=1, hsstep=1, hmaxbin=32
-vertical limits: vmin=2, vmax=256, vpstep=1, vsstep=1, vmaxbin=32
-Setting up image mode... Real mode:image
-Printing all set settings:
-{'image_indexing': 'rcb', 'frame_format': 'list', 'frame_info_format': 'namedtuple', 'frame_info_period': 1, 'roi': (2, 1024, 2, 256, 1, 1), 'temperature': -85, 'cooler': True, 'channel': 0, 'oamp': 0, 'hsspeed': 0, 'preamp': 1, 'vsspeed': 1, 'shutter': ('open', 0, 0, 0), 'fan_mode': 'full', 'trigger_mode': 'int', 'acq_parameters/accum': (1, 0), 'acq_parameters/kinetic': (1, 0.0, 1, 0, 0), 'acq_parameters/fast_kinetic': (1, 0.0), 'acq_parameters/cont': 0, 'acq_mode': 'single', 'frame_transfer': None, 'read_parameters/single_track': (0, 1), 'read_parameters/multi_track': (1, 1, 0), 'read_parameters/random_track': [(0, 1)], 'read_parameters/image': (2, 1024, 2, 256, 1, 1), 'read_mode': 'image', 'exposure': 0.05000000074505806, 'frame_period': 0.1457899957895279}
-
-User config: {'shutter': {'mode': 'open', 'tll_mode': '0', 'open_time': '', 'close_time': ''}, 'read_mode': {'mode': 'image', 'hstart': 0, 'hend': 1024, 'vstart': 0, 'vend': 256, 'hbin': 1, 'vbin': 1}, 'acquisition_mode': {'mode': 'single'}, 'trigger_mode': 'int', 'exposure': '0.05', 'amp': {'channel': 0, 'oamp': 0, 'hsspeed': 0, 'preamp': 1}, 'vsspeed': 1, 'emccd_gain': ''}
-Acquisition mode: single
-acquisition mode handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x000001C1E383E760>>
-Got to setup_single_mode in controller
-Trying to change acquisition mode to single.. Actual: single
-Trying to set read mode in controller to: image
-Handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x000001C1E383E760>>
-Entered setup_image_mode in controller
-horizontal limits: hmin=2, hmax=1024, hpstep=1, hsstep=1, hmaxbin=32
-vertical limits: vmin=2, vmax=256, vpstep=1, vsstep=1, vmaxbin=32
-Setting up image mode... Real mode:image
-Printing all set settings:
-{'image_indexing': 'rcb', 'frame_format': 'list', 'frame_info_format': 'namedtuple', 'frame_info_period': 1, 'roi': (2, 1024, 2, 256, 1, 1), 'temperature': -85, 'cooler': True, 'channel': 0, 'oamp': 0, 'hsspeed': 0, 'preamp': 1, 'vsspeed': 1, 'shutter': ('open', 0, 0, 0), 'fan_mode': 'full', 'trigger_mode': 'int', 'acq_parameters/accum': (1, 0), 'acq_parameters/kinetic': (1, 0.0, 1, 0, 0), 'acq_parameters/fast_kinetic': (1, 0.0), 'acq_parameters/cont': 0, 'acq_mode': 'single', 'frame_transfer': None, 'read_parameters/single_track': (0, 1), 'read_parameters/multi_track': (1, 1, 0), 'read_parameters/random_track': [(0, 1)], 'read_parameters/image': (2, 1024, 2, 256, 1, 1), 'read_mode': 'image', 'exposure': 0.05000000074505806, 'frame_period': 0.1457899957895279}
-
-User config: {'shutter': {'mode': 'open', 'tll_mode': '0', 'open_time': '', 'close_time': ''}, 'read_mode': {'mode': 'image', 'hstart': 0, 'hend': 1024, 'vstart': 0, 'vend': 256, 'hbin': 1, 'vbin': 1}, 'acquisition_mode': {'mode': 'single'}, 'trigger_mode': 'int', 'exposure': '0.05', 'amp': {'channel': 0, 'oamp': 0, 'hsspeed': 0, 'preamp': 1}, 'vsspeed': 1, 'emccd_gain': ''}
-Acquisition parameters: None
-Acquisition mode: single
-Status before start: idle
-Acquisition parameters after enforcing: None
-[SAVE] Frames saved to C:\Users\aberdin\Downloads\1.20260223_170128.png
-Acquisition mode: single
-acquisition mode handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x000001C1E383E760>>
-Got to setup_single_mode in controller
-Trying to change acquisition mode to single.. Actual: single
-Trying to set read mode in controller to: image
-Handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x000001C1E383E760>>
-Entered setup_image_mode in controller
-horizontal limits: hmin=2, hmax=1024, hpstep=1, hsstep=1, hmaxbin=32
-vertical limits: vmin=2, vmax=256, vpstep=1, vsstep=1, vmaxbin=32
-Setting up image mode... Real mode:image
-Printing all set settings:
-{'image_indexing': 'rcb', 'frame_format': 'list', 'frame_info_format': 'namedtuple', 'frame_info_period': 1, 'roi': (2, 1024, 2, 256, 1, 1), 'temperature': -85, 'cooler': True, 'channel': 0, 'oamp': 0, 'hsspeed': 0, 'preamp': 1, 'vsspeed': 1, 'shutter': ('open', 0, 0, 0), 'fan_mode': 'full', 'trigger_mode': 'int', 'acq_parameters/accum': (1, 0), 'acq_parameters/kinetic': (1, 0.0, 1, 0, 0), 'acq_parameters/fast_kinetic': (1, 0.0), 'acq_parameters/cont': 0, 'acq_mode': 'single', 'frame_transfer': None, 'read_parameters/single_track': (0, 1), 'read_parameters/multi_track': (1, 1, 0), 'read_parameters/random_track': [(0, 1)], 'read_parameters/image': (2, 1024, 2, 256, 1, 1), 'read_mode': 'image', 'exposure': 0.05000000074505806, 'frame_period': 0.1457899957895279}
-
-User config: {'shutter': {'mode': 'open', 'tll_mode': '0', 'open_time': '', 'close_time': ''}, 'read_mode': {'mode': 'image', 'hstart': 0, 'hend': 1024, 'vstart': 0, 'vend': 256, 'hbin': 1, 'vbin': 1}, 'acquisition_mode': {'mode': 'single'}, 'trigger_mode': 'int', 'exposure': '0.05', 'amp': {'channel': 0, 'oamp': 0, 'hsspeed': 0, 'preamp': 1}, 'vsspeed': 1, 'emccd_gain': ''}
-Acquisition parameters: {'nframes': None, 'mode': 'cont'}
-Acquisition mode: single
-Status before start: idle
-Acquisition parameters after enforcing: {'nframes': None, 'mode': 'cont'}
-
-
-
-New logs:
-
-3) still cont somehow
-===================================
-Printing all set settings:
-{'image_indexing': 'rcb', 'frame_format': 'list', 'frame_info_format': 'namedtuple', 'frame_info_period': 1, 'roi': (256, 768, 64, 192, 1, 1), 'temperature': -85, 'cooler': True, 'channel': 0, 'oamp': 0, 'hsspeed': 0, 'preamp': 0, 'vsspeed': 0, 'shutter': ('auto', 0, 0, 0), 'fan_mode': 'full', 'trigger_mode': 'int', 'acq_parameters/accum': (1, 0), 'acq_parameters/kinetic': (1, 0.0, 1, 0, 0), 'acq_parameters/fast_kinetic': (1, 0.0), 'acq_parameters/cont': 0, 'acq_mode': 'single', 'frame_transfer': None, 'read_parameters/single_track': (0, 1), 'read_parameters/multi_track': (1, 1, 0), 'read_parameters/random_track': [(0, 1)], 'read_parameters/image': (256, 768, 64, 192, 1, 1), 'read_mode': 'image', 'exposure': 9.999999747378752e-06, 'frame_period': 0.0487699992954731}
-
-User config: {'shutter': {'mode': 'auto', 'tll_mode': '0', 'open_time': '', 'close_time': ''}, 'read_mode': {'mode': 'image', 'hstart': 256, 'hend': 768, 'vstart': 64, 'vend': 192, 'hbin': None, 'vbin': None}, 'acquisition_mode': {'mode': 'single'}, 'trigger_mode': 'int', 'exposure': '', 'amp': {'channel': 0, 'oamp': 0, 'hsspeed': 0, 'preamp': 0}, 'vsspeed': 0, 'emccd_gain': ''}
-Acquisition parameters: {'nframes': None, 'mode': 'cont'}
-============ EXCEPTION ============
-Traceback (most recent call last):
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 24, in wrapper
-    return func(self, *args, **kwargs)
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 179, in start_acquisition
-    frames = self.camera.start_acquisition()
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 37, in wrapper
-    return func(self, *args, **kwargs)
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 45, in wrapper
-    return func(self, *args, **kwargs)
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 642, in start_acquisition
-    frames = [self.cam.snap(timeout=5,return_info=False)]
-  File "C:\Users\aberdin\AppData\Roaming\Python\Python39\site-packages\pylablib\devices\interface\camera.py", line 682, in snap
-    res=self.grab(frame_timeout=timeout,return_info=return_info)
-  File "C:\Users\aberdin\AppData\Roaming\Python\Python39\site-packages\pylablib\devices\interface\camera.py", line 668, in grab
-    self.wait_for_frame(timeout=frame_timeout)
-  File "C:\Users\aberdin\AppData\Roaming\Python\Python39\site-packages\pylablib\core\devio\interface.py", line 666, in wrapped
-    res=func(**all_args)
-  File "C:\Users\aberdin\AppData\Roaming\Python\Python39\site-packages\pylablib\devices\interface\camera.py", line 262, in wait_for_frame
-    raise self.TimeoutError
-pylablib.devices.Andor.base.AndorTimeoutError
-===================================
-
-2)
-============ EXCEPTION ============
-Traceback (most recent call last):
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 24, in wrapper
-    return func(self, *args, **kwargs)
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 508, in setup_image_mode
-    params["hstart"] = int(params["hstart"]) if params["hstart"] != "" else None
-TypeError: int() argument must be a string, a bytes-like object or a number, not 'NoneType'
-===================================
-Printing all set settings:
-{'image_indexing': 'rcb', 'frame_format': 'list', 'frame_info_format': 'namedtuple', 'frame_info_period': 1, 'roi': (2, 1024, 2, 256, 1, 1), 'temperature': -85, 'cooler': True, 'channel': 0, 'oamp': 0, 'hsspeed': 0, 'preamp': 0, 'vsspeed': 0, 'shutter': ('auto', 0, 0, 0), 'fan_mode': 'full', 'trigger_mode': 'int', 'acq_parameters/accum': (1, 0), 'acq_parameters/kinetic': (1, 0.0, 1, 0, 0), 'acq_parameters/fast_kinetic': (1, 0.0), 'acq_parameters/cont': 0, 'acq_mode': 'single', 'frame_transfer': None, 'read_parameters/single_track': (0, 1), 'read_parameters/multi_track': (1, 1, 0), 'read_parameters/random_track': [(0, 1)], 'read_parameters/image': (2, 1024, 2, 256, 1, 1), 'read_mode': 'image', 'exposure': 9.999999747378752e-06, 'frame_period': 0.09498000144958496}
-
-User config: {'shutter': {'mode': 'auto', 'tll_mode': '0', 'open_time': '', 'close_time': ''}, 'read_mode': {'mode': 'image', 'hstart': None, 'hend': None, 'vstart': None, 'vend': None, 'hbin': None, 'vbin': None}, 'acquisition_mode': {'mode': 'single'}, 'trigger_mode': 'int', 'exposure': '', 'amp': {'channel': 0, 'oamp': 0, 'hsspeed': 0, 'preamp': 0}, 'vsspeed': 0, 'emccd_gain': ''}
-Acquisition parameters: None
-[SAVE] Frames saved to data\images\1.20260223_103250.png
-
-1)
-============ EXCEPTION ============
-Traceback (most recent call last):
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 24, in wrapper
-    return func(self, *args, **kwargs)
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 170, in single_preview
-    frame = self.camera.single_preview()
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 37, in wrapper
-    return func(self, *args, **kwargs)
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 45, in wrapper
-    return func(self, *args, **kwargs)
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 626, in single_preview
-    frame = self.cam.snap(timeout=5,return_info=False)
-  File "C:\Users\aberdin\AppData\Roaming\Python\Python39\site-packages\pylablib\devices\interface\camera.py", line 682, in snap
-    res=self.grab(frame_timeout=timeout,return_info=return_info)
-  File "C:\Users\aberdin\AppData\Roaming\Python\Python39\site-packages\pylablib\devices\interface\camera.py", line 668, in grab
-    self.wait_for_frame(timeout=frame_timeout)
-  File "C:\Users\aberdin\AppData\Roaming\Python\Python39\site-packages\pylablib\core\devio\interface.py", line 666, in wrapped
-    res=func(**all_args)
-  File "C:\Users\aberdin\AppData\Roaming\Python\Python39\site-packages\pylablib\devices\interface\camera.py", line 262, in wait_for_frame
-    raise self.TimeoutError
-pylablib.devices.Andor.base.AndorTimeoutError
-===================================
-============ EXCEPTION ============
-Traceback (most recent call last):
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 24, in wrapper
-    return func(self, *args, **kwargs)
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 186, in adjust_frame
-    return self.camera.adjust_frame(frame)
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 954, in adjust_frame
-    m = frame.max()
-AttributeError: 'NoneType' object has no attribute 'max'
-
-
-
-
-
-What happend is i took 1 snap and it was fine but when i tried to do another snap after changing acquisition settings i got an error, and mode changed to cont somehow. It seems like an error is comming after i apply acquisition settings. i tried to not save them at first after applying and was still getting the same error as in the log below.
-
-Trying to set read mode in controller to: image
-Handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x00000271DACEF7F0>>
-Entered setup_image_mode in controller
-Setting up image mode... Real mode:image
-Acquisition mode: cont
-acquisition mode handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x00000271DACEF7F0>>       
-Trying to set read mode in controller to: image
-Handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x00000271DACEF7F0>>
-Entered setup_image_mode in controller
-Setting up image mode... Real mode:image
-Acquisition mode: single
-acquisition mode handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x00000271DACEF7F0>>       
-Got to setup_single_mode in controller
-Trying to change acquisition mode to single.. Actual: single
-Printing all set settings:
-{'image_indexing': 'rcb', 'frame_format': 'list', 'frame_info_format': 'namedtuple', 'frame_info_period': 1, 'roi': (384, 640, 96, 160, 1, 1), 'temperature': -85, 'cooler': True, 'channel': 0, 'oamp': 0, 'hsspeed': 0, 'preamp': 0, 'vsspeed': 0, 'shutter': ('auto', 0, 0, 0), 'fan_mode': 'full', 'trigger_mode': 'int', 'acq_parameters/accum': (1, 0), 'acq_parameters/kinetic': (1, 0.0, 1, 0, 0), 'acq_parameters/fast_kinetic': (1, 0.0), 'acq_parameters/cont': 0.0, 'acq_mode': 'single', 'frame_transfer': None, 'read_parameters/single_track': (0, 1), 'read_parameters/multi_track': (1, 1, 0), 'read_parameters/random_track': [(0, 1)], 'read_parameters/image': (384, 640, 96, 160, 1, 1), 'read_mode': 'image', 'exposure': 9.999999747378752e-06, 'frame_period': 0.025289999321103096}
-
-============ EXCEPTION ============
-Traceback (most recent call last):
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 23, in wrapper
-    return func(self, *args, **kwargs)
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 159, in single_preview
-    frame = self.camera.single_preview()
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 37, in wrapper
-    return func(self, *args, **kwargs)
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 45, in wrapper
-    return func(self, *args, **kwargs)
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 616, in single_preview
-    frame = self.cam.snap(timeout=5,return_info=False)
-  File "C:\Users\aberdin\AppData\Roaming\Python\Python39\site-packages\pylablib\devices\interface\camera.py", line 682, in snap
-    res=self.grab(frame_timeout=timeout,return_info=return_info)
-  File "C:\Users\aberdin\AppData\Roaming\Python\Python39\site-packages\pylablib\devices\interface\camera.py", line 668, in grab
-    self.wait_for_frame(timeout=frame_timeout)
-  File "C:\Users\aberdin\AppData\Roaming\Python\Python39\site-packages\pylablib\core\devio\interface.py", line 666, in wrapped
-    res=func(**all_args)
-  File "C:\Users\aberdin\AppData\Roaming\Python\Python39\site-packages\pylablib\devices\interface\camera.py", line 262, in wait_for_frame
-    raise self.TimeoutError
-pylablib.devices.Andor.base.AndorTimeoutError
-===================================
-============ EXCEPTION ============
-Traceback (most recent call last):
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 23, in wrapper
-    return func(self, *args, **kwargs)
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 173, in adjust_frame
-    return self.camera.adjust_frame(frame)
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 943, in adjust_frame
-    m = frame.max()
-AttributeError: 'NoneType' object has no attribute 'max'
-===================================
-Traceback (most recent call last):
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\gui.py", line 507, in show_preview
-    self.display_image(frame)
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\gui.py", line 529, in display_image
-    frame8, h, w = self.controller.adjust_frame(frame)
-
-
-SUPER LAST LONG, somehow acquisiton params is cont?:
-
-Trying to set read mode in controller to: image
-Handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x0000018AEBA5C7F0>>
-Entered setup_image_mode in controller
-Setting up image mode... Real mode:image
-Acquisition mode: accum
-acquisition mode handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x0000018AEBA5C7F0>>       
-Printing all set settings:
-{'image_indexing': 'rcb', 'frame_format': 'list', 'frame_info_format': 'namedtuple', 'frame_info_period': 1, 'roi': (256, 768, 64, 192, 1, 1), 'temperature': -85, 'cooler': True, 'channel': 0, 'oamp': 0, 'hsspeed': 0, 'preamp': 0, 'vsspeed': 0, 'shutter': ('open', 0, 0, 0), 'fan_mode': 'full', 'trigger_mode': 'int', 'acq_parameters/accum': (3, 0), 'acq_parameters/kinetic': (3, 0.0, 2, 0.0, 0), 'acq_parameters/fast_kinetic': (1, 0.0), 'acq_parameters/cont': 0.0, 'acq_mode': 'accum', 'frame_transfer': None, 'read_parameters/single_track': (0, 1), 'read_parameters/multi_track': (1, 1, 0), 'read_parameters/random_track': [(0, 1)], 'read_parameters/image': (256, 768, 64, 192, 1, 1), 'read_mode': 'image', 'exposure': 9.999999747378752e-06, 'frame_period': 0.14630000293254852}
-
-Acquisition parameters: {'nframes': None, 'mode': 'cont'}
-============ EXCEPTION ============
-Traceback (most recent call last):
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 23, in wrapper
-    return func(self, *args, **kwargs)
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 166, in start_acquisition
-    frames = self.camera.start_acquisition()
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 37, in wrapper
-    return func(self, *args, **kwargs)
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 45, in wrapper
-    return func(self, *args, **kwargs)
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 636, in start_acquisition
-    frames = [self.cam.snap(timeout=5,return_info=False)]       # since 1 frame produced
-  File "C:\Users\aberdin\AppData\Roaming\Python\Python39\site-packages\pylablib\devices\interface\camera.py", line 682, in snap
-    res=self.grab(frame_timeout=timeout,return_info=return_info)
-  File "C:\Users\aberdin\AppData\Roaming\Python\Python39\site-packages\pylablib\devices\interface\camera.py", line 668, in grab
-    self.wait_for_frame(timeout=frame_timeout)
-  File "C:\Users\aberdin\AppData\Roaming\Python\Python39\site-packages\pylablib\core\devio\interface.py", line 666, in wrapped
-    res=func(**all_args)
-  File "C:\Users\aberdin\AppData\Roaming\Python\Python39\site-packages\pylablib\devices\interface\camera.py", line 262, in wait_for_frame
-    raise self.TimeoutError
-pylablib.devices.Andor.base.AndorTimeoutError
-===================================
-
-
-
-
-WHEN I TRIED TO DO LIVE AFTER SETING UP ACQUISITON SETTING EVERYTHING GOT BROKEN
-
-FVB + ACCUM:
-
-Trying to set read mode in controller to: image
-Handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x000001BB0F5117F0>>
-Entered setup_image_mode in controller
-============ EXCEPTION ============
-Traceback (most recent call last):
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 23, in wrapper
-    return func(self, *args, **kwargs)
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 482, in setup_image_mode
-    self.camera.setup_image_mode(**params)
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 37, in wrapper
-    return func(self, *args, **kwargs)
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 333, in setup_image_mode
-    self.validate_roi(hstart, hend, vstart, vend, hbin, vbin)
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 823, in validate_roi
-    raise ValueError(f"Horizontal ROI out of bounds: {hmin} <= hstart < hend <= {hmax}.")
-ValueError: Horizontal ROI out of bounds: 2 <= hstart < hend <= 1024.
-===================================
-Acquisition mode: cont
-acquisition mode handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x000001BB0F5117F0>>
+Checking save path: C:\Users\aberdin\Desktop\gui data\7-4-26\single_0.8_1a_1.npz
+Save path exists: False
 Trying to set read mode in controller to: fvb
-Handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x000001BB0F5117F0>>
+Handler: <bound method RamanCameraController.set_fvb_read_mode of <controller.RamanCameraController object at 0x00000255986EBA60>>
+Read mode set to: fvb
+Acquisition mode: single
+acquisition mode handler: <bound method RamanCameraController.setup_single_mode of <controller.RamanCameraController object at 0x00000255986EBA60>>
+Got to setup_single_mode in controller
+Trying to change acquisition mode to single.. Actual: single
+User config: {'shutter': {'mode': 'open', 'ttl_mode': '0', 'open_time': '', 'close_time': ''}, 'read_mode': {'mode': 'fvb'}, 'acquisition_mode': {'mode': 'single'}, 'trigger_mode': 'int', 'exposure': '0.8', 'amp': {'channel': 0, 'oamp': 0, 'hsspeed': 0, 'preamp': 2}, 'vsspeed': 3, 'emccd_gain': {'emccd_gain': '', 'emccd_advanced': False}}
+Acquisition parameters: None
+Acquisition mode: single
+Status before start: idle
+acq mode: single
+accum params: (1, 0)
+timings: TCycleTimings(exposure=0.800000011920929, accum_cycle_time=0.8037099838256836, kinetic_cycle_time=0.8037099838256836)
+frame timings: TAcqTimings(exposure=0.800000011920929, frame_period=0.8037099838256836)
+read mode: fvb
+amp mode: TAmpModeFull(channel=0, channel_bitdepth=16, oamp=0, oamp_kind='Conventional', hsspeed=0, hsspeed_MHz=3.0, preamp=2, preamp_gain=4.0)
+vsspeed: 3
+trigger: int
+Acquisition parameters after enforcing: None
+frame not combined
+[SAVE] Frames saved to C:\Users\aberdin\Desktop\gui data\7-4-26\single_0.8_1a_1.png
+[SAVE] Spectrogram saved to C:\Users\aberdin\Desktop\gui data\7-4-26\single_0.8_1a_1.npz
+[SAVE] CSV saved to C:\Users\aberdin\Desktop\gui data\7-4-26\single_0.8_1a_1.csv
+Checking save path: C:\Users\aberdin\Desktop\gui data\7-4-26\single_0.8_1a_2.npz
+Save path exists: False
+Trying to set read mode in controller to: fvb
+Handler: <bound method RamanCameraController.set_fvb_read_mode of <controller.RamanCameraController object at 0x00000255986EBA60>>
+Read mode set to: fvb
+Acquisition mode: single
+acquisition mode handler: <bound method RamanCameraController.setup_single_mode of <controller.RamanCameraController object at 0x00000255986EBA60>>
+Got to setup_single_mode in controller
+Trying to change acquisition mode to single.. Actual: single
+User config: {'shutter': {'mode': 'open', 'ttl_mode': '0', 'open_time': '', 'close_time': ''}, 'read_mode': {'mode': 'fvb'}, 'acquisition_mode': {'mode': 'single'}, 'trigger_mode': 'int', 'exposure': '0.8', 'amp': {'channel': 0, 'oamp': 0, 'hsspeed': 0, 'preamp': 2}, 'vsspeed': 3, 'emccd_gain': {'emccd_gain': '', 'emccd_advanced': False}}
+Acquisition parameters: None
+Acquisition mode: single
+Status before start: idle
+acq mode: single
+accum params: (1, 0)
+timings: TCycleTimings(exposure=0.800000011920929, accum_cycle_time=0.8037099838256836, kinetic_cycle_time=0.8037099838256836)
+frame timings: TAcqTimings(exposure=0.800000011920929, frame_period=0.8037099838256836)
+read mode: fvb
+amp mode: TAmpModeFull(channel=0, channel_bitdepth=16, oamp=0, oamp_kind='Conventional', hsspeed=0, hsspeed_MHz=3.0, preamp=2, preamp_gain=4.0)
+vsspeed: 3
+trigger: int
+Acquisition parameters after enforcing: None
+frame not combined
+[SAVE] Frames saved to C:\Users\aberdin\Desktop\gui data\7-4-26\single_0.8_1a_2.png
+[SAVE] Spectrogram saved to C:\Users\aberdin\Desktop\gui data\7-4-26\single_0.8_1a_2.npz
+[SAVE] CSV saved to C:\Users\aberdin\Desktop\gui data\7-4-26\single_0.8_1a_2.csv
+Trying to set read mode in controller to: fvb
+Handler: <bound method RamanCameraController.set_fvb_read_mode of <controller.RamanCameraController object at 0x00000255986EBA60>>
+Read mode set to: fvb
+Acquisition mode: single
+acquisition mode handler: <bound method RamanCameraController.setup_single_mode of <controller.RamanCameraController object at 0x00000255986EBA60>>
+Got to setup_single_mode in controller
+Trying to change acquisition mode to single.. Actual: single
+User config: {'shutter': {'mode': 'open', 'ttl_mode': '0', 'open_time': '', 'close_time': ''}, 'read_mode': {'mode': 'fvb'}, 'acquisition_mode': {'mode': 'single'}, 'trigger_mode': 'int', 'exposure': '0.8', 'amp': {'channel': 0, 'oamp': 0, 'hsspeed': 0, 'preamp': 2}, 'vsspeed': 3, 'emccd_gain': {'emccd_gain': '', 'emccd_advanced': False}}
+Checking save path: C:\Users\aberdin\Desktop\gui data\7-4-26\single_fvb_0.8_1a_1.npz
+Save path exists: False
+Trying to set read mode in controller to: fvb
+Handler: <bound method RamanCameraController.set_fvb_read_mode of <controller.RamanCameraController object at 0x00000255986EBA60>>
+Read mode set to: fvb
+Acquisition mode: single
+acquisition mode handler: <bound method RamanCameraController.setup_single_mode of <controller.RamanCameraController object at 0x00000255986EBA60>>
+Got to setup_single_mode in controller
+Trying to change acquisition mode to single.. Actual: single
+User config: {'shutter': {'mode': 'open', 'ttl_mode': '0', 'open_time': '', 'close_time': ''}, 'read_mode': {'mode': 'fvb'}, 'acquisition_mode': {'mode': 'single'}, 'trigger_mode': 'int', 'exposure': '0.8', 'amp': {'channel': 0, 'oamp': 0, 'hsspeed': 0, 'preamp': 2}, 'vsspeed': 3, 'emccd_gain': {'emccd_gain': '', 'emccd_advanced': False}}
+Acquisition parameters: None
+Acquisition mode: single
+Status before start: idle
+acq mode: single
+accum params: (1, 0)
+timings: TCycleTimings(exposure=0.800000011920929, accum_cycle_time=0.8037099838256836, kinetic_cycle_time=0.8037099838256836)
+frame timings: TAcqTimings(exposure=0.800000011920929, frame_period=0.8037099838256836)
+read mode: fvb
+amp mode: TAmpModeFull(channel=0, channel_bitdepth=16, oamp=0, oamp_kind='Conventional', hsspeed=0, hsspeed_MHz=3.0, preamp=2, preamp_gain=4.0)
+vsspeed: 3
+trigger: int
+Acquisition parameters after enforcing: None
+frame not combined
+[SAVE] Frames saved to C:\Users\aberdin\Desktop\gui data\7-4-26\single_fvb_0.8_1a_1.png
+[SAVE] Spectrogram saved to C:\Users\aberdin\Desktop\gui data\7-4-26\single_fvb_0.8_1a_1.npz
+[SAVE] CSV saved to C:\Users\aberdin\Desktop\gui data\7-4-26\single_fvb_0.8_1a_1.csv
+Checking save path: C:\Users\aberdin\Desktop\gui data\7-4-26\single_fvb_0.8_1a_2.npz
+Save path exists: False
+Trying to set read mode in controller to: fvb
+Handler: <bound method RamanCameraController.set_fvb_read_mode of <controller.RamanCameraController object at 0x00000255986EBA60>>
+Read mode set to: fvb
+Acquisition mode: single
+acquisition mode handler: <bound method RamanCameraController.setup_single_mode of <controller.RamanCameraController object at 0x00000255986EBA60>>
+Got to setup_single_mode in controller
+Trying to change acquisition mode to single.. Actual: single
+User config: {'shutter': {'mode': 'open', 'ttl_mode': '0', 'open_time': '', 'close_time': ''}, 'read_mode': {'mode': 'fvb'}, 'acquisition_mode': {'mode': 'single'}, 'trigger_mode': 'int', 'exposure': '0.8', 'amp': {'channel': 0, 'oamp': 0, 'hsspeed': 0, 'preamp': 2}, 'vsspeed': 3, 'emccd_gain': {'emccd_gain': '', 'emccd_advanced': False}}
+Acquisition parameters: None
+Acquisition mode: single
+Status before start: idle
+acq mode: single
+accum params: (1, 0)
+timings: TCycleTimings(exposure=0.800000011920929, accum_cycle_time=0.8037099838256836, kinetic_cycle_time=0.8037099838256836)
+frame timings: TAcqTimings(exposure=0.800000011920929, frame_period=0.8037099838256836)
+read mode: fvb
+amp mode: TAmpModeFull(channel=0, channel_bitdepth=16, oamp=0, oamp_kind='Conventional', hsspeed=0, hsspeed_MHz=3.0, preamp=2, preamp_gain=4.0)
+vsspeed: 3
+trigger: int
+Acquisition parameters after enforcing: None
+frame not combined
+[SAVE] Frames saved to C:\Users\aberdin\Desktop\gui data\7-4-26\single_fvb_0.8_1a_2.png
+[SAVE] Spectrogram saved to C:\Users\aberdin\Desktop\gui data\7-4-26\single_fvb_0.8_1a_2.npz
+[SAVE] CSV saved to C:\Users\aberdin\Desktop\gui data\7-4-26\single_fvb_0.8_1a_2.csv
+Trying to set read mode in controller to: fvb
+Handler: <bound method RamanCameraController.set_fvb_read_mode of <controller.RamanCameraController object at 0x00000255986EBA60>>
 Read mode set to: fvb
 Acquisition mode: accum
-acquisition mode handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x000001BB0F5117F0>>
-Printing all set settings:
-{'image_indexing': 'rcb', 'frame_format': 'list', 'frame_info_format': 'namedtuple', 'frame_info_period': 1, 'roi': (0, 1024, 0, 256, 1, 1), 'temperature': -85, 'cooler': True, 'channel': 0, 'oamp': 0, 'hsspeed': 0, 'preamp': 0, 'vsspeed': 0, 'shutter': ('open', 0, 0, 0), 'fan_mode': 'full', 'trigger_mode': 'int', 'acq_parameters/accum': (3, 0), 'acq_parameters/kinetic': (1, 0.0, 1, 0, 0), 'acq_parameters/fast_kinetic': (1, 0.0), 'acq_parameters/cont': 0.0, 'acq_mode': 'accum', 'frame_transfer': None, 'read_parameters/single_track': (0, 1), 'read_parameters/multi_track': (1, 1, 0), 'read_parameters/random_track': [(0, 1)], 'read_parameters/image': (0, 1024, 0, 256, 1, 1), 'read_mode': 'fvb', 'exposure': 0.0008500000112690032, 'frame_period': 0.0025500000920146704}
-
-Acquisition parameters: {'nframes': None, 'mode': 'single'}
-Number of frames: 3
-Acquisition parameters after adjustment: {'nframes': None, 'mode': 'accum'}
-Acquisition started
-Mode: accum
-In progress: True
-Trigger: int
-Progress: (frames:0acc:0)
-num of frames: 1
-
-Acquisition state in save_frames before wait:
-Is acquisition setup: True
-Camera status: acquiring
-Buffer size: 24576
-Frame timings: (exposure: 0.0008200000156648457, frame_period: 0.0016599999507889152)
-Readout time: 0.0008598749409429729
-Frames status: (acquired: 0, unread: 0, skipped: 0, buffer_size: 22118)
-Mode: accum
-Trigger: int
-In progress: False
-Progress: (frames:0acc:0)
-
-Acquisition state in save_frames after wait:
-Mode: accum
-In progress: False
-Progress: (frames:0acc:0)
-============ EXCEPTION ============
-Traceback (most recent call last):
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 23, in wrapper
-    return func(self, *args, **kwargs)
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 160, in start_acquisition
-    self.camera.save_frames()
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 898, in save_frames
-    for idx,frame in enumerate(frames):
-TypeError: 'int' object is not iterable
-===================================
-
-
-tried to setup single_track, got image somehow:
-
-Trying to set read mode in controller to: image
-Handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x0000023E619727F0>>
-Entered setup_image_mode in controller
-============ EXCEPTION ============
-Traceback (most recent call last):
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 23, in wrapper
-    return func(self, *args, **kwargs)
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 481, in setup_image_mode
-    self.camera.setup_image_mode(**params)
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 37, in wrapper
-    return func(self, *args, **kwargs)
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 333, in setup_image_mode
-    self.validate_roi(hstart, hend, vstart, vend, hbin, vbin)
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 823, in validate_roi
-    raise ValueError(f"Horizontal ROI out of bounds: {hmin} <= hstart < hend <= {hmax}.")
-ValueError: Horizontal ROI out of bounds: 2 <= hstart < hend <= 1024.
-===================================
-Acquisition mode: cont
-acquisition mode handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x0000023E619727F0>>
-Trying to set read mode in controller to: single_track
-Handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x0000023E619727F0>>
-Acquisition mode: single
-acquisition mode handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x0000023E619727F0>>
-Got to setup_single_mode in controller
-Trying to change acquisition mode to single.. Actual: single
-Printing all set settings:
-{'image_indexing': 'rcb', 'frame_format': 'list', 'frame_info_format': 'namedtuple', 'frame_info_period': 1, 'roi': (2, 1024, 2, 256, 1, 1), 'temperature': -85, 'cooler': True, 'channel': 0, 'oamp': 0, 'hsspeed': 0, 'preamp': 0, 'vsspeed': 0, 'shutter': ('open', 0, 0, 0), 'fan_mode': 'full', 'trigger_mode': 'int', 'acq_parameters/accum': (1, 0), 'acq_parameters/kinetic': (1, 0.0, 1, 0, 0), 'acq_parameters/fast_kinetic': (1, 0.0), 'acq_parameters/cont': 0.0, 'acq_mode': 'single', 'frame_transfer': None, 'read_parameters/single_track': (0, 1), 'read_parameters/multi_track': (1, 1, 0), 'read_parameters/random_track': [(0, 1)], 'read_parameters/image': (2, 1024, 2, 256, 1, 1), 'read_mode': 'single_track', 'exposure': 9.999999747378752e-06, 'frame_period': 0.001970000099390745}
-
-Acquisition parameters: {'nframes': None, 'mode': 'single'}
-Number of frames: 1
-Acquisition parameters after adjustment: {'nframes': None, 'mode': 'single'}
-Acquisition started
-Mode: single
-In progress: True
-Trigger: int
-Progress: (frames:0acc:0)
-num of frames: 1
-
-Acquisition state in save_frames before wait:
-Is acquisition setup: True
-Camera status: acquiring
-Buffer size: 24576
-Frame timings: (exposure: 9.999999747378752e-06, frame_period: 0.001970000099390745)
-Readout time: 0.0011639251606538892
-Frames status: (acquired: 0, unread: 0, skipped: 0, buffer_size: 22118)
-Mode: single
-Trigger: int
-In progress: False
-Progress: (frames:0acc:0)
-
-Acquisition state in save_frames after wait:
-Mode: single
-In progress: False
-Progress: (frames:0acc:0)
-============ EXCEPTION ============
-Traceback (most recent call last):
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 23, in wrapper
-    return func(self, *args, **kwargs)
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 160, in start_acquisition
-    self.camera.save_frames()
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 898, in save_frames
-    for idx,frame in enumerate(frames):
-TypeError: 'int' object is not iterable
-===================================
-Trying to set read mode in controller to: image
-Handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x0000023E619727F0>>
-Entered setup_image_mode in controller
-============ EXCEPTION ============
-Traceback (most recent call last):
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 23, in wrapper
-    return func(self, *args, **kwargs)
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 481, in setup_image_mode
-    self.camera.setup_image_mode(**params)
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 37, in wrapper
-    return func(self, *args, **kwargs)
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 333, in setup_image_mode
-    self.validate_roi(hstart, hend, vstart, vend, hbin, vbin)
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 823, in validate_roi
-    raise ValueError(f"Horizontal ROI out of bounds: {hmin} <= hstart < hend <= {hmax}.")
-ValueError: Horizontal ROI out of bounds: 2 <= hstart < hend <= 1024.
-===================================
-Acquisition mode: cont
-acquisition mode handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x0000023E619727F0>>
-Trying to set read mode in controller to: single_track
-Handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x0000023E619727F0>>
-Acquisition mode: single
-acquisition mode handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x0000023E619727F0>>
-Got to setup_single_mode in controller
-Trying to change acquisition mode to single.. Actual: single
-Printing all set settings:
-{'image_indexing': 'rcb', 'frame_format': 'list', 'frame_info_format': 'namedtuple', 'frame_info_period': 1, 'roi': (2, 1024, 2, 256, 1, 1), 'temperature': -85, 'cooler': True, 'channel': 0, 'oamp': 0, 'hsspeed': 0, 'preamp': 0, 'vsspeed': 0, 'shutter': ('open', 0, 0, 0), 'fan_mode': 'full', 'trigger_mode': 'int', 'acq_parameters/accum': (1, 0), 'acq_parameters/kinetic': (1, 0.0, 1, 0, 0), 'acq_parameters/fast_kinetic': (1, 0.0), 'acq_parameters/cont': 0.0, 'acq_mode': 'single', 'frame_transfer': None, 'read_parameters/single_track': (0, 1), 'read_parameters/multi_track': (1, 1, 0), 'read_parameters/random_track': [(0, 1)], 'read_parameters/image': (2, 1024, 2, 256, 1, 1), 'read_mode': 'single_track', 'exposure': 9.999999747378752e-06, 'frame_period': 0.001970000099390745}
-
-Acquisition parameters: {'nframes': None, 'mode': 'single'}
-Number of frames: 1
-Acquisition parameters after adjustment: {'nframes': None, 'mode': 'single'}
-Acquisition started
-Mode: single
-In progress: True
-Trigger: int
-Progress: (frames:0acc:0)
-num of frames: 1
-
-Acquisition state in save_frames before wait:
-Is acquisition setup: True
-Camera status: acquiring
-Buffer size: 24576
-Frame timings: (exposure: 9.999999747378752e-06, frame_period: 0.001970000099390745)
-Readout time: 0.0011639251606538892
-Frames status: (acquired: 0, unread: 0, skipped: 0, buffer_size: 22118)
-Mode: single
-Trigger: int
-In progress: False
-Progress: (frames:0acc:0)
-
-Acquisition state in save_frames after wait:
-Mode: single
-In progress: False
-Progress: (frames:0acc:0)
-============ EXCEPTION ============
-Traceback (most recent call last):
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 23, in wrapper
-    return func(self, *args, **kwargs)
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 160, in start_acquisition
-    self.camera.save_frames()
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 898, in save_frames
-    for idx,frame in enumerate(frames):
-TypeError: 'int' object is not iterable
-===================================
-
-why acquisition_mode is cont in between? i didnt set it
-
-
-last log:
-
-Trying to set read mode in controller to: image
-Handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x0000023E619727F0>>
-Entered setup_image_mode in controller
-============ EXCEPTION ============
-Traceback (most recent call last):
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 23, in wrapper
-    return func(self, *args, **kwargs)
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 481, in setup_image_mode
-    self.camera.setup_image_mode(**params)
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 37, in wrapper
-    return func(self, *args, **kwargs)
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 333, in setup_image_mode
-    self.validate_roi(hstart, hend, vstart, vend, hbin, vbin)
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 823, in validate_roi
-    raise ValueError(f"Horizontal ROI out of bounds: {hmin} <= hstart < hend <= {hmax}.")
-ValueError: Horizontal ROI out of bounds: 2 <= hstart < hend <= 1024.
-===================================
-Acquisition mode: cont
-acquisition mode handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x0000023E619727F0>>
-Trying to set read mode in controller to: image
-Handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x0000023E619727F0>>
-Entered setup_image_mode in controller
-Setting up image mode... Real mode:image
-Acquisition mode: single
-acquisition mode handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x0000023E619727F0>>
-Got to setup_single_mode in controller
-Trying to change acquisition mode to single.. Actual: single
-Printing all set settings:
-{'image_indexing': 'rcb', 'frame_format': 'list', 'frame_info_format': 'namedtuple', 'frame_info_period': 1, 'roi': (2, 1024, 2, 256, 1, 1), 'temperature': -85, 'cooler': True, 'channel': 0, 'oamp': 0, 'hsspeed': 0, 'preamp': 0, 'vsspeed': 0, 'shutter': ('open', 0, 0, 0), 'fan_mode': 'full', 'trigger_mode': 'int', 'acq_parameters/accum': (1, 0), 'acq_parameters/kinetic': (1, 0.0, 1, 0, 0), 'acq_parameters/fast_kinetic': (1, 0.0), 'acq_parameters/cont': 0.0, 'acq_mode': 'single', 'frame_transfer': None, 'read_parameters/single_track': (0, 1), 'read_parameters/multi_track': (1, 1, 0), 'read_parameters/random_track': [(0, 1)], 'read_parameters/image': (2, 1024, 2, 256, 1, 1), 'read_mode': 'image', 'exposure': 9.999999747378752e-06, 'frame_period': 0.09498000144958496}
-
-Acquisition parameters: None
-Number of frames: 1
-Acquisition parameters after adjustment: {'nframes': None, 'mode': 'single'}
-Acquisition started
-Mode: single
-In progress: True
-Trigger: int
-Progress: (frames:0acc:0)
-num of frames: 1
-
-Acquisition state in save_frames before wait:
-Is acquisition setup: True
-Camera status: acquiring
-Buffer size: 96
-Frame timings: (exposure: 9.999999747378752e-06, frame_period: 0.09498000144958496)
-Readout time: 0.09417392313480377
-Frames status: (acquired: 0, unread: 0, skipped: 0, buffer_size: 86)
-Mode: single
-Trigger: int
-In progress: True
-Progress: (frames:0acc:0)
-============ EXCEPTION ============
-Traceback (most recent call last):
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 23, in wrapper
-    return func(self, *args, **kwargs)
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 160, in start_acquisition
-    self.camera.save_frames()
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 869, in save_frames
-    self.cam.wait_for_frame(since='start', nframes=num_frames, timeout=20.0, error_on_stopped=False)
-  File "C:\Users\aberdin\AppData\Roaming\Python\Python39\site-packages\pylablib\core\devio\interface.py", line 666, in wrapped
-    res=func(**all_args)
-  File "C:\Users\aberdin\AppData\Roaming\Python\Python39\site-packages\pylablib\devices\interface\camera.py", line 262, in wait_for_frame
-    raise self.TimeoutError
-pylablib.devices.Andor.base.AndorTimeoutError
-===================================
-
-
-ENABLE FRAME TRANSFER LOG:
-
-Found 1 camera
-Connected to: USB | DU920P_BX2DD | SN 29728
-============ EXCEPTION ============
-Traceback (most recent call last):
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 23, in wrapper
-    return func(self, *args, **kwargs)
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 86, in connect_cam
-    self.camera.enable_frame_transfer_mode(True)    # MUST BE MOVED SOMEWHERE LATER
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 37, in wrapper
-    return func(self, *args, **kwargs)
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 79, in enable_frame_transfer_mode
-    self.cam.enable_frame_transfer_mode(mode)
-  File "C:\Users\aberdin\AppData\Roaming\Python\Python39\site-packages\pylablib\devices\Andor\AndorSDK2.py", line 70, in wrapped
-    if not self._check_option(*opt):
-  File "C:\Users\aberdin\AppData\Roaming\Python\Python39\site-packages\pylablib\devices\Andor\AndorSDK2.py", line 237, in _check_option
-    raise AndorNotSupportedError("option {}.{} is not supported by {}".format(kind,getattr(option,"name",option),self.device_info.head_model))
-pylablib.devices.Andor.base.AndorNotSupportedError: option acq.AC_ACQMODE_FRAMETRANSFER is not supported by DU920P_BX2DD
-===================================
-
-
-
-new log:
-
-============ EXCEPTION ============
-Traceback (most recent call last):
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 25, in wrapper
-    return func(self, *args, **kwargs)
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 154, in start_acquisition
-    self.camera.save_frames()
-  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\camera.py", line 814, in save_frames
-    self.cam.wait_for_frame(since='start', nframes=num_frames, timeout=20.0, error_on_stopped=False)
-  File "C:\Users\aberdin\AppData\Roaming\Python\Python39\site-packages\pylablib\core\devio\interface.py", line 666, in wrapped
-    res=func(**all_args)
-  File "C:\Users\aberdin\AppData\Roaming\Python\Python39\site-packages\pylablib\devices\interface\camera.py", line 262, in wait_for_frame
-    raise self.TimeoutError
-pylablib.devices.Andor.base.AndorTimeoutError
-===================================
-
-
-log:
-
-Trying to set read mode in controller to: image
-Handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x000001F66D73D850>>
-Entered setup_image_mode in controller
-Setting up image mode... Real mode:image
-Acquisition mode: single
-acquisition mode handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x000001F66D73D850>>
-Got to setup_single_mode in controller
-Trying to change acquisition mode to single.. Actual: single
-Acquisition parameters: None
-Number of frames: 1
-Acquisition parameters after adjustment: {'nframes': None, 'mode': 'single'}
-Acquisition parameters after start: {'nframes': None, 'mode': 'single'}
-num of frames: 1
-Error in RamanCameraController.start_acquisition: 
-
-Trying to set read mode in controller to: image
-Handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x000001F66D73D850>>
-Entered setup_image_mode in controller
-Setting up image mode... Real mode:image
+acquisition mode handler: <bound method RamanCameraController.setup_accum_mode of <controller.RamanCameraController object at 0x00000255986EBA60>>
+User config: {'shutter': {'mode': 'open', 'ttl_mode': '0', 'open_time': '', 'close_time': ''}, 'read_mode': {'mode': 'fvb'}, 'acquisition_mode': {'mode': 'accum', 'num_acc': 3, 'result_mode': 'sum'}, 'trigger_mode': 'int', 'exposure': '0.8', 'amp': {'channel': 0, 'oamp': 0, 'hsspeed': 0, 'preamp': 2}, 'vsspeed': 3, 'emccd_gain': {'emccd_gain': '', 'emccd_advanced': False}}
+Checking save path: C:\Users\aberdin\Desktop\gui data\7-4-26\acc_fvb_0.8_3a_sum_3.npz
+Save path exists: False
+Trying to set read mode in controller to: fvb
+Handler: <bound method RamanCameraController.set_fvb_read_mode of <controller.RamanCameraController object at 0x00000255986EBA60>>
+Read mode set to: fvb
 Acquisition mode: accum
-acquisition mode handler: <bound method RamanCameraController.handle_errors.<locals>.wrapper of <controller.RamanCameraController object at 0x000001F66D73D850>>
-Acquisition parameters: {'nframes': None, 'mode': 'single'}
-Number of frames: 2
-Acquisition parameters after adjustment: {'nframes': None, 'mode': 'accum'}
-Acquisition parameters after start: {'nframes': None, 'mode': 'accum'}
-num of frames: 2
+acquisition mode handler: <bound method RamanCameraController.setup_accum_mode of <controller.RamanCameraController object at 0x00000255986EBA60>>
+User config: {'shutter': {'mode': 'open', 'ttl_mode': '0', 'open_time': '', 'close_time': ''}, 'read_mode': {'mode': 'fvb'}, 'acquisition_mode': {'mode': 'accum', 'num_acc': 3, 'result_mode': 'sum'}, 'trigger_mode': 'int', 'exposure': '0.8', 'amp': {'channel': 0, 'oamp': 0, 'hsspeed': 0, 'preamp': 2}, 'vsspeed': 3, 'emccd_gain': {'emccd_gain': '', 'emccd_advanced': False}}
+Acquisition parameters: None
+Acquisition mode: accum
+Status before start: idle
+acq mode: accum
+accum params: (3, 0)
+timings: TCycleTimings(exposure=0.800000011920929, accum_cycle_time=0.800000011920929, kinetic_cycle_time=2.4000000953674316)
+frame timings: TAcqTimings(exposure=0.800000011920929, frame_period=2.4000000953674316)
+read mode: fvb
+amp mode: TAmpModeFull(channel=0, channel_bitdepth=16, oamp=0, oamp_kind='Conventional', hsspeed=0, hsspeed_MHz=3.0, preamp=2, preamp_gain=4.0)
+vsspeed: 3
+trigger: int
+acq mode: accum
+accum params: (3, 0)
+timings: TCycleTimings(exposure=0.800000011920929, accum_cycle_time=0.8037099838256836, kinetic_cycle_time=0.8037099838256836)
+frame timings: TAcqTimings(exposure=0.800000011920929, frame_period=0.8037099838256836)
+read mode: fvb
+amp mode: TAmpModeFull(channel=0, channel_bitdepth=16, oamp=0, oamp_kind='Conventional', hsspeed=0, hsspeed_MHz=3.0, preamp=2, preamp_gain=4.0)
+vsspeed: 3
+trigger: int
+[SAVE] Frames saved to C:\Users\aberdin\Desktop\gui data\7-4-26\acc_fvb_0.8_3a_sum_3.png
+[SAVE] Spectrogram saved to C:\Users\aberdin\Desktop\gui data\7-4-26\acc_fvb_0.8_3a_sum_3.npz
+[SAVE] CSV saved to C:\Users\aberdin\Desktop\gui data\7-4-26\acc_fvb_0.8_3a_sum_3.csv
+Checking save path: C:\Users\aberdin\Desktop\gui data\7-4-26\acc_fvb_0.8_3a_sum_4.npz
+Save path exists: False
+Trying to set read mode in controller to: fvb
+Handler: <bound method RamanCameraController.set_fvb_read_mode of <controller.RamanCameraController object at 0x00000255986EBA60>>
+Read mode set to: fvb
+Acquisition mode: accum
+acquisition mode handler: <bound method RamanCameraController.setup_accum_mode of <controller.RamanCameraController object at 0x00000255986EBA60>>
+User config: {'shutter': {'mode': 'open', 'ttl_mode': '0', 'open_time': '', 'close_time': ''}, 'read_mode': {'mode': 'fvb'}, 'acquisition_mode': {'mode': 'accum', 'num_acc': 3, 'result_mode': 'sum'}, 'trigger_mode': 'int', 'exposure': '0.8', 'amp': {'channel': 0, 'oamp': 0, 'hsspeed': 0, 'preamp': 2}, 'vsspeed': 3, 'emccd_gain': {'emccd_gain': '', 'emccd_advanced': False}}
+Acquisition parameters: None
+Acquisition mode: accum
+Status before start: idle
+acq mode: accum
+accum params: (3, 0)
+timings: TCycleTimings(exposure=0.800000011920929, accum_cycle_time=0.800000011920929, kinetic_cycle_time=2.4000000953674316)
+frame timings: TAcqTimings(exposure=0.800000011920929, frame_period=2.4000000953674316)
+read mode: fvb
+amp mode: TAmpModeFull(channel=0, channel_bitdepth=16, oamp=0, oamp_kind='Conventional', hsspeed=0, hsspeed_MHz=3.0, preamp=2, preamp_gain=4.0)
+vsspeed: 3
+trigger: int
+acq mode: accum
+accum params: (3, 0)
+timings: TCycleTimings(exposure=0.800000011920929, accum_cycle_time=0.8037099838256836, kinetic_cycle_time=0.8037099838256836)
+frame timings: TAcqTimings(exposure=0.800000011920929, frame_period=0.8037099838256836)
+read mode: fvb
+amp mode: TAmpModeFull(channel=0, channel_bitdepth=16, oamp=0, oamp_kind='Conventional', hsspeed=0, hsspeed_MHz=3.0, preamp=2, preamp_gain=4.0)
+vsspeed: 3
+trigger: int
+[SAVE] Frames saved to C:\Users\aberdin\Desktop\gui data\7-4-26\acc_fvb_0.8_3a_sum_4.png
+[SAVE] Spectrogram saved to C:\Users\aberdin\Desktop\gui data\7-4-26\acc_fvb_0.8_3a_sum_4.npz
+[SAVE] CSV saved to C:\Users\aberdin\Desktop\gui data\7-4-26\acc_fvb_0.8_3a_sum_4.csv
+Trying to set read mode in controller to: fvb
+Handler: <bound method RamanCameraController.set_fvb_read_mode of <controller.RamanCameraController object at 0x00000255986EBA60>>
+Read mode set to: fvb
+Acquisition mode: accum
+acquisition mode handler: <bound method RamanCameraController.setup_accum_mode of <controller.RamanCameraController object at 0x00000255986EBA60>>
+User config: {'shutter': {'mode': 'open', 'ttl_mode': '0', 'open_time': '', 'close_time': ''}, 'read_mode': {'mode': 'fvb'}, 'acquisition_mode': {'mode': 'accum', 'num_acc': 3, 'result_mode': 'avg'}, 'trigger_mode': 'int', 'exposure': '0.8', 'amp': {'channel': 0, 'oamp': 0, 'hsspeed': 0, 'preamp': 2}, 'vsspeed': 3, 'emccd_gain': {'emccd_gain': '', 'emccd_advanced': False}}
+Checking save path: C:\Users\aberdin\Desktop\gui data\7-4-26\acc_fvb_0.8_3a_avg_5.npz
+Save path exists: False
+Trying to set read mode in controller to: fvb
+Handler: <bound method RamanCameraController.set_fvb_read_mode of <controller.RamanCameraController object at 0x00000255986EBA60>>
+Read mode set to: fvb
+Acquisition mode: accum
+acquisition mode handler: <bound method RamanCameraController.setup_accum_mode of <controller.RamanCameraController object at 0x00000255986EBA60>>
+User config: {'shutter': {'mode': 'open', 'ttl_mode': '0', 'open_time': '', 'close_time': ''}, 'read_mode': {'mode': 'fvb'}, 'acquisition_mode': {'mode': 'accum', 'num_acc': 3, 'result_mode': 'avg'}, 'trigger_mode': 'int', 'exposure': '0.8', 'amp': {'channel': 0, 'oamp': 0, 'hsspeed': 0, 'preamp': 2}, 'vsspeed': 3, 'emccd_gain': {'emccd_gain': '', 'emccd_advanced': False}}
+Acquisition parameters: None
+Acquisition mode: accum
+Status before start: idle
+acq mode: accum
+accum params: (3, 0)
+timings: TCycleTimings(exposure=0.800000011920929, accum_cycle_time=0.800000011920929, kinetic_cycle_time=2.4000000953674316)
+frame timings: TAcqTimings(exposure=0.800000011920929, frame_period=2.4000000953674316)
+read mode: fvb
+amp mode: TAmpModeFull(channel=0, channel_bitdepth=16, oamp=0, oamp_kind='Conventional', hsspeed=0, hsspeed_MHz=3.0, preamp=2, preamp_gain=4.0)
+vsspeed: 3
+trigger: int
+acq mode: accum
+accum params: (3, 0)
+timings: TCycleTimings(exposure=0.800000011920929, accum_cycle_time=0.8037099838256836, kinetic_cycle_time=0.8037099838256836)
+frame timings: TAcqTimings(exposure=0.800000011920929, frame_period=0.8037099838256836)
+read mode: fvb
+amp mode: TAmpModeFull(channel=0, channel_bitdepth=16, oamp=0, oamp_kind='Conventional', hsspeed=0, hsspeed_MHz=3.0, preamp=2, preamp_gain=4.0)
+vsspeed: 3
+trigger: int
+averaged accum mode frame by 3
+[SAVE] Frames saved to C:\Users\aberdin\Desktop\gui data\7-4-26\acc_fvb_0.8_3a_avg_5.png
+[SAVE] Spectrogram saved to C:\Users\aberdin\Desktop\gui data\7-4-26\acc_fvb_0.8_3a_avg_5.npz
+[SAVE] CSV saved to C:\Users\aberdin\Desktop\gui data\7-4-26\acc_fvb_0.8_3a_avg_5.csv
+Checking save path: C:\Users\aberdin\Desktop\gui data\7-4-26\acc_fvb_0.8_3a_avg_6.npz
+Save path exists: False
+Trying to set read mode in controller to: fvb
+Handler: <bound method RamanCameraController.set_fvb_read_mode of <controller.RamanCameraController object at 0x00000255986EBA60>>
+Read mode set to: fvb
+Acquisition mode: accum
+acquisition mode handler: <bound method RamanCameraController.setup_accum_mode of <controller.RamanCameraController object at 0x00000255986EBA60>>
+User config: {'shutter': {'mode': 'open', 'ttl_mode': '0', 'open_time': '', 'close_time': ''}, 'read_mode': {'mode': 'fvb'}, 'acquisition_mode': {'mode': 'accum', 'num_acc': 3, 'result_mode': 'avg'}, 'trigger_mode': 'int', 'exposure': '0.8', 'amp': {'channel': 0, 'oamp': 0, 'hsspeed': 0, 'preamp': 2}, 'vsspeed': 3, 'emccd_gain': {'emccd_gain': '', 'emccd_advanced': False}}
+Acquisition parameters: None
+Acquisition mode: accum
+Status before start: idle
+acq mode: accum
+accum params: (3, 0)
+timings: TCycleTimings(exposure=0.800000011920929, accum_cycle_time=0.800000011920929, kinetic_cycle_time=2.4000000953674316)
+frame timings: TAcqTimings(exposure=0.800000011920929, frame_period=2.4000000953674316)
+read mode: fvb
+amp mode: TAmpModeFull(channel=0, channel_bitdepth=16, oamp=0, oamp_kind='Conventional', hsspeed=0, hsspeed_MHz=3.0, preamp=2, preamp_gain=4.0)
+vsspeed: 3
+trigger: int
+acq mode: accum
+accum params: (3, 0)
+timings: TCycleTimings(exposure=0.800000011920929, accum_cycle_time=0.8037099838256836, kinetic_cycle_time=0.8037099838256836)
+frame timings: TAcqTimings(exposure=0.800000011920929, frame_period=0.8037099838256836)
+read mode: fvb
+amp mode: TAmpModeFull(channel=0, channel_bitdepth=16, oamp=0, oamp_kind='Conventional', hsspeed=0, hsspeed_MHz=3.0, preamp=2, preamp_gain=4.0)
+vsspeed: 3
+trigger: int
+averaged accum mode frame by 3
+[SAVE] Frames saved to C:\Users\aberdin\Desktop\gui data\7-4-26\acc_fvb_0.8_3a_avg_6.png
+[SAVE] Spectrogram saved to C:\Users\aberdin\Desktop\gui data\7-4-26\acc_fvb_0.8_3a_avg_6.npz
+read mode: fvb
+read mode: fvb
+amp mode: TAmpModeFull(channel=0, channel_bitdepth=16, oamp=0, oamp_kind='Conventional', hsspeed=0, hsspeed_MHz=3.0, preamp=2, preamp_gain=4.0)
+vsspeed: 3
+trigger: int
+acq mode: accum
+accum params: (3, 0)
+timings: TCycleTimings(exposure=0.800000011920929, accum_cycle_time=0.8037099838256836, kinetic_cycle_time=0.8037099838256836)
+frame timings: TAcqTimings(exposure=0.800000011920929, frame_period=0.8037099838256836)
+read mode: fvb
+amp mode: TAmpModeFull(channel=0, channel_bitdepth=16, oamp=0, oamp_kind='Conventional', hsspeed=0, hsspeed_MHz=3.0, preamp=2, preamp_gain=4.0)
+vsspeed: 3
+trigger: int
+averaged accum mode frame by 3
+[SAVE] Frames saved to C:\Users\aberdin\Desktop\gui data\7-4-26\acc_fvb_0.8_3a_avg_6.png
+[SAVE] Spectrogram saved to C:\Users\aberdin\Desktop\gui data\7-4-26\acc_fvb_0.8_3a_avg_6.npz
+[SAVE] CSV saved to C:\Users\aberdin\Desktop\gui data\7-4-26\acc_fvb_0.8_3a_avg_6.csv

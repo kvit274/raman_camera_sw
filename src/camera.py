@@ -456,16 +456,16 @@ class RamanCameraModel:
         self.cam.set_cooler(on=False)
         print("Warming (cooler OFF)")
 
-        while True:
+        # while True:
 
-            t = round(self.cam.get_temperature(),2)
-            print(f"Warming T = {t:.1f}")
+        #     t = round(self.cam.get_temperature(),2)
+        #     print(f"Warming T = {t:.1f}")
 
-            if t >= safe_temp:
-                break
+        #     if t >= safe_temp:
+        #         break
 
-            time.sleep(1)
-        # self.busy = False
+        #     time.sleep(1)
+        # # self.busy = False
         
     def get_temp(self):
         if not self.cam:

@@ -1197,6 +1197,8 @@ class MainWindow(QMainWindow):
                     if reply == QMessageBox.Yes:
                         self.load_settings_from_metadata(metadata)
                         self.set_settings()
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to open file:\n{e}")
 
     # ==== VISUALS ====
     def separator(self):

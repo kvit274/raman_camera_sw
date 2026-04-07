@@ -33,8 +33,8 @@ class RamanCameraController(QObject):
         super().__init__()
 
         # self.view = view
-        # self.camera = RamanCameraModel()
-        self.camera = TestCameraModel()
+        self.camera = RamanCameraModel()
+        # self.camera = TestCameraModel()
         self.acquisition_service = AcquisitionService()
         self.spec = TestSpectrometerModel() # delete
 
@@ -506,14 +506,14 @@ class RamanCameraController(QObject):
             self.stop_live()
         if self.get_state() == CameraState.ACQUIRING:
             self.stop_acquisition()
-        self.set_acquisition_mode(acquisition_mode)
         self.set_read_mode(read_mode)
-        self.set_exposure(exposure)
         self.set_trigger_mode(trigger_mode)
-        self.setup_shutter(**shutter)
         self.set_amp_mode(amp)
         self.set_vsspeed(vsspeed)
+        self.setup_shutter(**shutter)
+        self.set_exposure(exposure)
         self.set_EMCCD_gain(**emccd_gain)
+        self.set_acquisition_mode(acquisition_mode)
 
         # self.user_config = {
         #     "shutter": shutter,
