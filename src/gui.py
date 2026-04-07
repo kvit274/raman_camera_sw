@@ -612,12 +612,48 @@ class MainWindow(QMainWindow):
                 print(f"Failed loading {key}: {e}")
 
         if "read_mode" in meta:
-            self.read_mode_input.setCurrentText(meta["read_mode"]["mode"])
+            read = meta["read_mode"]
+            mode = read.get("mode", "image")
+            self.read_mode_input.setCurrentText(mode)
+
+            if mode == "image":
+                w = self.image_widget
+                w.processing_mode_input.setCurrentText(str(read.get("processing_mode", "binning")))
+                w.bit_shift_pixels_input.setText("" if read.get("bit_shift_pixels") is None else str(read.get("bit_shift_pixels", "")))
+                w.bit_shift_vstart_input.setText("" if read.get("bit_shift_vstart") is None else str(read.get("bit_shift_vstart", "")))
+                w.bit_shift_vend_input.setText("" if read.get("bit_shift_vend") is None else str(read.get("bit_shift_vend", "")))
 
         if "acquisition_mode" in meta:
-            self.acquisition_mode_input.setCurrentText(
-                meta["acquisition_mode"]["mode"]
-            )
+            acq = meta["acquisition_mode"]
+            mode = acq.get("mode", "single")
+            self.acquisition_mode_input.setCurrentText(mode)
+
+            if mode == "accum":
+                w = self.acquisition_mode_widgets["accum"]
+                w.num_acc_input.setText("" if acq.get("num_acc") is None else str(acq.get("num_acc", "")))
+                w.cycle_time_acc_input.setText("" if acq.get("cycle_time_acc") is None else str(acq.get("cycle_time_acc", "")))
+                w.result_mode_input.setCurrentText(str(acq.get("result_mode", "sum")))
+
+            elif mode == "kinetic":
+                w = self.acquisition_mode_widgets["kinetic"]
+                w.num_cycle_input.setText("" if acq.get("num_cycle") is None else str(acq.get("num_cycle", "")))
+                w.cycle_time_input.setText("" if acq.get("cycle_time") is None else str(acq.get("cycle_time", "")))
+                w.num_acc_input.setText("" if acq.get("num_acc") is None else str(acq.get("num_acc", "")))
+                w.cycle_time_acc_input.setText("" if acq.get("cycle_time_acc") is None else str(acq.get("cycle_time_acc", "")))
+                w.num_prescan.setText("" if acq.get("num_prescan") is None else str(acq.get("num_prescan", "")))
+                w.result_mode_input.setCurrentText(str(acq.get("result_mode", "sum")))
+
+            elif mode == "fast_kinetic":
+                w = self.acquisition_mode_widgets["fast_kinetic"]
+                w.num_acc_input.setText("" if acq.get("num_acc") is None else str(acq.get("num_acc", "")))
+                w.cycle_time_acc_input.setText("" if acq.get("cycle_time_acc") is None else str(acq.get("cycle_time_acc", "")))
+                w.result_mode_input.setCurrentText(str(acq.get("result_mode", "sum")))
+
+            elif mode == "cont":
+                w = self.acquisition_mode_widgets["cont"]
+                w.cycle_time.setText("" if acq.get("cycle_time") is None else str(acq.get("cycle_time", "")))
+
+        print("Metadata loaded into GUI")
 
         # self.get_preview_roi_limits()
         print("Metadata loaded into GUI")
