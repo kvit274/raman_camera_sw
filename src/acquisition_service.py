@@ -250,10 +250,10 @@ class AcquisitionService:
         print(f"[SAVE] Frames saved to {png_path}")
         return
     
-    def save_csv_frame(self,frame,filename):
-        new_filename = filename
-        csv_frame_path = self.save_path / f"{new_filename.replace('.npz','')}_frame.csv"
-        np.savetxt(csv_frame_path,frame,delimiter=",",fmt="%d")
+    # def save_csv_frame(self,frame,filename):
+    #     new_filename = filename
+    #     csv_frame_path = self.save_path / f"{new_filename.replace('.npz','')}_frame.csv"
+    #     np.savetxt(csv_frame_path,frame,delimiter=",",fmt="%d")
 
     def baseline_correct(self,spectrum,method="asls"):
         """

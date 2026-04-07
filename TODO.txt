@@ -260,3 +260,17 @@ averaged accum mode frame by 3
 [SAVE] Frames saved to C:\Users\aberdin\Desktop\gui data\7-4-26\acc_fvb_0.8_3a_avg_6.png
 [SAVE] Spectrogram saved to C:\Users\aberdin\Desktop\gui data\7-4-26\acc_fvb_0.8_3a_avg_6.npz
 [SAVE] CSV saved to C:\Users\aberdin\Desktop\gui data\7-4-26\acc_fvb_0.8_3a_avg_6.csv
+
+
+============ EXCEPTION ============
+Traceback (most recent call last):
+  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 57, in wrapper
+    result = func(self, *args, **kwargs)
+  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 516, in apply_cam_settings
+    self.set_acquisition_mode(acquisition_mode)
+  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 668, in set_acquisition_mode
+    handler(acquisition_mode)
+  File "C:\Users\aberdin\FYP\RAMAN\raman_camera_sw\src\controller.py", line 681, in setup_accum_mode
+    raise ValueError("num_acc parameter is required for accumulation mode")
+ValueError: num_acc parameter is required for accumulation mode
+===================================

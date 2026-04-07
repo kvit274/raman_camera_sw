@@ -614,11 +614,11 @@ class RamanCameraModel:
 
         try:
             if acquisition_mode == "single":
-                self.cam.set_acquisition_mode("single",setup_params=True)    # testing this
+                # self.cam.set_acquisition_mode("single",setup_params=True)    # testing this
                 print(f"Acquisition parameters after enforcing: {self.cam.get_acquisition_parameters()}")
                 frames = [self.cam.snap(timeout=timeout,return_info=False)]
             elif acquisition_mode == "accum":
-                self.cam.set_acquisition_mode("accum",setup_params=True)    # testing this
+                # self.cam.set_acquisition_mode("accum",setup_params=True)    # testing this
                 print("acq mode:", self.cam.get_acquisition_mode())
                 print("accum params:", self.cam.get_accum_mode_parameters())
                 print("timings:", self.cam.get_cycle_timings())
@@ -629,11 +629,11 @@ class RamanCameraModel:
                 print("trigger:", self.cam.get_trigger_mode())
                 frames = [self.cam.snap(timeout=timeout,return_info=False)]       # since 1 frame produced
             elif acquisition_mode == "kinetic":
-                self.cam.set_acquisition_mode("kinetic",setup_params=True)    # testing this
+                # self.cam.set_acquisition_mode("kinetic",setup_params=True)    # testing this
                 num_frames = self.cam.get_kinetic_mode_parameters()[0]
                 frames = self.cam.grab(nframes=num_frames, frame_timeout=timeout, missing_frame='skip', return_info=False, buff_size=None)
             elif acquisition_mode == "fast_kinetic":
-                self.cam.set_acquisition_mode("fast_kinetic",setup_params=True)    # testing this
+                # self.cam.set_acquisition_mode("fast_kinetic",setup_params=True)    # testing this
                 num_frames = self.cam.get_fast_kinetic_mode_parameters()[0]
                 frames = self.cam.grab(nframes=num_frames, frame_timeout=timeout, missing_frame='skip', return_info=False, buff_size=None)
             elif acquisition_mode == "cont":

@@ -416,7 +416,7 @@ class RamanCameraController(QObject):
         if not frames:
             raise RuntimeError("No frames acquired during acquisition")
 
-        self.acquisition_service.save_csv_frame(frames[0],filename)        # temp DELETE THIS testing only
+        # self.acquisition_service.save_csv_frame(frames[0],filename)        # temp DELETE THIS testing only
 
         user_config = self.get_user_config()
         acq_mode = user_config.get("acquisition_mode",{}).get("mode","single")
