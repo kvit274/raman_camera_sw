@@ -23,10 +23,6 @@ class MainWindow(QMainWindow):
         self.temp_popup = TemperaturePopUp(self)
         self.status.setSizeGripEnabled(False)
 
-        # self.acq_worker = None
-        # self.live_worker = None
-
-        # attach controller
         self.controller = RamanCameraController()
         self.controller.error_signal.connect(self.display_msg)
         self.controller.camera_lost_signal.connect(self.handle_camera_loss)
@@ -34,7 +30,6 @@ class MainWindow(QMainWindow):
         self.controller.shutter_state_changed.connect(self.display_shutter_state)
         self.controller.amp_modes_loaded.connect(self.load_amp_modes)
         self.controller.vsspeeds_loaded.connect(self.load_vsspeeds)
-        # self.controller.ui_busy_changed.connect(self.set_ui_busy)
         self.controller.ui_state_changed.connect(self.apply_state_to_ui)
         self.controller.live_frame_ready.connect(self.handle_live_results)
         self.controller.live_finished.connect(lambda: self.display_msg("Live mode stopped.", success=True))
@@ -83,12 +78,11 @@ class MainWindow(QMainWindow):
 
         # Camera settings
 
-
         # Shutter controls
         self.shutter_mode_input = QNoScrollComboBox()
         self.shutter_mode_input.addItems(["auto", "open", "closed"])
         self.ttl_mode_input = QNoScrollComboBox()
-        self.ttl_mode_input.addItems(["0", "1"]) # THESE NEEDS TO BE CHANGED TO: TTL_low TTL_high for nicer ux
+        self.ttl_mode_input.addItems(["0", "1"])
         self.shutter_open_time_input = QLineEdit()
         self.shutter_open_time_input.setPlaceholderText("Shutter Open Time (ms)")
         self.shutter_open_time_input.setValidator(QDoubleValidator())
@@ -104,10 +98,7 @@ class MainWindow(QMainWindow):
         self.read_mode_stack = QStackedWidget()
         self.read_mode_stack.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Maximum)
         self.image_widget = ImageWidget()
-        self.image_widget.roi_visual_changed.connect(self.update_image_preview_overlay)  # connect to draw on preview
-        
-        # self.image_widget.roi_hbin_input.textChanged.connect(self.get_preview_roi_limits)
-        # self.image_widget.roi_vbin_input.textChanged.connect(self.get_preview_roi_limits)
+        self.image_widget.roi_visual_changed.connect(self.update_image_preview_overlay)
         self.read_mode_widgets = {
             "fvb": FVBWidget(),
             "image": self.image_widget,
@@ -115,9 +106,6 @@ class MainWindow(QMainWindow):
             "multi_track": MultiTrackWidget(),
             "random_track": RandomTrackWidget()
         }
-
-        
-
         for w in self.read_mode_widgets.values():
             self.read_mode_stack.addWidget(w)
 
@@ -132,7 +120,6 @@ class MainWindow(QMainWindow):
             "fast_kinetic": FastKineticWidget(),
             "cont": ContinuousWidget()
         }
-
         for w in self.acquisition_mode_widgets.values():
             self.acquisition_mode_stack.addWidget(w)
 
@@ -144,10 +131,6 @@ class MainWindow(QMainWindow):
         self.exposure_input = QLineEdit()
         self.exposure_input.setPlaceholderText("Exposure time (s)")
         self.exposure_input.setValidator(QDoubleValidator())
-
-        # Result mode (avg or sum of frames)
-        # self.result_mode_input = QNoScrollComboBox()
-        # self.result_mode_input.addItems(["sum", "avg"])
 
         # Amp
         self.amp_mode_input = QNoScrollComboBox()
@@ -165,31 +148,17 @@ class MainWindow(QMainWindow):
 
         self.btn_set_settings = QPushButton("Apply Settings")
 
-        # ==== Acquisition progress ====
-        # self.acquisition_state = QLabel("Acquisition in progress: False")
+        # -------- LAYOUT -------
 
-
-        # ===== LAYOUT (split) =====
-
-        # ==== LEFT PANEL (FULL HEIGHT) ====
+        # -------- LEFT PANEL  --------
         
-
         self.left_container = QWidget()
         self.left_layout = QVBoxLayout(self.left_container)
         self.left_layout.setSpacing(10)
         self.left_layout.setContentsMargins(10, 10, 10, 10)
-
-        # self.left_container.setStyleSheet("""
-        #     QWidget {
-        #         background-color: #2b2b2b;
-        #     }
-        # """)
         self.left_container.setObjectName("leftPanel")
-
         self.left_container.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
 
-
-        
         # -------- Top camera controls row --------
         self.top_controls_container = QWidget()
         self.top_controls_layout = QHBoxLayout(self.top_controls_container)
@@ -205,9 +174,6 @@ class MainWindow(QMainWindow):
         self.top_controls_layout.addWidget(self.btn_preview)
         self.top_controls_layout.addWidget(self.btn_acquire)
         self.top_controls_layout.addWidget(self.btn_stop_acq)
-        
-
-        # self.left_layout.addLayout(self.control_layout)
 
         # -------- File / save controls --------
         self.file_controls_layout = QVBoxLayout()
@@ -215,7 +181,6 @@ class MainWindow(QMainWindow):
         self.file_controls_layout.addWidget(self.save_frame_path_label)
         self.file_controls_layout.addLayout(self.save_frame_path_layout)
         self.file_controls_layout.addWidget(self.btn_open_npz)
-
         self.left_layout.addLayout(self.file_controls_layout)
 
         # -------- Shutter --------
@@ -250,53 +215,37 @@ class MainWindow(QMainWindow):
         # -------- Acquisition --------
         self.section_acq = CollapsibleSection("Acquisition")
         self.acq_layout = QVBoxLayout()
-
         self.acq_layout.addWidget(QLabel("Acquisition Mode"))
         self.acq_layout.addWidget(self.acquisition_mode_input)
-
         self.acq_layout.addWidget(self.acquisition_mode_stack)
-
         self.acq_layout.addWidget(QLabel("Trigger Mode"))
         self.acq_layout.addWidget(self.trigger_mode_input)
-
         self.acq_layout.addWidget(QLabel("Exposure (s)"))
         self.acq_layout.addWidget(self.exposure_input)
-
-        # self.acq_layout.addWidget(QLabel("Result Processing"))
-        # self.acq_layout.addWidget(self.result_mode_input)
-
         self.section_acq.setContentLayout(self.acq_layout)
         self.left_layout.addWidget(self.section_acq)
 
         # -------- Amplifier --------
         self.section_amp = CollapsibleSection("Amplifier / Speed")
         self.amp_layout = QVBoxLayout()
-
         self.amp_layout.addWidget(QLabel("Amp Mode"))
         self.amp_layout.addWidget(self.amp_mode_input)
-
         self.amp_layout.addWidget(QLabel("Vertical Shift Speed"))
         self.amp_layout.addWidget(self.vsspeed_input)
-
         self.amp_layout.addWidget(QLabel("EMCCD Gain"))
         self.amp_layout.addWidget(self.emccd_gain_input)
         self.amp_layout.addWidget(self.emccd_advanced_checkbox)
-
         self.section_amp.setContentLayout(self.amp_layout)
         self.left_layout.addWidget(self.section_amp)
-
         self.left_layout.addWidget(self.btn_set_settings)
         self.left_layout.addStretch()
-
         self.scroll = QScrollArea()
         self.scroll.setWidgetResizable(True)
         self.scroll.setWidget(self.left_container)
         self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.scroll.setSizePolicy(QSizePolicy.Preferred,QSizePolicy.Expanding)
 
-        # ============================================================
         # ---- RIGHT SIDE TABS ----
-        # ============================================================
 
         self.right_tabs = QTabWidget()
         self.right_tabs.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding)
@@ -316,7 +265,6 @@ class MainWindow(QMainWindow):
 
         self.preview.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.preview_layout.addWidget(self.preview_container, alignment = Qt.AlignRight)
-
         self.right_tabs.addTab(self.preview_tab, "Preview")
 
         # ---- SPECTROGRAMS ----
@@ -334,16 +282,12 @@ class MainWindow(QMainWindow):
         self.btn_new_spectrum_tab.clicked.connect(lambda: self.create_empty_spectrum_tab())
 
         self.calibration_tabs.setCornerWidget(self.btn_new_spectrum_tab, Qt.TopRightCorner)
-
         self.cal_layout.addWidget(self.calibration_tabs)
-
         self.right_tabs.addTab(self.calibration_tab, "Spectrogram")
 
         # init common plots
         self.live_plot = self.create_spectrum_plot("Live")
         self.live_tab_index = self.calibration_tabs.addTab(self.live_plot, "Live")
-        # self.last_acquired_plot = None
-        # self.last_acquired_title = None
         self.pending_filename = None
         self.plot_pens = [
             pg.mkPen("y", width=1.8),
@@ -355,10 +299,7 @@ class MainWindow(QMainWindow):
         self.orange_pen = pg.mkPen((255,165,9),width=1.8)
         self.next_plot_pen_idx = 0
 
-
-        # ============================================================
-        # SPLITTER (DRAGGABLE)
-        # ============================================================
+        # ---- SPLITTER ----
 
         self.splitter = QSplitter(Qt.Horizontal)
         self.splitter.addWidget(self.scroll)
@@ -366,33 +307,22 @@ class MainWindow(QMainWindow):
         self.splitter.setStretchFactor(0, 0)
         self.splitter.setStretchFactor(1, 1)
         self.splitter.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Expanding)
-
-        # ============================================================
-        # STATUS BAR (BOTTOM STRIP)
-        # ============================================================
-
         self.status_container = QWidget()
         self.status_container.setObjectName("statusBarContainer")
         self.status_layout = QHBoxLayout(self.status_container)
         self.status_layout.setContentsMargins(10, 5, 10, 5)
-
         self.status.setStyleSheet("color: red;")
-
         self.status_layout.addWidget(self.temp)
         self.status_layout.insertWidget(1,self.btn_set_temp)
         self.status_layout.addWidget(self.separator())
         self.status_layout.addWidget(self.shutter_current_state)
         self.status_layout.addWidget(self.separator())
-        # self.status_layout.addWidget(self.acquisition_state)
         self.status_layout.addWidget(self.separator())
         self.status_layout.addStretch()
         self.status_layout.addWidget(self.status)
-
         self.status_container.setSizePolicy(QSizePolicy.Expanding,QSizePolicy.Fixed)
 
-        # ============================================================
-        # FINAL MAIN LAYOUT
-        # ============================================================
+        # ---- MAIN LAYOUT ----
 
         self.main_layout = QVBoxLayout()
         self.main_layout.setContentsMargins(0, 0, 0, 0)
@@ -400,11 +330,9 @@ class MainWindow(QMainWindow):
         self.main_layout.addWidget(self.top_controls_container, 0)
         self.main_layout.addWidget(self.splitter, 1)
         self.main_layout.addWidget(self.status_container, 0)
-
         self.central = QWidget()
         self.central.setLayout(self.main_layout)
         self.setCentralWidget(self.central)
-
 
         # Connect buttons to controller cam
         self.btn_set_temp.clicked.connect(self.show_temp_popup)
@@ -418,7 +346,7 @@ class MainWindow(QMainWindow):
         self.btn_disconnect_cam.clicked.connect(self.disconnect_cam)
         self.btn_set_settings.clicked.connect(self.set_settings)
         self.read_mode_input.currentTextChanged.connect(self.on_read_mode_changed)
-        self.on_read_mode_changed("image")      # update ui for image
+        self.on_read_mode_changed("image")
         self.acquisition_mode_input.currentTextChanged.connect(self.on_acquisition_mode_changed)
         self.on_acquisition_mode_changed("single")
         self.btn_save_frame_path.clicked.connect(self.select_save_frame_path)
@@ -426,46 +354,29 @@ class MainWindow(QMainWindow):
         self.preview.roi_changed.connect(self.update_roi_inputs)
         self.preview.bit_shift_region_changed.connect(self.update_bit_shift_inputs)
 
-
         # Display temperature
         self.timer_temp = QTimer(self)
         self.timer_temp.timeout.connect(self.display_temp)
 
-        # Display acquisition status
-        # self.timer_acquisition = QTimer(self)
-        # self.timer_acquisition.timeout.connect(self.display_acquisition_state)
-
         # SETTINGS MAP
         self.settings_map = {
-
             "exposure": self.exposure_input,
             "trigger_mode": self.trigger_mode_input,
-            # "result_mode": self.result_mode_input,
-
             ("shutter","mode"): self.shutter_mode_input,
             ("shutter","ttl_mode"): self.ttl_mode_input,
             ("shutter","open_time"): self.shutter_open_time_input,
             ("shutter","close_time"): self.shutter_close_time_input,
-
             ("read_mode","hstart"): self.image_widget.roi_hstart_input,
             ("read_mode","hend"): self.image_widget.roi_hend_input,
             ("read_mode","vstart"): self.image_widget.roi_vstart_input,
             ("read_mode","vend"): self.image_widget.roi_vend_input,
             ("read_mode","hbin"): self.image_widget.roi_hbin_input,
             ("read_mode","vbin"): self.image_widget.roi_vbin_input,
-
         }
 
         # disable buttons before camera connection
-        # self.disable_not_connected_buttons()
         for b in [self.btn_live, self.btn_disconnect_cam, self.btn_stop, self.btn_preview, self.btn_acquire, self.btn_stop_acq, self.btn_set_temp,self.btn_set_settings]:
             b.setEnabled(False)
-
-    # def set_ui_busy(self, busy:bool):
-    #     if busy:
-    #         self.disable_buttons()
-    #     else:
-    #         self.enable_buttons()
 
     def apply_state_to_ui(self,state):
         buttons = {
@@ -581,8 +492,6 @@ class MainWindow(QMainWindow):
         for idx,value in enumerate(vsspeeds):
             label = f"{value:.2f} µs"
             self.vsspeed_input.addItem(label)
-
-            # store index
             self.vsspeed_input.setItemData(self.vsspeed_input.count()-1,idx,Qt.UserRole+1)
 
     def load_settings_from_metadata(self, meta):
@@ -654,8 +563,6 @@ class MainWindow(QMainWindow):
                 w.cycle_time.setText("" if acq.get("cycle_time") is None else str(acq.get("cycle_time", "")))
 
         print("Metadata loaded into GUI")
-
-        # self.get_preview_roi_limits()
         print("Metadata loaded into GUI")
 
     def on_read_mode_changed(self, mode):
@@ -685,11 +592,6 @@ class MainWindow(QMainWindow):
 
     def display_shutter_state(self, state:str):
         self.shutter_current_state.setText(f"Shutter State: {state}")
-
-    # def display_acquisition_state(self):
-    #     in_progress,state = self.controller.display_acquisition_state()
-    #     num_frames, num_acc = state
-    #     self.acquisition_state.setText(f"Acquisition in progress: {in_progress} (frames done: {num_frames}, acc_done: {num_acc})")
 
     def update_image_preview_overlay(self,roi,show_roi,show_grid,bit_shift_vstart,bit_shift_vend,show_bit_shift_region):
         if self.read_mode_input.currentText() != "image":
@@ -726,36 +628,10 @@ class MainWindow(QMainWindow):
     def connect_cam(self):
         self.controller.connect_cam()
         self.timer_temp.start(1000)
-        # self.get_preview_roi_limits()
-        # self.timer_acquisition.start(500)
 
     def disconnect_cam(self):
-        # self.timer_acquisition.stop()
         self.timer_temp.stop()
         self.controller.disconnect_cam()
-        # self.disable_not_connected_buttons()
-
-    # def disable_buttons(self):
-    #     for b in [self.btn_connect_cam, self.btn_live, self.btn_stop, self.btn_preview, self.btn_acquire, self.btn_stop_acq]:
-    #         b.setEnabled(False)
-
-    # def disable_not_connected_buttons(self):
-    #     for b in [self.btn_live, self.btn_stop, self.btn_preview, self.btn_acquire, self.btn_stop_acq, self.btn_set_temp,self.btn_set_settings]:
-    #         b.setEnabled(False)
-
-    
-    
-    # def disable_acq_buttons(self):
-    #     for b in [self.btn_acquire, self.btn_connect_cam, self.btn_live, self.btn_stop, self.btn_preview, self.btn_acquire, self.btn_set_temp,self.btn_set_settings]:
-    #         b.setEnabled(False)
-
-    # def disable_live_buttons(self):
-    #     for b in [self.btn_acquire, self.btn_connect_cam, self.btn_live, self.btn_preview, self.btn_acquire, self.btn_set_temp,self.btn_set_settings,self.btn_stop_acq,self.btn_open_npz]:
-    #         b.setEnabled(False)
-    
-    # def enable_buttons(self):
-    #     for b in [self.btn_connect_cam, self.btn_disconnect_cam, self.btn_live, self.btn_stop, self.btn_preview, self.btn_acquire, self.btn_stop_acq, self.btn_set_temp, self.btn_set_settings,self.btn_open_npz]:
-    #         b.setEnabled(True)
 
     def apply_temperature(self):
         target_temp = self.temp_popup.get_value()
@@ -771,7 +647,7 @@ class MainWindow(QMainWindow):
         try:
             full_w, full_h = self.controller.detect_cam_size()
         except:
-            return  # camera not connected
+            return
 
         if text == "Custom":
             return
@@ -800,8 +676,6 @@ class MainWindow(QMainWindow):
         w = self.image_widget
         w.roi_hbin_input.setText(str(hbin))
         w.roi_vbin_input.setText(str(vbin))
-        # self.get_preview_roi_limits()
-
 
     def set_settings(self):
 
@@ -821,8 +695,6 @@ class MainWindow(QMainWindow):
         trigger_mode = self.trigger_mode_input.currentText()
 
         exposure = self.exposure_input.text()
-
-        # result_mode = self.result_mode_input.currentText()
 
         amp_mode = self.amp_mode_input.currentData(Qt.UserRole)
         if amp_mode is not None:
@@ -849,7 +721,7 @@ class MainWindow(QMainWindow):
 
         result = self.controller.apply_cam_settings(shutter, read_mode_params, acquisition_mode_params, trigger_mode, exposure, amp, vsspeed, emccd_gain)
 
-        if result is None:  # testing 
+        if result is None: 
             self.display_msg("Settings applied",True)
             return
 
@@ -869,37 +741,26 @@ class MainWindow(QMainWindow):
         plot.setLabel("left", "Intensity")
         plot.setLabel("bottom", "Detector pixel")
         plot.showGrid(x=True, y=True, alpha=0.2)
-
         vb = plot.getViewBox()
         vb.setMouseEnabled(x=True, y=True)
         vb.setDefaultPadding(0.0)
-
         plot.addLegend()
-
-        # marker = pg.ScatterPlotItem(size=8, brush=pg.mkBrush(255, 80, 80))
-        # plot.addItem(marker)
-
         label = pg.TextItem("", anchor=(0.5, 1), fill =pg.mkBrush(0,0,0),border=pg.mkPen(255,255,255))
         label.setZValue(500)
         label.setVisible(False)
         plot.addItem(label)
-
-        # plot._marker = marker
         plot._label = label
         plot._x = None
         plot._y = None
-        plot._curves = []   # list of dicts: {"curve":..., "x":..., "y":..., "name":...}
-
+        plot._curves = []  
         plot.scene().sigMouseMoved.connect(lambda pos, p=plot: self.on_spectrum_hover(pos, p))
         plot.setMouseTracking(True)
-
         return plot
     
-    def _get_next_pen(self):
+    def get_next_pen(self):
         pen = self.plot_pens[self.next_plot_pen_idx % len(self.plot_pens)]
         self.next_plot_pen_idx += 1
         return pen
-
 
     def add_curve_to_spectrum_plot(self, plot, spectrum_data, name, pen=None, clear_existing=False):
         x, y = spectrum_data
@@ -911,13 +772,8 @@ class MainWindow(QMainWindow):
                 plot.removeItem(item["curve"])
             plot._curves = []
 
-            # # also rebuild legend cleanly
-            # if plot.plotItem.legend is not None:
-            #     plot.plotItem.legend.scene().removeItem(plot.plotItem.legend)
-            # plot.addLegend()
-
         if pen is None:
-            pen = self._get_next_pen()
+            pen = self.get_next_pen()
 
         curve = plot.plot(x, y, pen=pen, name=name)
         plot._curves.append({
@@ -926,14 +782,10 @@ class MainWindow(QMainWindow):
             "y": y,
             "name": name
         })
-
-        # hover works on the most recently added curve
         plot._x = x
         plot._y = y
-
         all_x = np.concatenate([c["x"] for c in plot._curves]) if plot._curves else x
         all_y = np.concatenate([c["y"] for c in plot._curves]) if plot._curves else y
-
         xmin = float(all_x.min())
         xmax = float(all_x.max())
         ymin = float(all_y.min())
@@ -947,8 +799,6 @@ class MainWindow(QMainWindow):
         plot.setLimits(xMin=xmin, xMax=xmax)
         plot.setXRange(xmin, xmax, padding=0)
         plot.setYRange(ymin - ypad, ymax + ypad, padding=0)
-
-        # plot._marker.setData([], [])
         plot._label.setVisible(False)
 
 
@@ -1025,25 +875,12 @@ class MainWindow(QMainWindow):
 
     def update_roi_inputs(self,roi):
 
-        hstart, hend, vstart, vend, hbin, vbin = roi
-
+        hstart, hend, vstart, vend, _, _ = roi
         w = self.image_widget
-
         w.roi_hstart_input.setText(str(hstart))
         w.roi_hend_input.setText(str(hend))
         w.roi_vstart_input.setText(str(vstart))
         w.roi_vend_input.setText(str(vend))
-        # w.roi_hbin_input.setText(str(hbin))
-        # w.roi_vbin_input.setText(str(vbin))
-
-    # def get_preview_roi_limits(self):
-    #     try:
-    #         hbin = int(self.image_widget.roi_hbin_input.text() or 1)
-    #         vbin = int(self.image_widget.roi_vbin_input.text() or 1)
-    #         limits = self.controller.camera.get_roi_limits(hbin=hbin,vbin=vbin)
-    #         self.preview.set_roi_limits(limits)
-    #     except Expection:
-    #         self.preview.set_roi_limits(None)
 
     def start_live(self):
         self.controller.start_live_async()
@@ -1063,15 +900,12 @@ class MainWindow(QMainWindow):
 
     def handle_acq_result(self, spectrum):
 
-        # self.enable_buttons()
-
         if spectrum is None:
             self.display_msg("Acquisition failed or camera lost during acquisition.")
             return
         
         self.display_msg("Acquisition finished successfully.",success=True)
 
-        # increment index
         try:
             idx = int(self.file_index_input.text().strip())
             self.file_index_input.setText(str(idx+1))
@@ -1097,8 +931,6 @@ class MainWindow(QMainWindow):
             self.live_tab_index = self.calibration_tabs.addTab(self.live_plot, "Live")
 
         self.update_spectrum_plot(self.live_plot, spectrum_data, name="Live",pen=self.orange_pen)
-        # self.calibration_tabs.setCurrentWidget(self.live_plot)
-        # self.right_tabs.setCurrentWidget(self.calibration_tab)
 
     def show_calibration_result(self, spectrum_data, title="Acquisition"):
         if self.pending_filename:
@@ -1108,8 +940,6 @@ class MainWindow(QMainWindow):
         self.update_spectrum_plot(plot, spectrum_data, name=title, pen=self.orange_pen)
 
         self.calibration_tabs.addTab(plot, title)
-        # self.last_acquired_plot = plot
-        # self.last_acquired_title = title
         self.pending_filename = None
 
     def close_calibration_tab(self, index):
@@ -1119,10 +949,6 @@ class MainWindow(QMainWindow):
         if widget is self.live_plot:
             self.live_plot = None
             self.live_tab_index = None
-        
-        # if widget is self.last_acquired_plot:
-        #     self.last_acquired_plot = None
-        #     self.last_acquired_title = None
 
         self.calibration_tabs.removeTab(index)
         widget.deleteLater()
@@ -1210,13 +1036,8 @@ class MainWindow(QMainWindow):
             current_plot = self.calibration_tabs.currentWidget()
             if current_plot is None:
                 current_plot = self.create_empty_spectrum_tab(title=name)
-            # else:
-            #     self.calibration_tabs.setTabText(self.calibration_tabs.currentIndex(), name)
 
             self.add_curve_to_spectrum_plot(current_plot, spectrum_data, name=name)
-
-            # self.last_acquired_plot = current_plot
-            # self.last_acquired_title = name
 
             self.right_tabs.setCurrentWidget(self.calibration_tab)
 
@@ -1236,14 +1057,11 @@ class MainWindow(QMainWindow):
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to open file:\n{e}")
 
-    # ==== VISUALS ====
     def separator(self):
         sep = QWidget()
         sep.setFixedWidth(1)
         sep.setObjectName("statusSeparator")
         return sep
-
-    # Override closeEvent to ensure safe shutdown
 
     def closeEvent(self, event):
         """
@@ -1285,7 +1103,6 @@ class MainWindow(QMainWindow):
     def handle_camera_loss(self):
 
         self.display_msg("Camera connection lost!")
-        # self.disable_buttons()
 
         if self.controller.acq_worker and self.controller.acq_worker.isRunning():
             self.controller.stop_acquisition_async()
@@ -1305,8 +1122,6 @@ class MainWindow(QMainWindow):
         
         self.temp.setText("Temp: -- °C")
         self.shutter_current_state.setText("Shutter State: --")
-        # self.acquisition_state.setText("Acquisition in progress: False")
-
 
 def _safe_exit_close():
     """Extra safety: runs even if an exception kills the app."""
@@ -1367,7 +1182,6 @@ def excepthook(exc_type, exc_value, exc_traceback):
         except Exception:
             pass
 
-    # last fallback: print only, do not force shutdown
     print(f"[GUI] Unhandled non-fatal exception: {exc_value}")
 
 sys.excepthook = excepthook

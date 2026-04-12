@@ -13,9 +13,7 @@ class TestCameraModel:
     def __init__(self):
 
         self.cam = None
-        # self.is_live = False    # if camera is capturing live images
-        # self.busy = False
-        self.temp = 20.0  # current temperature
+        self.temp = 20.0 
 
         # roi params
         self.hstart = 0
@@ -101,9 +99,6 @@ class TestCameraModel:
         self.cam = "Andor Newton"
         self.cool_cam()
 
-        # hend, vend = self.detect_cam_size()
-        # self.set_roi(hstart=0, hend=hend, vstart=0, vend=vend, hbin=1, vbin=1)
-
     @requires_cam_connected
     def enable_frame_transfer_mode(self,mode:bool=True):
         self.enable_frame_transfer_mode = mode
@@ -146,7 +141,6 @@ class TestCameraModel:
     
     @requires_cam_connected
     def calc_frame_timeout(self, extra=5.0, min_timeout=5.0):
-        # FIX THIS
         exp = float(self.get_exposure())
         return max(min_timeout, exp + extra)
 
@@ -265,7 +259,6 @@ class TestCameraModel:
     @requires_cam_connected
     def setup_single_track_mode(self, mode,center:int=0, width:int=1):
         self.validate_single_track_mode(center, width)
-        # do smth with center and width
         self.set_read_mode("single_track")
         return
 
@@ -279,7 +272,6 @@ class TestCameraModel:
     @requires_cam_connected
     def setup_multi_track_mode(self,mode, number:int=1, height:int=1, offset:int=0):
         self.validate_multi_track_mode(number, height, offset)
-        # do smth with number, height, offset
         print("Trying to set multi-track mode")
         self.set_read_mode("multi_track")
         return
@@ -297,7 +289,6 @@ class TestCameraModel:
         tracks is a list of tuples (start, stop) specifying track span (start are inclusive, stop are exclusive, starting from 0). 
         Note that it does not affect the current read mode, which should be set using set_read_mode()
         """
-        # do smth with tracks
         return
 
     @requires_cam_connected
@@ -337,8 +328,6 @@ class TestCameraModel:
     
     # ===== ACQUISITION MODE =====
 
-    ## validation TOD0
-
     @requires_cam_connected
     def acquisition_in_progress(self):
         return False
@@ -354,25 +343,21 @@ class TestCameraModel:
 
     @requires_cam_connected
     def setup_accum_mode(self,mode,num_acc:int, cycle_time_acc:Optional[float]=0, result_mode="sum"):
-        # validation?
         self.acquisition_mode = "accum"
         return
 
     @requires_cam_connected
     def setup_kinetic_mode(self,mode, num_cycle:int, cycle_time:Optional[float]=0, num_acc:Optional[int]=1, cycle_time_acc:Optional[float]=0, num_prescan:Optional[int]=0,result_mode="sum"):
-        # validation?
         self.acquisition_mode = "kinetic"
         return
 
     @requires_cam_connected
     def setup_fast_kinetic_mode(self, mode,num_acc:int, cycle_time_acc:Optional[float]=0,result_mode="sum"):
-        # validation?
         self.acquisition_mode = "fast_kinetic"
         return
     
     @requires_cam_connected
     def setup_cont_mode(self,mode, cycle_time:Optional[float]=0):
-        # validation?
         self.acquisition_mode = "cont"
         return
 
@@ -439,33 +424,29 @@ class TestCameraModel:
 
     @requires_cam_connected
     def cool_cam(self,target_temp:float=-85.0):
-        # self.busy = True
         self.cancel = False
         print(f"Cooling to {target_temp} C")
         
-        self.temp = 20.0 # starting temp
+        self.temp = 20.0
         while True:
             if self.cancel:
                 print("Cooling canceled")
                 break
 
             self.temp -= 5
-            # print(f"Cooling: {self.temp}, Status: Stabilizing")
 
             if self.temp <= target_temp:
                 print(f"Temperature stabilized, Status: Stabilized")
                 break
 
             time.sleep(0.1)
-        # self.busy = False
 
     @requires_cam_connected
     def warm_cam(self,safe_temp:float=-20):
-        # self.busy = True
         self.cancel = True
 
         print("Warming (cooler OFF)")
-        self.temp = -80.0  # starting temp
+        self.temp = -80.0 
 
         while True:
             print(f"Warming T = {self.temp} C")
@@ -474,8 +455,6 @@ class TestCameraModel:
                 break
             self.temp += 20
             time.sleep(0.1)
-
-        # self.busy = False
 
 
     # ===== DISCONNECT =====
@@ -489,14 +468,6 @@ class TestCameraModel:
             return
         
         self.cancel=True
-        
-        # try:
-        #     if self.cam.acquisition_in_progress():
-        #         self.cam.stop_acquisition()
-        # except:
-        #     pass
-
-        # self.warm_cam()
         
         self.close_cam()
         return
@@ -514,8 +485,6 @@ class TestCameraModel:
         """
         Start capturing what camera sees until stop live is clicked.
         """
-        # if not self.is_live:
-        #     self.is_live = True
         print("Live mode started")
         
         frame = self.generate_fake_frame()
@@ -561,7 +530,6 @@ class TestCameraModel:
         return
 
     def validate_amp(self,channel:Optional[int],oamp:Optional[int],hsspeed:Optional[int],preamp:Optional[int]):
-        # Not needed?
         return
 
     def validate_read_mode(self, read_mode:str):
@@ -571,11 +539,9 @@ class TestCameraModel:
             raise ValueError(f"Invalid read mode: {read_mode}. Valid modes are: {valid_modes}")
 
     def validate_single_track_mode(self, center:int, width:int):
-        #TOD0
         return
 
     def validate_multi_track_mode(self, number:int, height:int, offset:int):
-        #TOD0
         return
 
     def validate_shutter_settings(self, mode:str, ttl_mode:int, open_time:Optional[float], close_time:Optional[float]):
@@ -590,7 +556,6 @@ class TestCameraModel:
 
         if open_time is not None and open_time < min_open_time:
             open_time = min_open_time
-            # raise ValueError(f"Open time {open_time} ms is less than minimum allowed {min_open_time} ms.")
 
         if close_time is not None and close_time < min_close_time:
             close_time = min_close_time
@@ -656,8 +621,7 @@ class TestCameraModel:
         return
 
     # ===== FILE MANAGEMENT =====
-    
-    # import imageio.v2 as imageio
+
     def save_image(self,frames,filename=None):
         """
         Save a single acquired frame as PNG + raw CSV
@@ -672,10 +636,8 @@ class TestCameraModel:
         if filename is None:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             png_path = self.save_path_image / f"{timestamp}.png"
-            # csv_path = self.save_path_csv / f"{timestamp}.csv"
         else:
             png_path = self.save_path / f"{filename.replace('.npz', '.png')}"
-            # csv_path = self.save_path_csv / f"{filename.replace('.npz', '.csv')}"
 
         for idx,frame in enumerate(frames):
 
@@ -684,7 +646,6 @@ class TestCameraModel:
                 return
 
             plt.imsave(png_path, frame,cmap="gray")
-            # np.savetxt(csv_path,frame,delimiter=",",fmt="%d")
 
         print(f"[SAVE] Frames saved to {png_path}")
         return
@@ -736,32 +697,14 @@ class TestCameraModel:
         return
 
     def set_save_frame_path(self,path):
-        # validation TOD0
         self.save_path = path
     
     def set_dlls_path(self,dlls_path):
         pll.par["devices/dll/andor_sdk2"] = dlls_path
     
     def save_data(self, frame, spectrum, timestamp):
-        np.savetxt(self.save_path / f"{timestamp}_frame.csv", frame, delimiter=",", fmt="%d")   # save image
-        np.savetxt(self.save_path / f"{timestamp}_spectrum.csv", spectrum, delimiter=",", fmt="%d")     # save spectrum
-    
-    # def save_meta(self, frame, exposure, hbin, vbin, roi, temp, timestamp):
-    #     meta = {
-    #         "camera_model": self.cam.get_model(),
-    #         "serial": self.cam.get_serial_number(),
-    #         "exposure_s": exposure,
-    #         "binning": {"h": hbin, "v": vbin},
-    #         "roi": roi,
-    #         "cooling_setpoint_C": temp,
-    #         "frame_shape": frame.shape,
-    #         "timestamp": timestamp,
-    #     }
-    #     (self.save_path / f"meta_{timestamp}.json").write_text(json.dumps(meta, indent=2))
-
-        # ask what to save??
-
-
+        np.savetxt(self.save_path / f"{timestamp}_frame.csv", frame, delimiter=",", fmt="%d")  
+        np.savetxt(self.save_path / f"{timestamp}_spectrum.csv", spectrum, delimiter=",", fmt="%d")    
 
     # ==== DISPLAY DATA =====
 
@@ -769,13 +712,11 @@ class TestCameraModel:
         if frames:
             frame = frames[-1]
 
-            # Sum rows → 1D spectrum
             if frame.ndim == 2:
                 spectrum = frame.sum(axis=0)
             else:
                 spectrum = frame
 
-            # Send to GUI
             self.view.show_calibration_result(frame, spectrum)
 
     def plot_spec(self,spectrum,exp_time):
@@ -783,26 +724,22 @@ class TestCameraModel:
         plt.figure()
         plt.plot(spectrum)
         plt.title("Spectrum")
-        plt.savefig(self.save_path / f"{exp_time}_plot.png", dpi=200) # dpi is dots per inch -> more dots - better quality
+        plt.savefig(self.save_path / f"{exp_time}_plot.png", dpi=200) 
 
 
     # ==== MATH =====
 
     def combine_frames(self,frames,acq_mode,num_frames,result_mode):
-        # --- Normalize frames to list ---
         if isinstance(frames, np.ndarray):
             frames = [frames]
 
-        # --- Combine frames correctly ---
         if acq_mode in ["kinetic", "fast_kinetic"]:
-            # multiple independent frames
             combined = np.sum(frames, axis=0)
 
             if result_mode == "avg":
                 combined = combined / num_frames
 
         else:
-            # single OR accum
             frame = frames[-1]
 
             if acq_mode == "accum":
@@ -813,26 +750,6 @@ class TestCameraModel:
             combined = frame
 
         return combined
-    
-    # def convert_to_spectrum(self,frame):
-
-    #     hstart, hend, vstart, vend, hbin, vbin = self.get_roi()
-
-    #     if frame.ndim == 2:
-    #         spectrum = frame.sum(axis=0)
-
-    #     else:
-    #         spectrum = frame.copy()
-    #     if hstart is None:
-    #         hstart = 0
-    #     if hend is None:
-    #         hend = len(spectrum)
-
-    #     spectrum = spectrum[:1024]
-    #     spectrum[:hstart] = 0
-    #     spectrum[hend:] = 0
-
-    #     return spectrum
 
     def bit_shift(self, frames):
         shifted_frames = []
@@ -852,7 +769,7 @@ class TestCameraModel:
         if m == 0:
             frame8 = np.zeros_like(frame,dtype=np.uint8)
         else:
-            frame8 = (frame / frame.max() * 255).astype(np.uint8)   # 8bit grayscale
+            frame8 = (frame / frame.max() * 255).astype(np.uint8) 
         h, w = frame8.shape
         return (frame8,h,w)
 
@@ -878,12 +795,7 @@ class TestCameraModel:
 
         raw_w = hend - hstart
         raw_h = vend - vstart
-        # print(
-        #     f"hstart:{hstart}, hend:{hend}, vstart:{vstart}, vend:{vend}, "
-        #     f"raw_width:{raw_w}, raw_height:{raw_h}, hbin:{hbin}, vbin:{vbin}"
-        # )
 
-        # generate RAW ROI-sized image first
         frame = np.random.normal(loc=120, scale=18, size=(raw_h, raw_w))
 
         rng = np.random.default_rng()
@@ -927,11 +839,7 @@ class TestCameraModel:
 
         frame = np.clip(frame, 0, 65535)
 
-        # simulate camera output AFTER hardware binning
         frame = self._apply_binning(frame, hbin=hbin, vbin=vbin)
-
-        # out_h, out_w = frame.shape
-        # print(f"returned frame shape after binning: ({out_h}, {out_w})")
 
         return [frame]
 

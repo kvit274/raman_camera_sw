@@ -14,12 +14,9 @@ class RamanCameraModel:
     def __init__(self):
 
         self.cam = None
-        # self.is_live = False    # if camera is capturing live images
-        # self.busy = False
         self.cancel_cooling = False
-
-        # acquisiton settings
         self.acquisition_settings = None
+
         # default paths:
         self.save_path_csv = Path("./data/csv")
         self.save_path_csv.mkdir(parents=True,exist_ok=True)
@@ -42,14 +39,6 @@ class RamanCameraModel:
                 return None
             return func(self, *args, **kwargs)
         return wrapper
-
-    # def requires_live_stopped(func):
-    #     @wraps(func)
-    #     def wrapper(self, *args, **kwargs):
-    #         if self.is_live:
-    #             self.stop_live()
-    #         return func(self, *args, **kwargs)
-    #     return wrapper
 
     # ===== CAMERA SETTINGS =====
 
@@ -256,7 +245,6 @@ class RamanCameraModel:
         tracks is a list of tuples (start, stop) specifying track span (start are inclusive, stop are exclusive, starting from 0). 
         Note that it does not affect the current read mode, which should be set using set_read_mode()
         """
-        # do smth with tracks
         self.cam.setup_random_track_mode(tracks)
         return
 
@@ -333,8 +321,6 @@ class RamanCameraModel:
     
     # ===== ACQUISITION MODE =====
 
-    ## validation TOD0
-
     @requires_cam_connected
     def setup_single_mode(self):
         self.cam.set_acquisition_mode("single",setup_params=True)
@@ -343,25 +329,21 @@ class RamanCameraModel:
 
     @requires_cam_connected
     def setup_accum_mode(self, num_acc:int, cycle_time_acc:Optional[float]=0, mode:Optional[str]="accum",result_mode="sum"):
-        # validation?
         self.cam.setup_accum_mode(num_acc, cycle_time_acc)
         return
 
     @requires_cam_connected
     def setup_kinetic_mode(self, num_cycle:int, cycle_time:Optional[float]=0, num_acc:Optional[int]=1, cycle_time_acc:Optional[float]=0, num_prescan:Optional[int]=0, mode:Optional[str]="kinetic",result_mode="sum"):
-        # validation?
         self.cam.setup_kinetic_mode(num_cycle, cycle_time, num_acc, cycle_time_acc, num_prescan)
         return
 
     @requires_cam_connected
     def setup_fast_kinetic_mode(self, num_acc:int, cycle_time_acc:Optional[float]=0, mode:Optional[str]="fast_kinetic",result_mode="sum"):
-        # validation?
         self.cam.setup_fast_kinetic_mode(num_acc, cycle_time_acc)
         return
     
     @requires_cam_connected
     def setup_cont_mode(self, cycle_time:Optional[float]=0, mode:Optional[str]="cont"):
-        # validation?
         self.cam.setup_cont_mode(cycle_time)
         return
     
@@ -420,12 +402,10 @@ class RamanCameraModel:
 
     @requires_cam_connected
     def cool_cam(self,target_temp:float=-85.0):
-        # self.busy = True
         self.cancel_cooling = False
         self.cam.set_temperature(target_temp, enable_cooler=True)
         self.cam.set_fan_mode("full")
         print(f"Fan mode set to: {self.cam.get_fan_mode()}")
-        # t0 = time.time()
 
         while not self.cancel_cooling:
             
@@ -435,13 +415,11 @@ class RamanCameraModel:
             except:
                 break
 
-            if temp <= target_temp+20:      # GET RID OF 20!!
+            if temp <= target_temp+20:      
                 print(f"Temperature stabilized, Status: {self.cam.get_temperature_status()}")
                 break
 
             time.sleep(1)
-
-        # self.busy = False
 
     @requires_cam_connected
     def stop_cooling(self):
@@ -450,22 +428,11 @@ class RamanCameraModel:
     @requires_cam_connected
     def warm_cam(self,safe_temp:float=-20):
         self.cam.set_fan_mode("off")
-        # self.busy = True
         self.cancel_cooling = True
 
         self.cam.set_cooler(on=False)
         print("Warming (cooler OFF)")
 
-        # while True:
-
-        #     t = round(self.cam.get_temperature(),2)
-        #     print(f"Warming T = {t:.1f}")
-
-        #     if t >= safe_temp:
-        #         break
-
-        #     time.sleep(1)
-        # # self.busy = False
         
     def get_temp(self):
         if not self.cam:
@@ -474,7 +441,7 @@ class RamanCameraModel:
 
     
     # ==== DISCONNECT CAMERA =====
-    # @requires_live_stopped
+
     def safe_close(self):
         """
         Turn off the cooler and wait until the temperature is at least -20
@@ -490,13 +457,10 @@ class RamanCameraModel:
                 self.cam.stop_acquisition()
         except:
             pass
-
-        # self.warm_cam()
         
         self.close_cam()
         return
 
-    # @requires_live_stopped
     def close_cam(self):
         if self.cam:
             self.cam.set_fan_mode("off")
@@ -515,31 +479,31 @@ class RamanCameraModel:
         print("Live mode started")
 
         timeout = self.calc_frame_timeout()
-        self.cam.stop_acquisition()      # stop acquisition if it is already in progress, just in case
+        self.cam.stop_acquisition() 
         frames = None
 
         try:
             if acquisition_mode == "single":
-                self.cam.set_acquisition_mode("single",setup_params=True)    # testing this
+                self.cam.set_acquisition_mode("single",setup_params=True)  
                 frames = [self.cam.snap(timeout=timeout,return_info=False)]
 
             elif acquisition_mode == "accum":
                 num_frames = self.cam.get_accum_mode_parameters()[0]
-                self.cam.set_acquisition_mode("single",setup_params=True)    # testing this
+                self.cam.set_acquisition_mode("single",setup_params=True)  
                 print("accum params:", self.cam.get_accum_mode_parameters())
                 frames = []
                 for _ in range(num_frames):
                     frames.append(self.cam.snap(timeout=timeout,return_info=False))
-                    self.cam.stop_acquisition()      # stop acquisition after grabbing frames
-                    self.cam.clear_acquisition()    # clear the buffer
+                    self.cam.stop_acquisition()      
+                    self.cam.clear_acquisition()    
 
             elif acquisition_mode == "kinetic":
-                self.cam.set_acquisition_mode("kinetic",setup_params=True)    # testing this
+                self.cam.set_acquisition_mode("kinetic",setup_params=True)   
                 num_frames = self.cam.get_kinetic_mode_parameters()[0]
                 frames = self.cam.grab(nframes=num_frames, frame_timeout=timeout, missing_frame='skip', return_info=False, buff_size=None)
 
             elif acquisition_mode == "fast_kinetic":
-                self.cam.set_acquisition_mode("fast_kinetic",setup_params=True)    # testing this
+                self.cam.set_acquisition_mode("fast_kinetic",setup_params=True)   
                 num_frames = self.cam.get_fast_kinetic_mode_parameters()[0]
                 frames = self.cam.grab(nframes=num_frames, frame_timeout=timeout, missing_frame='skip', return_info=False, buff_size=None)
 
@@ -547,8 +511,8 @@ class RamanCameraModel:
                 raise RuntimeError("Continuous mode cannot be used for save acquisition")
 
         finally:
-            self.cam.stop_acquisition()      # stop acquisition after grabbing frames
-            self.cam.clear_acquisition()    # clear the buffer
+            self.cam.stop_acquisition()    
+            self.cam.clear_acquisition()    
 
         if frames is None:
             raise RuntimeError("No frames were obtained")
@@ -557,11 +521,8 @@ class RamanCameraModel:
 
     @requires_cam_connected
     def stop_live(self):
-        # if not self.is_live:
-        #     return
-        self.cam.stop_acquisition()      # stop acquisition if it is already in progress
-        self.cam.clear_acquisition()    # clear the buffer
-        # self.is_live=False
+        self.cam.stop_acquisition()     
+        self.cam.clear_acquisition()  
         print("Live mode stopped")
         return
 
@@ -570,7 +531,7 @@ class RamanCameraModel:
         if not self.cam:
             print(f"Could not obtain the frame for the preview. Cam: {self.cam}")
             return None
-        return self.cam.snap(timeout=5.0,return_info=False)    # temperary change to use snap instead of acquition
+        return self.cam.snap(timeout=5.0,return_info=False)  
 
 
     # ===== ACQUISITION =====
@@ -588,26 +549,24 @@ class RamanCameraModel:
         return self.cam.get_acquisition_progress()
 
     @requires_cam_connected
-    # @requires_live_stopped
     def single_preview(self):
         """
         Perform single snap to preview the result
         """
         timeout = self.calc_frame_timeout()
-        self.cam.stop_acquisition()      # stop acquisition if it is already in progress
+        self.cam.stop_acquisition()     
         try:
             frame = self.cam.snap(timeout=timeout,return_info=False)
         finally:
-            self.cam.stop_acquisition()      # stop acquisition after grabbing frames
-            self.cam.clear_acquisition()    # clear the buffer
+            self.cam.stop_acquisition()     
+            self.cam.clear_acquisition()  
 
-        if frame is None or not frame.any():     # replace following to frame.any() or frame.all() ??
+        if frame is None or not frame.any():   
             raise RuntimeError("Could not obtain frame for single preview")
             return
         return frame
 
     @requires_cam_connected
-    # @requires_live_stopped
     def start_acquisition(self):
         """
 
@@ -618,46 +577,38 @@ class RamanCameraModel:
         print(f"Acquisition parameters: {self.cam.get_acquisition_parameters()}")
         print(f"Acquisition mode: {self.cam.get_acquisition_mode()}")
         print(f"Status before start: {self.cam.get_status()}")
-        self.cam.stop_acquisition()      # stop acquisition if it is already in progress, just in case
+        self.cam.stop_acquisition()  
         acquisition_mode = self.cam.get_acquisition_mode()
         frames = None
 
         try:
             if acquisition_mode == "single":
-                self.cam.set_acquisition_mode("single",setup_params=True)    # testing this
+                self.cam.set_acquisition_mode("single",setup_params=True)  
                 frames = [self.cam.snap(timeout=timeout,return_info=False)]
             elif acquisition_mode == "accum":
-                # self.cam.set_acquisition_mode("accum",setup_params=True)    # testing this
                 num_frames = self.cam.get_accum_mode_parameters()[0]
-                self.cam.set_acquisition_mode("single",setup_params=True)    # testing this
-                # print("acq mode:", self.cam.get_acquisition_mode())
+                self.cam.set_acquisition_mode("single",setup_params=True)  
                 print("accum params:", self.cam.get_accum_mode_parameters())
-                # print("timings:", self.cam.get_cycle_timings())
-                # print("frame timings:", self.cam.get_frame_timings())
-                # print("read mode:", self.cam.get_read_mode())
-                # print("amp mode:", self.cam.get_amp_mode())
-                # print("vsspeed:", self.cam.get_vsspeed())
-                # print("trigger:", self.cam.get_trigger_mode())
                 frames = []
                 for _ in range(num_frames):
                     frames.append(self.cam.snap(timeout=timeout,return_info=False))
-                    self.cam.stop_acquisition()      # stop acquisition after grabbing frames
-                    self.cam.clear_acquisition()    # clear the buffer
+                    self.cam.stop_acquisition()     
+                    self.cam.clear_acquisition()   
 
             elif acquisition_mode == "kinetic":
-                self.cam.set_acquisition_mode("kinetic",setup_params=True)    # testing this
+                self.cam.set_acquisition_mode("kinetic",setup_params=True)  
                 num_frames = self.cam.get_kinetic_mode_parameters()[0]
                 frames = self.cam.grab(nframes=num_frames, frame_timeout=timeout, missing_frame='skip', return_info=False, buff_size=None)
             elif acquisition_mode == "fast_kinetic":
-                self.cam.set_acquisition_mode("fast_kinetic",setup_params=True)    # testing this
+                self.cam.set_acquisition_mode("fast_kinetic",setup_params=True)  
                 num_frames = self.cam.get_fast_kinetic_mode_parameters()[0]
                 frames = self.cam.grab(nframes=num_frames, frame_timeout=timeout, missing_frame='skip', return_info=False, buff_size=None)
             elif acquisition_mode == "cont":
                 raise RuntimeError("Continuous mode cannot be used for save acquisition")
 
         finally:
-            self.cam.stop_acquisition()      # stop acquisition after grabbing frames
-            self.cam.clear_acquisition()    # clear the buffer
+            self.cam.stop_acquisition()      
+            self.cam.clear_acquisition()  
 
         if frames is None:
             raise RuntimeError("No frames were obtained")
@@ -671,18 +622,13 @@ class RamanCameraModel:
         return
 
     @requires_cam_connected
-    # @requires_live_stopped
     def simple_acq(self,num_frames:int=0):
-        
-        # if self.is_live:
-        #     self.stop_live()
-
         if num_frames == 0:
-            frame = self.cam.snap()   # grab single frame
+            frame = self.cam.snap()  
             print("Single frame acquired")
             return frame
         else:
-            frames = self.cam.grab(num_frames)  # grab 10 frames
+            frames = self.cam.grab(num_frames) 
             print("Multiple frames acquired")
             return frames
 
@@ -702,15 +648,12 @@ class RamanCameraModel:
         return
 
     def validate_amp(self,channel:Optional[int],oamp:Optional[int],hsspeed:Optional[int],preamp:Optional[int]):
-        # Not needed?
         return
 
     def validate_single_track_mode(self, center:int, width:int):
-        #TOD0
         return
 
     def validate_multi_track_mode(self, number:int, height:int, offset:int):
-        #TOD0
         return
 
     def validate_read_mode(self, read_mode:str):
@@ -772,15 +715,11 @@ class RamanCameraModel:
         if vbin is None or vbin < 1:
             vbin = 1
         
-        h_limits, v_limits = self.get_roi_limits(hbin=hbin,vbin=vbin)   # get limits for current binning
+        h_limits, v_limits = self.get_roi_limits(hbin=hbin,vbin=vbin)
         hmin,hmax,hpstep,hsstep,hmaxbin = h_limits
         vmin,vmax,vpstep,vsstep,vmaxbin = v_limits
         print(f"horizontal limits: hmin={hmin}, hmax={hmax}, hpstep={hpstep}, hsstep={hsstep}, hmaxbin={hmaxbin}")
         print(f"vertical limits: vmin={vmin}, vmax={vmax}, vpstep={vpstep}, vsstep={vsstep}, vmaxbin={vmaxbin}")
-        # if hbin > hmaxbin:      # what?
-        #     hbin = hmaxbin
-        # if vbin > vmaxbin:
-        #     vbin = vmaxbin
 
         if hstart is None or hstart < 0:
             hstart = 0
@@ -793,12 +732,7 @@ class RamanCameraModel:
 
         if hend <= hstart or vend <= vstart:
             raise ValueError("ROI end positions must be greater than start positions.")
-        
-        # if hstart % hpstep != 0 or (hend - hstart) % hsstep != 0:
-        #     raise ValueError(f"Horizontal ROI positions must align with steps: hstart step {hpstep}, width step {hsstep}.")
-        # if vstart % vpstep != 0 or (vend - vstart) % vsstep != 0:
-        #     raise ValueError(f"Vertical ROI positions must align with steps: vstart step {vpstep}, height step {vsstep}.")
-        
+
         if (hend - hstart+1) % hbin != 0 or (vend - vstart+1) % vbin != 0:
             raise ValueError(f"ROI width and height must be divisible by binning factors.{(hend - hstart+1) % hbin}")
         return hstart, hend, vstart, vend, hbin, vbin
@@ -817,12 +751,9 @@ class RamanCameraModel:
         return bit_shift_pixels,bit_shift_vstart,bit_shift_vend
 
 
-
-
-
     # ===== FILE MANAGEMENT =====
 
-    def save_image(self,frames,filename=None):     # should handle saving mulitiple files without overwritin files
+    def save_image(self,frames,filename=None):   
         """
         Save a single acquired frame as PNG + raw CSV
         """
@@ -836,10 +767,8 @@ class RamanCameraModel:
         if filename is None:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             png_path = self.save_path / f"{timestamp}.png"
-            # csv_path = self.save_path_csv / f"{timestamp}.csv"
         else:
             png_path = self.save_path / f"{filename.replace('.npz', '.png')}"
-            # csv_path = self.save_path_csv / f"{filename.replace('.npz', '.csv')}"
 
         for idx,frame in enumerate(frames):
 
@@ -848,7 +777,6 @@ class RamanCameraModel:
                 return
 
             plt.imsave(png_path, frame,cmap="gray")
-            # np.savetxt(csv_path,frame,delimiter=",",fmt="%d")
 
         print(f"[SAVE] Frames saved to {png_path}")
         return
@@ -895,7 +823,6 @@ class RamanCameraModel:
         return
 
     def set_save_frame_path(self,path):
-        # validation TOD0
         self.save_path = path
         self.save_path_image = path
         self.save_path_csv = path
@@ -904,8 +831,8 @@ class RamanCameraModel:
         pll.par["devices/dll/andor_sdk2"] = dlls_path
     
     def save_data(self, frame, spectrum, timestamp):
-        np.savetxt(self.save_path / f"{timestamp}_frame.csv", frame, delimiter=",", fmt="%d")   # save image
-        np.savetxt(self.save_path / f"{timestamp}_spectrum.csv", spectrum, delimiter=",", fmt="%d")     # save spectrum
+        np.savetxt(self.save_path / f"{timestamp}_frame.csv", frame, delimiter=",", fmt="%d") 
+        np.savetxt(self.save_path / f"{timestamp}_spectrum.csv", spectrum, delimiter=",", fmt="%d")    
     
     def save_meta(self, frame, exposure, hbin, vbin, roi, temp, timestamp):
         meta = {
@@ -927,13 +854,11 @@ class RamanCameraModel:
         if frames is not None:
             frame = frames[-1]
 
-            # Sum rows → 1D spectrum
             if frame.ndim == 2:
                 spectrum = frame.sum(axis=0)
             else:
                 spectrum = frame
 
-            # Send to GUI
             self.view.show_calibration_result(frame, spectrum)
 
     def plot_spec(self,spectrum,exp_time):
@@ -942,26 +867,22 @@ class RamanCameraModel:
         plt.figure()
         plt.plot(spectrum)
         plt.title("Spectrum")
-        plt.savefig(self.save_path / f"{exp_time}_plot.png", dpi=200) # dpi is dots per inch -> more dots - better quality
+        plt.savefig(self.save_path / f"{exp_time}_plot.png", dpi=200)
 
 
     # ==== MATH =====
 
     def combine_frames(self,frames,acq_mode="single",num_frames=1,result_mode="sum"):
-        # --- Normalize frames to list ---
         if isinstance(frames, np.ndarray):
             frames = [frames]
 
-        # --- Combine frames correctly ---
         if acq_mode in ["kinetic", "fast_kinetic"]:
-            # multiple independent frames
             combined = np.sum(frames, axis=0)
 
             if result_mode == "avg":
                 combined = combined / num_frames
 
         else:
-            # single OR accum
             frame = frames[-1]
 
             if acq_mode == "accum":
@@ -972,23 +893,6 @@ class RamanCameraModel:
             combined = frame
 
         return combined
-    
-    # def convert_to_spectrum(self,frame):
-    #     # should consider binning>1 how to display?
-
-    #     hstart, hend, vstart, vend, hbin, vbin = self.get_roi()
-
-    #     if frame.ndim == 2:
-    #         spectrum = frame.sum(axis=0)
-
-    #     else:
-    #         spectrum = frame.copy()
-
-    #     spectrum = spectrum[:1024]
-    #     spectrum[:hstart] = 0
-    #     spectrum[hend:] = 0
-
-    #     return spectrum
 
     def bit_shift(self, frames):
         shifted_frames = []
@@ -1008,6 +912,6 @@ class RamanCameraModel:
         if m == 0:
             frame8 = np.zeros_like(frame,dtype=np.uint8)
         else:
-            frame8 = (frame / frame.max() * 255).astype(np.uint8)   # 8bit grayscale
+            frame8 = (frame / frame.max() * 255).astype(np.uint8) 
         h, w = frame8.shape
         return (frame8,h,w)

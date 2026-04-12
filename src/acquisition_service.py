@@ -14,9 +14,7 @@ import ramanspy as rp
 class AcquisitionService:
 
     def __init__(self):
-        # acquisiton settings
         self.acquisition_settings = None
-        # default paths:
         self.save_path_csv = Path("./data/csv")
         self.save_path_csv.mkdir(parents=True,exist_ok=True)
         self.save_path_image = Path("./data/images")
@@ -28,19 +26,15 @@ class AcquisitionService:
         return self.save_path
 
     def set_save_frame_path(self,path):
-        # validation TOD0
         self.save_path = path
         self.save_path_image = path
         self.save_path_csv = path
 
     def combine_frames(self,frames,acq_mode="single",num_frames=1,result_mode="sum"):
-        # --- Normalize frames to list ---
         if isinstance(frames, np.ndarray):
             frames = [frames]
 
-        # --- Combine frames correctly ---
         if acq_mode in ["kinetic", "fast_kinetic", "accum"]:
-            # multiple independent frames
             combined = np.sum(frames, axis=0)
 
             print(f"summed kinetic mode frame by {num_frames}")
@@ -49,22 +43,9 @@ class AcquisitionService:
                 print(f"averaged kinetic mode frame by {num_frames}")
                 combined = combined / num_frames
 
-        # else:
-        #     # single OR accum
-        #     frame = frames[-1]
-
-        #     if acq_mode == "accum":
-
-        #         if result_mode == "avg":
-        #             frame = frame / num_frames
-        #             print(f"averaged accum mode frame by {num_frames}")
-
-        #     combined = frame
-
         return combined
     
     def convert_to_spectrum(self,frame, roi):
-        # should consider binning>1 how to display?
 
         hstart, hend, vstart, vend, hbin, vbin = roi
 
@@ -81,13 +62,6 @@ class AcquisitionService:
         
         return x_detector, y
 
-        # spectrum = np.zeros(1024, dtype=local_spectrum.dtype)
-        # spectrum[hstart:hend] = local_spectrum[:hend-hstart]
-        # spectrum = spectrum[:1024]
-        # spectrum[:hstart] = 0
-        # spectrum[hend:] = 0
-
-        # return spectrum
     
     def build_pixel_intensity_data(self, combined_frame, roi):
         hstart, hend, vstart, vend, hbin, vbin = roi
@@ -99,7 +73,6 @@ class AcquisitionService:
         if frame.ndim == 1:
             intensities = frame.reshape(-1, 1)
         elif frame.ndim == 2:
-            # one CSV row per detector pixel
             intensities = frame.T
         else:
             raise ValueError(f"Unsupported frame ndim: {frame.ndim}")
@@ -158,7 +131,7 @@ class AcquisitionService:
         if m == 0:
             frame8 = np.zeros_like(frame,dtype=np.uint8)
         else:
-            frame8 = (frame / frame.max() * 255).astype(np.uint8)   # 8bit grayscale
+            frame8 = (frame / frame.max() * 255).astype(np.uint8) 
         h, w = frame8.shape
         return (frame8,h,w)
     
@@ -209,7 +182,7 @@ class AcquisitionService:
         np.savetxt(csv_path, data, delimiter=",", fmt="%d")
         print(f"[SAVE] CSV saved to {csv_path}")
 
-    def save_image(self,frames,filename=None):     # should handle saving mulitiple files without overwritin files
+    def save_image(self,frames,filename=None): 
         """
         Save a single acquired frame as PNG + raw CSV
         """
@@ -223,10 +196,8 @@ class AcquisitionService:
         if filename is None:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             png_path = self.save_path / f"{timestamp}.png"
-            # csv_path = self.save_path_csv / f"{timestamp}.csv"
         else:
             png_path = self.save_path / f"{filename.replace('.npz', '.png')}"
-            # csv_path = self.save_path_csv / f"{filename.replace('.npz', '.csv')}"
 
         if isinstance(frames,list) and len(frames) == 1 and isinstance(frames[0],list):
             frames = frames[0]
@@ -245,16 +216,10 @@ class AcquisitionService:
                 frame = (frame/m*255).astype(np.uint8) if m != 0 else frame.astype(np.uint8)
 
             plt.imsave(png_path, frame,cmap="gray")
-            # np.savetxt(csv_path,frame,delimiter=",",fmt="%d")
 
         print(f"[SAVE] Frames saved to {png_path}")
         return
     
-    # def save_csv_frame(self,frame,filename):
-    #     new_filename = filename
-    #     csv_frame_path = self.save_path / f"{new_filename.replace('.npz','')}_frame.csv"
-    #     np.savetxt(csv_frame_path,frame,delimiter=",",fmt="%d")
-
     def baseline_correct(self,spectrum,method="asls"):
         """
         RamanSPy baseline correction
@@ -263,7 +228,7 @@ class AcquisitionService:
 
         y = np.asarray(spectrum, dtype=np.float64)
 
-        sp = rp.Spectrum(y, spectral_axis=np.arange(len(y)))   # spectral_axis should be wavenumbers after callibration is mplemented
+        sp = rp.Spectrum(y, spectral_axis=np.arange(len(y)))
 
         if method == "asls":
             processor = rp.preprocessing.baseline.ASLS(lam=5000, p=0.007)
@@ -276,8 +241,6 @@ class AcquisitionService:
 
         corrected = np.asarray(corrected_sp.spectral_data)
         baseline = y - corrected
-
-        # corrected = np.clip(corrected, 0, None)
 
         return corrected, baseline
     
@@ -311,7 +274,6 @@ class AcquisitionService:
 
             src_h, src_w = frame.shape
 
-            # map every ROI pixel to nearest source bin pixel
             y_idx = np.linspace(0, src_h - 1, roi_h).astype(int)
             x_idx = np.linspace(0, src_w - 1, roi_w).astype(int)
 

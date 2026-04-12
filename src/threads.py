@@ -10,7 +10,7 @@ class CoolingWorker(QThread):
 
     def run(self):
         self.camera.cool_cam(self.target_temp)
-        self.finished.emit()    # unlock buttons
+        self.finished.emit()
 
 class WarmUpCloseWorker(QThread):
     finished = pyqtSignal()
@@ -20,7 +20,6 @@ class WarmUpCloseWorker(QThread):
         self.camera = camera
         self.target_temp = target_temp
 
-    # think about this
     def run(self):
         self.camera.warm_cam(self.target_temp)
         self.camera.safe_close()
@@ -92,7 +91,7 @@ class LiveWorker(QThread):
                 if frame is not None:
                     self.frame_ready.emit(frame,spectrum)
 
-                self.msleep(30)  # avoid cpu spinning
+                self.msleep(30)
         except Exception as e:
             self.running = False
         finally:

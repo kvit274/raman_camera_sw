@@ -8,8 +8,6 @@ import os
 from controller import RamanCameraController
 from typing import Dict
 
-# Temperature pop up
-
 class TemperaturePopUp(QWidget):
     def __init__(self,parent=None):
         super().__init__(parent,Qt.Popup)
@@ -40,10 +38,6 @@ class TemperaturePopUp(QWidget):
     def get_value(self):
         return self.slider.value()
 
-
-# ==== PAINT ON PREVIEW ====
-
-
 class PreviewWidget(QWidget):
 
     roi_changed = pyqtSignal(tuple)
@@ -62,13 +56,11 @@ class PreviewWidget(QWidget):
         self.show_grid = False
         self.frame_roi = None
 
-        # dragging state
         self.drag_mode = None
         self.drag_start = None
         self.handle_size = 6
 
-        # bit shifting region
-        self.bit_shift_region = None   # (vstart, vend)
+        self.bit_shift_region = None 
         self.show_bit_shift_region = False
 
     def set_bit_shift_region(self, vstart, vend, show=False):
@@ -110,16 +102,12 @@ class PreviewWidget(QWidget):
 
         if abs(x-hstart) < hs:
             return "left"
-
         if abs(x-hend) < hs:
             return "right"
-
         if abs(y-vstart) < hs:
             return "top"
-
         if abs(y-vend) < hs:
             return "bottom"
-
         if hstart < x < hend and vstart < y < vend:
             return "move"
 
@@ -154,7 +142,6 @@ class PreviewWidget(QWidget):
         dx = x - self.drag_start[0]
         dy = y - self.drag_start[1]
 
-        # ----- bit shift dragging -----
         if self.drag_mode in {"bit_shift_top", "bit_shift_bottom", "bit_shift_move"}:
             if not self.bit_shift_region:
                 return
@@ -186,7 +173,6 @@ class PreviewWidget(QWidget):
             self.update()
             return
 
-        # ----- ROI dragging -----
         if not self.roi:
             return
 
@@ -223,7 +209,6 @@ class PreviewWidget(QWidget):
         elif self.drag_mode == "bottom":
             vend += dy
 
-        # clamp to detector
         hstart = max(0,min(1024,hstart))
         hend = max(1,min(1024,hend))
         vstart = max(0,min(256,vstart))
@@ -300,7 +285,6 @@ class PreviewWidget(QWidget):
                 painter.drawLine(0, shift_vstart, self.width(), shift_vstart)
                 painter.drawLine(0, shift_vend, self.width(), shift_vend)
 
-# ==== Draw Rulers ====
 
 class RulerContainer(QWidget):
     def __init__(self, preview_widget):
@@ -364,8 +348,6 @@ class RulerContainer(QWidget):
         painter.rotate(-90)
         painter.drawText(image_rect.center().x() - image_rect.center().x() - 10, 30, "Vertical Pixel")
         painter.restore()
-        
-# ==== UNSCROLLABLE COMBO BOX ====
 
 class QNoScrollComboBox(QComboBox):
     """
@@ -375,7 +357,6 @@ class QNoScrollComboBox(QComboBox):
     def wheelEvent(self,event):
         event.ignore()
 
-# ==== LEFT PART LAYOUT ====
 
 class CollapsibleSection(QWidget):
     def __init__(self, title):
@@ -409,7 +390,7 @@ class CollapsibleSection(QWidget):
     def setContentLayout(self, content_layout):
         self.content_area.setLayout(content_layout)
 
-# ===== READ MODE WIDGETS =====
+# ---- READ MODE WIDGETS ----
 
 class MultiTrackWidget(QWidget):
 
@@ -438,8 +419,6 @@ class MultiTrackWidget(QWidget):
         layout.addWidget(self.number_input)
         layout.addWidget(self.height_input)
         layout.addWidget(self.offset_input)
-
-        # self.setLayout(layout)
 
     def get_params(self):
         params = {"mode": "multi_track"}
@@ -473,8 +452,6 @@ class SingleTrackWidget(QWidget):
         layout.addWidget(self.center_input)
         layout.addWidget(self.width_input)
 
-        # self.setLayout(layout)
-
     def get_params(self):
         params = {"mode": "single_track"}
         center, width = self.center_input.text(), self.width_input.text()
@@ -489,15 +466,13 @@ class FVBWidget(QWidget):
     def __init__(self):
         super().__init__()
 
-        # self.setLayout(layout)
-
     def get_params(self):
         params = {"mode": "fvb"}
         return params
 
 class ImageWidget(QWidget):
 
-    roi_visual_changed = pyqtSignal(tuple, bool, bool, object, object, bool)        # roi tuple, show roi, show grid
+    roi_visual_changed = pyqtSignal(tuple, bool, bool, object, object, bool)
     bit_shift_region_changed = pyqtSignal(object, object)
 
     def __init__(self):
@@ -507,7 +482,6 @@ class ImageWidget(QWidget):
         label = QLabel("Image ROI settings")
         layout.addWidget(label)
 
-        # ROI preset selector
         self.roi_preset_input = QNoScrollComboBox()
         self.roi_preset_input.addItems(["1024x256", "512x128", "256x64", "128x32", "Custom"])
         self.roi_preset_input.setCurrentText("Custom")
@@ -543,7 +517,6 @@ class ImageWidget(QWidget):
         self.processing_mode_input.setCurrentText("binning")
         layout.addWidget(self.processing_mode_input)
 
-        # Binning preset selector
         self.bin_preset_input = QNoScrollComboBox()
         self.bin_preset_input.addItems(["1x1","2x2","4x4","8x8","Custom"])
         self.bin_preset_input.setCurrentText("Custom")
@@ -563,7 +536,6 @@ class ImageWidget(QWidget):
         layout.addWidget(self.roi_hbin_input)
         layout.addWidget(self.roi_vbin_input)
 
-        # bit shifting
         self.show_bit_shift_region_checkbox = QCheckBox("Show bit-shift region")
         layout.addWidget(self.show_bit_shift_region_checkbox)
 
@@ -689,7 +661,6 @@ class ImageWidget(QWidget):
 
         roi_w, roi_h = map(int, text.split("x"))
 
-        # Center ROI
         hstart = (full_w - roi_w) // 2
         vstart = (full_h - roi_h) // 2
         hend = hstart + roi_w
@@ -753,7 +724,7 @@ class RandomTrackWidget(QWidget):
         return params
 
 
-# ===== ACQUISITION MODE WIDGETS =====
+# ---- ACQUISITION MODE WIDGETS ----
 
 class AccumWidget(QWidget):
     """
