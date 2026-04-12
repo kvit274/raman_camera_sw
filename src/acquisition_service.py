@@ -39,7 +39,7 @@ class AcquisitionService:
             frames = [frames]
 
         # --- Combine frames correctly ---
-        if acq_mode in ["kinetic", "fast_kinetic"]:
+        if acq_mode in ["kinetic", "fast_kinetic", "accum"]:
             # multiple independent frames
             combined = np.sum(frames, axis=0)
 
@@ -49,17 +49,17 @@ class AcquisitionService:
                 print(f"averaged kinetic mode frame by {num_frames}")
                 combined = combined / num_frames
 
-        else:
-            # single OR accum
-            frame = frames[-1]
+        # else:
+        #     # single OR accum
+        #     frame = frames[-1]
 
-            if acq_mode == "accum":
+        #     if acq_mode == "accum":
 
-                if result_mode == "avg":
-                    frame = frame / num_frames
-                    print(f"averaged accum mode frame by {num_frames}")
+        #         if result_mode == "avg":
+        #             frame = frame / num_frames
+        #             print(f"averaged accum mode frame by {num_frames}")
 
-            combined = frame
+        #     combined = frame
 
         return combined
     

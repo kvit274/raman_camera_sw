@@ -219,7 +219,11 @@ class RamanCameraController(QObject):
     def start_live(self):
         self.fsm.require("start_live")
         self.fsm.set_state(CameraState.LIVE)
-        frames = self.camera.start_live()
+        user_config = self.get_user_config()
+        acq_cfg = user_config.get("acquisition_mode",{})
+        acq_mode = acq_cfg.get("mode", "single")
+        print("acq mode in start_live:", acq_mode)
+        frames = self.camera.start_live(acq_mode)
         if not frames:
             raise RuntimeError("No live frames captured")
 
@@ -239,17 +243,14 @@ class RamanCameraController(QObject):
         else:
             processed_frames = frames
 
-        user_config = self.get_user_config()
-        acq_cfg = user_config.get("acquisition_mode",{})
-        acq_mode = acq_cfg.get("mode", "single")
 
         num_frames = 1
-        acq_mode = "single"
+        # acq_mode = "single"
             
-        if acq_mode in ["kinetic", "fast_kinetic"]:
+        if acq_mode in ["kinetic", "fast_kinetic","accum"]:
             num_frames = len(processed_frames)
-        if acq_mode == "accum":
-            num_frames = int(acq_cfg.get("num_acc", 1))
+        # if acq_mode == "accum":
+        #     num_frames = int(acq_cfg.get("num_acc", 1))
 
         if acq_mode in {"accum", "kinetic", "fast_kinetic"}:
             result_mode = acq_cfg.get("result_mode","sum")
@@ -411,6 +412,8 @@ class RamanCameraController(QObject):
 
         self.restore_user_config()
         self.fsm.set_state(CameraState.ACQUIRING)
+        user_config = self.get_user_config()
+        acq_mode = user_config.get("acquisition_mode",{}).get("mode","single")
         frames = self.camera.start_acquisition()
 
         if not frames:
@@ -418,10 +421,8 @@ class RamanCameraController(QObject):
 
         # self.acquisition_service.save_csv_frame(frames[0],filename)        # temp DELETE THIS testing only
 
-        user_config = self.get_user_config()
-        acq_mode = user_config.get("acquisition_mode",{}).get("mode","single")
+        
         roi = self.camera.get_roi()
-
         if self.should_apply_bit_shift():
 
             before_shift_filename = f'{filename.strip(".npz")}_before_shifting.npz'
