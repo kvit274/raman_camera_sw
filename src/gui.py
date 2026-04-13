@@ -11,7 +11,6 @@ import os
 from controller import RamanCameraController
 from widgets import MultiTrackWidget, SingleTrackWidget, FVBWidget, ImageWidget, RandomTrackWidget, SingleWidget, AccumWidget, KineticWidget, FastKineticWidget, ContinuousWidget, CollapsibleSection, QNoScrollComboBox, PreviewWidget, RulerContainer, TemperaturePopUp
 from typing import Dict
-from fsm import CameraState
 
 class MainWindow(QMainWindow):
     """
@@ -418,7 +417,7 @@ class MainWindow(QMainWindow):
             "open_npz": self.btn_open_npz,
         }
 
-        if state == CameraState.DISCONNECTED:
+        if state == "DISCONNECTED":
             buttons["connect"].setEnabled(True)
             buttons["disconnect"].setEnabled(False)
             buttons["live"].setEnabled(False)
@@ -430,7 +429,7 @@ class MainWindow(QMainWindow):
             buttons["apply_settings"].setEnabled(False)
             buttons["open_npz"].setEnabled(True)
 
-        elif state == CameraState.CONNECTED:
+        elif state == "CONNECTED":
             buttons["connect"].setEnabled(False)
             buttons["disconnect"].setEnabled(True)
             buttons["live"].setEnabled(False)
@@ -442,7 +441,7 @@ class MainWindow(QMainWindow):
             buttons["apply_settings"].setEnabled(False)
             buttons["open_npz"].setEnabled(True)
 
-        elif state == CameraState.COOLING:
+        elif state == "COOLING":
             buttons["connect"].setEnabled(False)
             buttons["disconnect"].setEnabled(True)
             buttons["live"].setEnabled(False)
@@ -454,7 +453,7 @@ class MainWindow(QMainWindow):
             buttons["apply_settings"].setEnabled(False)
             buttons["open_npz"].setEnabled(True)
 
-        elif state == CameraState.READY:
+        elif state == "READY":
             buttons["connect"].setEnabled(False)
             buttons["disconnect"].setEnabled(True)
             buttons["live"].setEnabled(True)
@@ -466,7 +465,7 @@ class MainWindow(QMainWindow):
             buttons["apply_settings"].setEnabled(True)
             buttons["open_npz"].setEnabled(True)
 
-        elif state == CameraState.LIVE:
+        elif state == "LIVE":
             buttons["connect"].setEnabled(False)
             buttons["disconnect"].setEnabled(False)
             buttons["live"].setEnabled(False)
@@ -478,7 +477,7 @@ class MainWindow(QMainWindow):
             buttons["apply_settings"].setEnabled(False)
             buttons["open_npz"].setEnabled(True)
 
-        elif state == CameraState.ACQUIRING:
+        elif state == "ACQUIRING":
             buttons["connect"].setEnabled(False)
             buttons["disconnect"].setEnabled(False)
             buttons["live"].setEnabled(False)
@@ -490,7 +489,7 @@ class MainWindow(QMainWindow):
             buttons["apply_settings"].setEnabled(False)
             buttons["open_npz"].setEnabled(True)
 
-        elif state == CameraState.ERROR:
+        elif state == "ERROR":
             buttons["connect"].setEnabled(True)
             buttons["disconnect"].setEnabled(False)
             buttons["live"].setEnabled(False)

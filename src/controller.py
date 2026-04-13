@@ -49,7 +49,7 @@ class RamanCameraController(QObject):
     live_frame_ready = pyqtSignal(object,object)
     live_finished = pyqtSignal()
     acquisition_finished = pyqtSignal(object)
-    ui_state_changed = pyqtSignal(object)
+    ui_state_changed = pyqtSignal(str)
 
     def __init__(self):
         """
@@ -70,7 +70,7 @@ class RamanCameraController(QObject):
         self.acq_worker = None
         self.warmup_close_worker = None
         self.fsm = CameraStateMachine()
-        self.fsm.state_changed.connect(self.ui_state_changed.emit)
+        self.fsm.state_changed.connect(lambda s: self.ui_state_changed.emit(s.name))
 
 
     # ==== Decorators =====
