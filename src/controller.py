@@ -162,9 +162,14 @@ class RamanCameraController(QObject):
         self.shutter_state_changed.emit(state)
         return
 
-    # UNUSED
     @handle_errors
     def display_acquisition_state(self):
+        """
+        Query whether acquisition is in progress and return (in_progress, progress).
+ 
+        Returns:
+            Tuple (bool, progress_tuple) from the hardware.
+        """
         in_progress_state = self.camera.acquisition_in_progress()
         progress = self.camera.get_acquisition_progress()
         return in_progress_state,progress
@@ -771,71 +776,6 @@ class RamanCameraController(QObject):
         )
 
         print(f"User config: {self.get_user_config()}")
-        return
-
-    # UNUSED
-    @handle_errors
-    def restore_settings(self):
-        if self.camera.cam.acquisition_in_progress(): 
-            self.camera.stop_acquisition()
-
-        settings = self.camera.restore_acquisition_settings()
-
-        acquisition_mode = settings["acq_mode"]
-        acquisition_mode_params = {"mode":acquisition_mode}
-        if acquisition_mode == "accum":
-            num_acc,cycle_time = settings["acq_parameters/accum"]
-            acquisition_mode_params["num_acc"] = num_acc
-            acquisition_mode_params["cycle_time"] = cycle_time
-        elif acquisition_mode == "kinetic":
-            num_cycle, cycle_time, num_acc, cycle_time_acc, num_prescan = settings["acq_parameters/kinetic"]
-            acquisition_mode_params["num_cycle"] = num_cycle
-            acquisition_mode_params["cycle_time"] = cycle_time
-            acquisition_mode_params["num_acc"] = num_acc
-            acquisition_mode_params["cycle_time_acc"] = cycle_time_acc
-            acquisition_mode_params["num_prescan"] = num_prescan
-        elif acquisition_mode == "fast_kinetic":
-            num_acc,cycle_time_acc = settings["acq_parameters/accum"]
-            acquisition_mode_params["num_acc"] = num_acc
-            acquisition_mode_params["cycle_time_acc"] = cycle_time_acc
-        elif acquisition_mode == "cont":
-            cycle_time = settings["acq_parameters/cont"]
-            acquisition_mode_params["cycle_time"] = cycle_time
-        
-        self.set_acquisition_mode(acquisition_mode_params)
-
-        read_mode = settings["read_mode"]
-        read_mode_params = {"mode": read_mode}
-        if read_mode == "multi_track":
-            num, height, offset = settings["read_parameters/multi_track"]
-            read_mode_params["number"] = num
-            read_mode_params["height"] = height
-            read_mode_params["offset"] = offset
-        elif read_mode == "single_track":
-            center, width = settings["read_parameters/single_track"]
-            read_mode_params["center"] = center
-            read_mode_params["width"] = width
-        elif read_mode == "random_track":
-            tracks = settings["read_parameters/random_track"]
-            read_mode_params["tracks"] = tracks
-        elif read_mode == "image":
-            hstart,hend,vstart,vend,hbin,vbin = settings["read_parameters/image"]
-            read_mode_params["hstart"] = hstart
-            read_mode_params["hend"] = hend
-            read_mode_params["vstart"] = vstart
-            read_mode_params["vend"] = vend
-            read_mode_params["hbin"] = hbin
-            read_mode_params["vbin"] = vbin
-        self.set_read_mode(read_mode_params)
-
-        self.set_exposure(settings["exposure"])
-        self.set_trigger_mode(settings["trigger_mode"])
-        self.setup_shutter(*settings["shutter"])
-
-        amp_mode = {"channel":settings["channel"],"oamp":settings["oamp"],"hsspeed":settings["hsspeed"],"preamp":settings["preamp"]}
-        self.set_amp_mode(amp_mode)
-        self.set_vsspeed(settings["vsspeed"])
-
         return
 
     # ==== EMCCD gain ====

@@ -73,8 +73,6 @@ class TestCameraModel:
         self.save_path = Path("./data")
         self.save_path.mkdir(exist_ok=True)
 
-        # transfer frame mode:
-        self.enable_frame_transfer_mode = None
 
         # bit shifting info
         self.bit_shift_pixels = 0
@@ -124,11 +122,6 @@ class TestCameraModel:
             raise RuntimeError("Camera already connected")
         self.cam = "Andor Newton"
         self.cool_cam()
-
-    # UNUSED
-    @requires_cam_connected
-    def enable_frame_transfer_mode(self,mode:bool=True):
-        self.enable_frame_transfer_mode = mode
 
     @requires_cam_connected
     def get_cam_params(self,save_path=Path("./cam_params.txt")):
@@ -1134,77 +1127,6 @@ class TestCameraModel:
 
     # ===== FILE MANAGEMENT =====
 
-    def save_image(self,frames,filename=None):
-        """
-        Save one or more detector frames as a grayscale PNG file.
- 
-        Args:
-            frames:   Single ndarray or list of ndarrays.
-            filename: Output filename.  A '.npz' extension is replaced with '.png'.
-                      If 'None', a timestamp-based name is generated.
- 
-        Raises:
-            RuntimeError: If 'frames' is 'None'.
-        """
-
-        if frames is None:
-            raise RuntimeError("No frames to save")
-
-        if isinstance(frames,np.ndarray):
-            frames = [frames]
-
-        if filename is None:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            png_path = self.save_path_image / f"{timestamp}.png"
-        else:
-            png_path = self.save_path / f"{filename.replace('.npz', '.png')}"
-
-        for idx,frame in enumerate(frames):
-
-            if frame.size == 0:
-                print("Empty frame")
-                return
-
-            plt.imsave(png_path, frame,cmap="gray")
-
-        print(f"[SAVE] Frames saved to {png_path}")
-        return
-    
-    def get_save_path(self):
-        """
-        Return the current root save directory.
- 
-        Returns:
-            Path: Root output directory used for all saved files.
-        """
-        return self.save_path
-
-    def save_npz(self,spectrum, metadata=None, filename=None):
-        """
-        Save a spectrum array and optional metadata to a NumPy NPZ file.
- 
-        Args:
-            spectrum:  1-D ndarray of intensity values to save.
-            metadata:  Optional dict stored alongside the spectrum.
-            filename:  Output filename (including extension).  If 'None', a
-                       timestamp-based name is generated.
- 
-        Raises:
-            RuntimeError: If 'spectrum' is 'None'.
-        """
-        if spectrum is None:
-            raise RuntimeError("No spectrogram to save")
-
-        if filename is None:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            spe_path = self.save_path / f"{timestamp}.npz"
-        else:
-            spe_path = self.save_path / f"{filename}"
-
-        np.savez(spe_path, spectrum=spectrum, metadata=metadata if metadata else {})
-        print(f"[SAVE] Spectrogram saved to {spe_path}")
-        return
-
     def save_csv_frame(self,frame,filename):
         """
         Save a raw 2-D detector frame as a CSV file alongside an NPZ output.
@@ -1219,44 +1141,6 @@ class TestCameraModel:
         new_filename = filename
         csv_frame_path = self.save_path / f"{new_filename.replace('.npz','')}_frame.csv"
         np.savetxt(csv_frame_path,frame,delimiter=",",fmt="%d")
-
-    def save_csv(self, spectrum, filename=None):
-        """
-        Save a 1-D spectrum to a CSV file with pixel index and intensity columns.
- 
-        Args:
-            spectrum: 1-D ndarray of intensity values.
-            filename: Output filename.  A '.npz' extension is replaced with '.csv'.
-                      If 'None', a timestamp-based name is generated.
- 
-        Raises:
-            RuntimeError: If 'spectrum' is 'None'.
-        """
-        if spectrum is None:
-            raise RuntimeError("No spectrum to save")
-
-        pixels = np.arange(len(spectrum))
-        if filename is None:
-            filename = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-        csv_path = self.save_path / filename.replace(".npz", ".csv")
-
-        with open(csv_path, "w") as f:
-            f.write("pixel,intensity,wavelength,wavenumber,processed\n")
-
-            for p,i in zip(pixels, spectrum):
-                f.write(f"{p},{i},,,\n")
-
-        print(f"[SAVE] CSV saved to {csv_path}")
-        return
-
-    def set_save_frame_path(self,path):
-        """
-        Update the root directory used for all file output.
- 
-        Args:
-            path: New save directory (str or Path).
-        """
-        self.save_path = path
     
     def set_dlls_path(self,dlls_path):
         """
@@ -1266,119 +1150,11 @@ class TestCameraModel:
             dlls_path: Path to the directory containing the Andor SDK2 shared library.
         """
         pll.par["devices/dll/andor_sdk2"] = dlls_path
-    
-    # UNUSED
-    def save_data(self, frame, spectrum, timestamp):
-        np.savetxt(self.save_path / f"{timestamp}_frame.csv", frame, delimiter=",", fmt="%d")  
-        np.savetxt(self.save_path / f"{timestamp}_spectrum.csv", spectrum, delimiter=",", fmt="%d")    
 
     # ==== DISPLAY DATA =====
 
-    # UNUSED
-    def display_spectrogram(self, frames):
-        if frames:
-            frame = frames[-1]
-
-            if frame.ndim == 2:
-                spectrum = frame.sum(axis=0)
-            else:
-                spectrum = frame
-
-            self.view.show_calibration_result(frame, spectrum)
-
-    # UNUSED
-    def plot_spec(self,spectrum,exp_time):
-        self.save_path.mkdir(parents=True, exist_ok=True)
-        plt.figure()
-        plt.plot(spectrum)
-        plt.title("Spectrum")
-        plt.savefig(self.save_path / f"{exp_time}_plot.png", dpi=200) 
-
 
     # ==== MATH =====
-
-    def combine_frames(self,frames,acq_mode,num_frames,result_mode):
-        """
-        Combine a list of raw frames into a single result frame.
- 
-        For kinetic and fast-kinetic modes the frames are summed; for accum and
-        single modes only the last frame is used.  When 'result_mode' is
-        'avg' the combined frame is divided by 'num_frames'.
- 
-        Args:
-            frames:      Single ndarray or list of ndarrays.
-            acq_mode:    Acquisition mode string ('single', 'accum',
-                         'kinetic', or 'fast_kinetic').
-            num_frames:  Divisor used when 'result_mode == "avg'.
-            result_mode: 'sum' to keep the summed result, 'avg' to average.
- 
-        Returns:
-            np.ndarray: The combined frame.
-        """
-        if isinstance(frames, np.ndarray):
-            frames = [frames]
-
-        if acq_mode in ["kinetic", "fast_kinetic"]:
-            combined = np.sum(frames, axis=0)
-
-            if result_mode == "avg":
-                combined = combined / num_frames
-
-        else:
-            frame = frames[-1]
-
-            if acq_mode == "accum":
-
-                if result_mode == "avg":
-                    frame = frame / num_frames
-
-            combined = frame
-
-        return combined
-
-    def bit_shift(self, frames):
-        """
-        Apply a fixed 2-pixel left shift to the last row of each 2-D frame.
- 
-        This is a simplified test-stub version of the bit-shift correction.
-        For the full configurable implementation see 'AcquisitionService.bit_shift'.
- 
-        Args:
-            frames: List of ndarrays (2-D or 1-D).
- 
-        Returns:
-            List[np.ndarray]: Frames with the bottom-row shift applied.
-        """
-        shifted_frames = []
-
-        for frame in frames:
-            if frame.ndim == 2:
-                frame_copy = frame.copy()
-                frame_copy[-1, :] = np.roll(frame_copy[-1, :], -2)
-                shifted_frames.append(frame_copy)
-            else:
-                shifted_frames.append(frame)
-
-        return shifted_frames
-
-    def adjust_frame(self,frame):
-        """
-        Normalise a raw frame to 8-bit grayscale for display.
- 
-        Args:
-            frame: 2-D ndarray with arbitrary numeric dtype.
- 
-        Returns:
-            Tuple[np.ndarray, int, int]: '(frame8, height, width)' where
-            'frame8' is a uint8 ndarray.
-        """
-        m = frame.max()
-        if m == 0:
-            frame8 = np.zeros_like(frame,dtype=np.uint8)
-        else:
-            frame8 = (frame / frame.max() * 255).astype(np.uint8) 
-        h, w = frame8.shape
-        return (frame8,h,w)
 
     def apply_binning(self, frame: np.ndarray, hbin: int, vbin: int) -> np.ndarray:
         """

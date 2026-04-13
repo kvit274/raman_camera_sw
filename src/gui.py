@@ -1291,7 +1291,6 @@ class MainWindow(QMainWindow):
         """
         UNUSED -- not connected to any button in the current UI.
         Originally allowed the user to choose the Andor SDK2 DLL directory.
-        Safe to delete.
         """
         file = QFileDialog.getExistingDirectory(self, "Select dll file")
         if file:
