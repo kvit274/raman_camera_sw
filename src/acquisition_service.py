@@ -14,6 +14,10 @@ import ramanspy as rp
 class AcquisitionService:
 
     def __init__(self):
+        """
+        Initialise the AcquisitionService and create default output directories
+        (./data, ./data/csv, ./data/images) if they do not already exist.
+        """
         self.acquisition_settings = None
         self.save_path_csv = Path("./data/csv")
         self.save_path_csv.mkdir(parents=True,exist_ok=True)
@@ -23,14 +27,37 @@ class AcquisitionService:
         self.save_path.mkdir(parents=True,exist_ok=True)
 
     def get_save_path(self):
+        """Return the current root save directory as a Path object."""
         return self.save_path
 
     def set_save_frame_path(self,path):
+        """
+        Set the root save directory for all output files (images, CSV, NPZ).
+ 
+        Args:
+            path: New save directory (str or Path).
+        """
         self.save_path = path
         self.save_path_image = path
         self.save_path_csv = path
 
     def combine_frames(self,frames,acq_mode="single",num_frames=1,result_mode="sum"):
+        """
+        Combine a list of frames into a single frame according to the acquisition mode.
+ 
+        For kinetic / fast_kinetic / accum modes the frames are summed (or averaged
+        when result_mode == 'avg').  For single mode the list is expected to contain
+        exactly one frame and it is returned unchanged.
+ 
+        Args:
+            frames:      A single ndarray or a list of ndarrays representing raw frames.
+            acq_mode:    Acquisition mode string ('single', 'accum', 'kinetic', 'fast_kinetic').
+            num_frames:  Number of frames used for averaging (only relevant when result_mode == 'avg').
+            result_mode: How to combine frames – 'sum' (default) or 'avg'.
+ 
+        Returns:
+            Combined ndarray.
+        """
         if isinstance(frames, np.ndarray):
             frames = [frames]
 
@@ -46,7 +73,22 @@ class AcquisitionService:
         return combined
     
     def convert_to_spectrum(self,frame, roi):
-
+        """
+        Collapse a 2-D detector frame into a 1-D spectrum by averaging over rows,
+        and build the corresponding pixel-index x-axis from the ROI.
+ 
+        Args:
+            frame: 2-D ndarray (rows × pixels) or 1-D ndarray already collapsed.
+            roi:   6-tuple (hstart, hend, vstart, vend, hbin, vbin) describing the
+                   active detector region and binning.
+ 
+        Returns:
+            Tuple (x_detector, y) where x_detector is the pixel indices array and
+            y is the intensity array.
+ 
+        Raises:
+            ValueError: If the length of x and y do not match.
+        """
         hstart, hend, vstart, vend, hbin, vbin = roi
 
         if frame.ndim == 2:
@@ -64,6 +106,23 @@ class AcquisitionService:
 
     
     def build_pixel_intensity_data(self, combined_frame, roi):
+        """
+        Build a pixel-index array and a matching intensity matrix suitable for CSV export.
+ 
+        Each row of the returned intensity matrix corresponds to one detector pixel;
+        columns correspond to separate accumulations/scans when the frame is 2-D.
+ 
+        Args:
+            combined_frame: 1-D or 2-D ndarray of acquired intensity data.
+            roi:            6-tuple (hstart, hend, vstart, vend, hbin, vbin).
+ 
+        Returns:
+            Tuple (pixel, intensities) where pixel is a 1-D int array of 1-based pixel
+            indices and intensities is a 2-D ndarray of shape (n_pixels, n_columns).
+ 
+        Raises:
+            ValueError: If frame dimensions are not 1 or 2, or if pixel/frame length mismatch.
+        """
         hstart, hend, vstart, vend, hbin, vbin = roi
 
         pixel = np.arange(hstart, hend, hbin, dtype=int) + 1
@@ -86,6 +145,23 @@ class AcquisitionService:
         return pixel, intensities
 
     def bit_shift(self, frames, roi, shift_pixels=0, shift_vstart=None, shift_vend=None):
+        """
+        Apply a horizontal pixel shift to a sub-region of each frame to correct for
+        spectral offset introduced by the readout electronics.
+ 
+        The shift is only applied when hbin == vbin == 1 and the frame is 2-D.
+        Rows outside [shift_vstart, shift_vend] are left unchanged.
+ 
+        Args:
+            frames:         List of 2-D ndarrays.
+            roi:            6-tuple (hstart, hend, vstart, vend, hbin, vbin).
+            shift_pixels:   Number of pixels to shift (negative = left).  0 = no-op.
+            shift_vstart:   First detector row (absolute) to include in the shift region.
+            shift_vend:     Last detector row (exclusive, absolute) of the shift region.
+ 
+        Returns:
+            List of ndarrays with the shift applied.
+        """
         shifted_frames = []
 
         hstart, hend, roi_vstart, roi_vend, hbin, vbin = roi
@@ -127,6 +203,16 @@ class AcquisitionService:
         return shifted_frames
 
     def adjust_frame(self,frame):
+        """
+        Normalise a raw detector frame to 8-bit grayscale for display purposes.
+ 
+        Args:
+            frame: 2-D ndarray with arbitrary integer or float dtype.
+ 
+        Returns:
+            Tuple (frame8, h, w) where frame8 is a uint8 ndarray, h is the number
+            of rows and w is the number of columns.
+        """
         m = frame.max()
         if m == 0:
             frame8 = np.zeros_like(frame,dtype=np.uint8)
@@ -135,6 +221,7 @@ class AcquisitionService:
         h, w = frame8.shape
         return (frame8,h,w)
     
+    # UNUSED
     def expand_fvb_frame(self, frame):
         frame = np.asarray(frame)
 
@@ -149,7 +236,16 @@ class AcquisitionService:
 
     def save_npz(self,spectrum_data, metadata=None,filename=None):
         """
-        Save spectrogram + metadata to NPZ format
+        Save a spectrum (x, y arrays) and optional metadata dict to a NumPy NPZ file.
+ 
+        Args:
+            spectrum_data: Tuple (x, y) of 1-D ndarrays.
+            metadata:      Optional dict to store alongside the spectrum.
+            filename:      Output filename including extension.  If None a timestamp-based
+                           name is generated automatically.
+ 
+        Raises:
+            RuntimeError: If spectrum_data is None.
         """
         if spectrum_data is None:
             raise RuntimeError("No spectrum to save")
@@ -167,6 +263,21 @@ class AcquisitionService:
         return
 
     def save_csv(self, combined_frame, roi, filename=None):
+        """
+        Save a combined frame as a CSV file with one row per detector pixel.
+ 
+        The first column contains the 1-based pixel index; subsequent columns contain
+        intensity values (one column per accumulation when the frame is 2-D).
+ 
+        Args:
+            combined_frame: 1-D or 2-D ndarray of intensity data.
+            roi:            6-tuple (hstart, hend, vstart, vend, hbin, vbin).
+            filename:       Output filename.  If None a timestamp-based name is used.
+                            A '.npz' extension is automatically replaced with '.csv'.
+ 
+        Raises:
+            RuntimeError: If combined_frame is None.
+        """
         if combined_frame is None:
             raise RuntimeError("No frame to save")
 
@@ -184,7 +295,17 @@ class AcquisitionService:
 
     def save_image(self,frames,filename=None): 
         """
-        Save a single acquired frame as PNG + raw CSV
+        Save one or more detector frames as a grayscale PNG file.
+ 
+        Args:
+            frames:   Single ndarray or list of ndarrays.  Each frame must be 2-D
+                      (or 1-D, in which case it is reshaped to (1, width)).
+            filename: Output filename.  If None a timestamp-based name is used.
+                      A '.npz' extension is automatically replaced with '.png'.
+ 
+        Raises:
+            RuntimeError: If frames is None.
+            ValueError:   If a frame has an unsupported number of dimensions.
         """
 
         if frames is None:
@@ -220,6 +341,7 @@ class AcquisitionService:
         print(f"[SAVE] Frames saved to {png_path}")
         return
     
+    # UNUSED
     def baseline_correct(self,spectrum,method="asls"):
         """
         RamanSPy baseline correction
@@ -245,6 +367,22 @@ class AcquisitionService:
         return corrected, baseline
     
     def expand_frame_for_display(self, frame, roi, read_mode):
+        """
+        Up-sample a binned or FVB frame so it fills the full ROI pixel dimensions,
+        making it suitable for on-screen display at the correct aspect ratio.
+ 
+        For FVB mode the single row is stretched horizontally to roi_w and repeated
+        roi_h times.  For image mode with binning each source pixel is mapped to the
+        nearest ROI pixel via linear index interpolation.
+ 
+        Args:
+            frame:     ndarray coming directly from the camera (possibly binned).
+            roi:       6-tuple (hstart, hend, vstart, vend, hbin, vbin).
+            read_mode: String describing the camera read mode ('fvb' or 'image').
+ 
+        Returns:
+            2-D ndarray of shape (roi_h, roi_w) ready for display.
+        """
         frame = np.asarray(frame)
         hstart, hend, vstart, vend, hbin, vbin = roi
 

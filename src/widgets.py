@@ -10,6 +10,16 @@ from typing import Dict
 
 class TemperaturePopUp(QWidget):
     def __init__(self,parent=None):
+        """
+        Initialise the temperature selection pop-up widget.
+ 
+        Creates a compact (250×120 px) popup containing a label showing the
+        currently selected temperature, a horizontal slider ranging from –90 °C
+        to 0 °C (default –20 °C), and an "Apply" button.
+ 
+        Args:
+            parent: Optional parent widget.
+        """
         super().__init__(parent,Qt.Popup)
 
         self.setFixedSize(250,120)
@@ -33,9 +43,24 @@ class TemperaturePopUp(QWidget):
         self.slider.valueChanged.connect(self.update_label)
 
     def update_label(self,value):
+        """
+        Update the temperature label to reflect the current slider position.
+ 
+        Connected to 'slider.valueChanged'; called automatically when the
+        user drags the slider.
+ 
+        Args:
+            value: Current slider integer value in °C.
+        """
         self.label.setText(f"{value} °C")
     
     def get_value(self):
+        """
+        Return the temperature currently selected on the slider.
+ 
+        Returns:
+            int: Selected temperature in °C.
+        """
         return self.slider.value()
 
 class PreviewWidget(QWidget):
@@ -44,6 +69,17 @@ class PreviewWidget(QWidget):
     bit_shift_region_changed = pyqtSignal(object, object)
 
     def __init__(self):
+        """
+        Initialise the live-preview canvas widget.
+ 
+        Creates a 1024×256 px black canvas that can display grayscale detector
+        frames and optionally overlay an interactive ROI rectangle, a binning
+        grid, and a draggable bit-shift row region.
+ 
+        Signals emitted:
+            roi_changed(tuple):                    ROI tuple changed by user drag.
+            bit_shift_region_changed(vstart, vend): Bit-shift region changed by user drag.
+        """
         super().__init__()
 
         self.setFixedSize(1024,256)
@@ -64,20 +100,54 @@ class PreviewWidget(QWidget):
         self.show_bit_shift_region = False
 
     def set_bit_shift_region(self, vstart, vend, show=False):
+        """
+        Define (and optionally display) the bit-shift correction row region.
+ 
+        Args:
+            vstart: Top row of the shift region in detector pixels.
+            vend:   Bottom row (exclusive) of the shift region.
+            show:   If 'True', render the region overlay immediately.
+        """
         self.bit_shift_region = (vstart, vend) if vstart is not None and vend is not None else None
         self.show_bit_shift_region = show
         self.update()
 
     def set_roi(self, roi):
+        """
+        Update the stored ROI tuple and schedule a repaint.
+ 
+        Args:
+            roi: 6-tuple '(hstart, hend, vstart, vend, hbin, vbin)'.
+        """
         self.roi = roi
         self.update()
 
     def set_frame(self,frame, roi=None):
+        """
+        Supply a new detector frame for display and schedule a repaint.
+ 
+        Args:
+            frame: Tuple '(frame8, h, w)' as returned by 'adjust_frame()',
+                   where 'frame8' is a uint8 ndarray.
+            roi:   Optional 6-tuple used to position the frame within the canvas.
+                   If 'None' the frame is drawn from the top-left corner.
+        """
         self.frame = frame
         self.frame_roi = roi
         self.update()
 
-    def _detect_bit_shift_handle(self, x, y):
+    def detect_bit_shift_handle(self, x, y):
+        """
+        Determine which part of the bit-shift region (if any) the cursor is over.
+ 
+        Args:
+            x: Cursor x-coordinate in widget pixels.
+            y: Cursor y-coordinate in widget pixels.
+ 
+        Returns:
+            str | None: 'bit_shift_top', 'bit_shift_bottom',
+            'bit_shift_move', or 'None' if the cursor is not near the region.
+        """
         if not (self.show_bit_shift_region and self.bit_shift_region):
             return None
 
@@ -93,7 +163,18 @@ class PreviewWidget(QWidget):
 
         return None
 
-    def _detect_handle(self,x,y):
+    def detect_handle(self,x,y):
+        """
+        Determine which ROI handle (if any) the cursor is over.
+ 
+        Args:
+            x: Cursor x-coordinate in widget pixels.
+            y: Cursor y-coordinate in widget pixels.
+ 
+        Returns:
+            str | None: 'left', 'right', 'top', 'bottom',
+            'move', or 'None' if the cursor is not near any handle.
+        """
         if not self.roi:
             return None
 
@@ -114,10 +195,18 @@ class PreviewWidget(QWidget):
         return None
 
     def mousePressEvent(self, event):
+        """
+        Begin a drag operation when the user clicks on a ROI or bit-shift handle.
+ 
+        Bit-shift region handles take priority over ROI handles.
+ 
+        Args:
+            event: QMouseEvent from the Qt framework.
+        """
         x = event.x()
         y = event.y()
 
-        mode = self._detect_bit_shift_handle(x, y)
+        mode = self.detect_bit_shift_handle(x, y)
 
         if mode:
             self.drag_mode = mode
@@ -127,13 +216,22 @@ class PreviewWidget(QWidget):
         if not self.roi:
             return
 
-        mode = self._detect_handle(x, y)
+        mode = self.detect_handle(x, y)
 
         if mode:
             self.drag_mode = mode
             self.drag_start = (x, y)
 
     def mouseMoveEvent(self, event):
+        """
+        Update the ROI or bit-shift region during a drag operation.
+ 
+        Enforces canvas bounds and minimum region sizes, then emits the
+        appropriate signal and schedules a repaint.
+ 
+        Args:
+            event: QMouseEvent from the Qt framework.
+        """
         if not self.drag_mode:
             return
 
@@ -229,10 +327,25 @@ class PreviewWidget(QWidget):
         self.update()
 
     def mouseReleaseEvent(self,event):
+        """
+        End the active drag operation.
+ 
+        Args:
+            event: QMouseEvent from the Qt framework.
+        """
         self.drag_mode = None
 
     def paintEvent(self,event):
-
+        """
+        Render the detector frame, ROI overlay, binning grid, and bit-shift region.
+ 
+        Draws the frame (if set) at its correct canvas position, then — when the
+        overlay is enabled — draws the ROI rectangle in yellow, the binning grid
+        in yellow, and the bit-shift region boundaries in green.
+ 
+        Args:
+            event: QPaintEvent from the Qt framework.
+        """
         painter = QPainter(self)
         painter.fillRect(self.rect(),Qt.black)
 
@@ -288,6 +401,12 @@ class PreviewWidget(QWidget):
 
 class RulerContainer(QWidget):
     def __init__(self, preview_widget):
+        """
+        Wrap a 'PreviewWidget' with pixel-coordinate rulers on the left and top edges.
+ 
+        Args:
+            preview_widget: The 'PreviewWidget' instance to embed.
+        """
         super().__init__()
 
         self.preview = preview_widget
@@ -309,6 +428,17 @@ class RulerContainer(QWidget):
         self.setObjectName("rulerContainer")
 
     def paintEvent(self, event):
+        """
+        Draw horizontal (top) and vertical (left) pixel-coordinate rulers.
+ 
+        Tick marks and labels are rendered relative to the embedded preview
+        widget's geometry.  The x-axis uses a 256-pixel step; the y-axis uses
+        a 64-pixel step.  Axis titles ("Horizontal Pixel" / "Vertical Pixel")
+        are also drawn.
+ 
+        Args:
+            event: QPaintEvent from the Qt framework.
+        """
         super().paintEvent(event)
 
         painter = QPainter(self)
@@ -351,15 +481,30 @@ class RulerContainer(QWidget):
 
 class QNoScrollComboBox(QComboBox):
     """
-    Avoids accidental scrolling between option
+    A QComboBox that ignores mouse-wheel events to prevent accidental value changes.
     """
 
     def wheelEvent(self,event):
+        """
+        Ignore wheel events so the combo box value cannot be changed by scrolling.
+ 
+        Args:
+            event: QWheelEvent from the Qt framework.
+        """
         event.ignore()
 
 
 class CollapsibleSection(QWidget):
     def __init__(self, title):
+        """
+        Initialise a collapsible panel with a toggle button and a hidden content area.
+ 
+        The panel starts collapsed.  Clicking the toggle button reveals or hides
+        'content_area' and updates the arrow indicator accordingly.
+ 
+        Args:
+            title: Label text displayed on the toggle button.
+        """
         super().__init__()
 
         self.toggle_button = QToolButton()
@@ -381,6 +526,11 @@ class CollapsibleSection(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
 
     def toggle(self):
+        """
+        Expand or collapse the content area and update the arrow direction.
+ 
+        Called automatically when the toggle button is clicked.
+        """
         expanded = self.toggle_button.isChecked()
         self.toggle_button.setArrowType(
             Qt.DownArrow if expanded else Qt.RightArrow
@@ -388,18 +538,29 @@ class CollapsibleSection(QWidget):
         self.content_area.setVisible(expanded)
 
     def setContentLayout(self, content_layout):
+        """
+        Set the layout that populates the collapsible content area.
+ 
+        Args:
+            content_layout: Any QLayout instance to install in 'content_area'.
+        """
         self.content_area.setLayout(content_layout)
 
 # ---- READ MODE WIDGETS ----
 
 class MultiTrackWidget(QWidget):
-
     """
-    Number is the number of rows (or row sets) to read, height is number of one row set (1 for a single row), offset is the distance between the row sets.
-    Return a tuple (number, height, offset, top, gap), where top is the offset of the first row from the top, and gap is the gap between the tracks.
+    Read-mode configuration widget for multi-track acquisition.
+ 
+    Number is the number of rows (or row sets) to read, height is the number
+    of rows in one row set (1 for a single row), offset is the distance between
+    row sets.  Returns a dict with keys 'number', 'height', and 'offset'.
     """
 
     def __init__(self):
+        """
+        Build the multi-track settings form with three integer input fields.
+        """
         super().__init__()
         layout = QHBoxLayout(self)
         label = QLabel("Multi-Track Settings")
@@ -421,6 +582,13 @@ class MultiTrackWidget(QWidget):
         layout.addWidget(self.offset_input)
 
     def get_params(self):
+        """
+        Collect the multi-track settings entered by the user.
+ 
+        Returns:
+            dict: Keys are 'mode' (always 'multi_track'), and optionally
+            'number', 'height', and 'offset' if the fields are non-empty.
+        """
         params = {"mode": "multi_track"}
         number, height, offset = self.number_input.text(), self.height_input.text(), self.offset_input.text()
         if number != "":
@@ -433,9 +601,16 @@ class MultiTrackWidget(QWidget):
 
 class SingleTrackWidget(QWidget):
 
-    """"Center and width specify selection of the rows to be averaged together"""
+    """
+    Read-mode configuration widget for single-track acquisition.
+ 
+    Center and width specify the selection of rows to be averaged together.
+    """
     
     def __init__(self):
+        """
+        Build the single-track settings form with center and width input fields.
+        """
         super().__init__()
         layout = QHBoxLayout(self)
         label = QLabel("Single-Track Settings")
@@ -453,6 +628,13 @@ class SingleTrackWidget(QWidget):
         layout.addWidget(self.width_input)
 
     def get_params(self):
+        """
+        Collect the single-track settings entered by the user.
+ 
+        Returns:
+            dict: Keys are 'mode' (always 'single_track'), and optionally
+            'center' and 'width' if the fields are non-empty.
+        """
         params = {"mode": "single_track"}
         center, width = self.center_input.text(), self.width_input.text()
         if center != "":
@@ -462,20 +644,55 @@ class SingleTrackWidget(QWidget):
         return params
 
 class FVBWidget(QWidget):
-
+    """
+    Read-mode configuration widget for Full-Vertical-Binning (FVB) mode.
+ 
+    No user-configurable parameters are needed; all detector rows are binned
+    into a single output row automatically.
+    """
     def __init__(self):
+        """
+        Initialise the FVB widget (no controls required).
+        """
         super().__init__()
 
     def get_params(self):
+        """
+        Return the FVB mode identifier.
+ 
+        Returns:
+            dict: {'mode': 'fvb'}.
+        """
         params = {"mode": "fvb"}
         return params
 
 class ImageWidget(QWidget):
-
+    """
+    Read-mode configuration widget for full-image (2-D) acquisition.
+ 
+    Exposes ROI preset selection, manual ROI bounds, a processing-mode switcher
+    (binning vs. bit-shift correction), binning presets, and the bit-shift
+    row region controls.
+ 
+    Signals:
+        roi_visual_changed(roi, show_roi, show_grid, bit_shift_vstart,
+                           bit_shift_vend, show_bit_shift):
+            Emitted whenever any ROI-related field changes, so the
+            'PreviewWidget' overlay can be updated.
+        bit_shift_region_changed(vstart, vend):
+            Re-emitted when the bit-shift row region changes.
+    """
     roi_visual_changed = pyqtSignal(tuple, bool, bool, object, object, bool)
     bit_shift_region_changed = pyqtSignal(object, object)
 
     def __init__(self):
+        """
+        Build the image ROI / binning / bit-shift configuration panel.
+ 
+        Wires all input fields and checkboxes to 'emit_visual_update' so that
+        the preview overlay stays in sync, and connects the processing-mode
+        combo box to 'update_processing_ui' to toggle visible sub-widgets.
+        """
         super().__init__()
 
         layout = QVBoxLayout(self)
@@ -586,6 +803,17 @@ class ImageWidget(QWidget):
         self.processing_mode_input.currentTextChanged.connect(self.emit_visual_update)
 
     def update_processing_ui(self, mode):
+        """
+        Show or hide sub-widgets based on the selected processing mode.
+ 
+        In 'binning' mode the binning controls are visible and the
+        bit-shift controls are hidden (and hbin/vbin inputs are enabled).
+        In 'bit_shift' mode the reverse applies and hbin/vbin are forced to 1.
+ 
+        Args:
+            mode: Currently selected processing mode string – 'binning'
+                  or 'bit_shift'.
+        """
         use_binning = (mode == "binning")
 
         for w in self.binning_widgets:
@@ -608,6 +836,12 @@ class ImageWidget(QWidget):
         self.emit_visual_update()
 
     def emit_visual_update(self):
+        """
+        Read all ROI and overlay fields and emit 'roi_visual_changed'.
+ 
+        Silently ignores conversion errors (e.g. empty fields) so that the
+        signal is not emitted with invalid data during partial user input.
+        """
         try:
             roi = (
                 int(self.roi_hstart_input.text() or 0),
@@ -633,6 +867,16 @@ class ImageWidget(QWidget):
             pass
 
     def on_toggle_bit_shift_region(self,state):
+        """
+        Populate default bit-shift row bounds when the region is first enabled.
+ 
+        If the user enables the "Show bit-shift region" checkbox but neither
+        'vstart' nor 'vend' has been entered, sensible defaults are written
+        to the input fields (centred on the detector with a ±10 row half-height).
+ 
+        Args:
+            state: Checkbox state integer from Qt (non-zero = checked).
+        """
         if state:
 
             vstart = self.bit_shift_vstart_input.text()
@@ -653,6 +897,14 @@ class ImageWidget(QWidget):
 
 
     def apply_roi_preset(self, text):
+        """
+        Fill the ROI input fields with centred coordinates for a standard size preset.
+ 
+        Has no effect when 'text' is 'Custom'.
+ 
+        Args:
+            text: Preset label string (e.g. '512x128'), or 'Custom'.
+        """
         if text == "Custom":
             return
 
@@ -673,6 +925,14 @@ class ImageWidget(QWidget):
 
 
     def apply_bin_preset(self, text):
+        """
+        Fill the horizontal and vertical bin input fields from a standard preset.
+ 
+        Has no effect when 'text' is 'Custom'.
+ 
+        Args:
+            text: Preset label string (e.g. '2x2'), or 'Custom'.
+        """
         if text == "Custom":
             return
 
@@ -681,6 +941,15 @@ class ImageWidget(QWidget):
         self.roi_vbin_input.setText(str(vbin))
 
     def get_params(self):
+        """
+        Collect all image-mode settings from the form inputs.
+ 
+        Returns:
+            dict: Contains 'mode' ('image'), ROI bounds ('hstart',
+            'hend', 'vstart', 'vend'), binning ('hbin', 'vbin'),
+            'processing_mode', and the three bit-shift fields
+            ('bit_shift_pixels', 'bit_shift_vstart', 'bit_shift_vend').
+        """
         params = {"mode": "image"}
         params["hstart"] = self.roi_hstart_input.text()
         params["hend"] = self.roi_hend_input.text()
@@ -696,8 +965,15 @@ class ImageWidget(QWidget):
         return params
 
 class RandomTrackWidget(QWidget):
-
+    """
+    Read-mode configuration widget for random-track acquisition.
+ 
+    Allows the user to specify a single arbitrary row span (start / stop).
+    """
     def __init__(self):
+        """
+        Build the random-track settings form with start and stop integer inputs.
+        """
         super().__init__()
         layout = QHBoxLayout(self)
         label = QLabel("Random-Track Settings")
@@ -715,6 +991,13 @@ class RandomTrackWidget(QWidget):
         layout.addWidget(self.stop_input)
 
     def get_params(self):
+        """
+        Collect the random-track row span entered by the user.
+ 
+        Returns:
+            dict: Keys are 'mode' (always 'random_track'), and optionally
+            'start' and 'stop' if the fields are non-empty.
+        """
         params = {"mode": "random_track"}
         start, stop = self.start_input.text(), self.stop_input.text()
         if start != "":
@@ -728,11 +1011,17 @@ class RandomTrackWidget(QWidget):
 
 class AccumWidget(QWidget):
     """
-    num_acc is the number of accumulated frames,
-    cycle_time_acc is the acquisition period (by default the minimal possible based on exposure and transfer time).
+    Acquisition-mode configuration widget for accumulation mode.
+ 
+    'num_acc' is the number of frames to accumulate on-chip;
+    'cycle_time_acc' is the acquisition period (defaults to the minimum
+    possible value based on exposure and transfer time).
     """
 
     def __init__(self):
+        """
+        Build the accumulation mode settings form.
+        """
         super().__init__()
         layout = QVBoxLayout(self)
         label = QLabel("Accumulative Aquisition Mode Settings")
@@ -758,6 +1047,13 @@ class AccumWidget(QWidget):
         self.cycle_time_acc_input.setMinimumWidth(0)
 
     def get_params(self):
+        """
+        Collect the accumulation mode settings entered by the user.
+ 
+        Returns:
+            dict: Keys are 'mode' (always 'accum'), 'result_mode',
+            and optionally 'num_acc' and 'cycle_time_acc' if non-empty.
+        """
         params = {"mode": "accum"}
         num_acc = self.num_acc_input.text()
         cycle_time_acc = self.cycle_time_acc_input.text()
@@ -772,14 +1068,19 @@ class AccumWidget(QWidget):
 
 class KineticWidget(QWidget):
     """
-    num_cycle is the number of kinetic cycles frames, 
-    cycle_time is the acquisition period between accum frames, 
-    num_accum is the number of accumulated frames, 
-    cycle_time_acc is the accum acquisition period, 
-    num_prescan is the number of prescans.
+    Acquisition-mode configuration widget for kinetic series mode.
+ 
+    'num_cycle' is the number of kinetic cycles;
+    'cycle_time' is the acquisition period between accumulation frames;
+    'num_accum' is the number of accumulated frames per cycle;
+    'cycle_time_acc' is the accumulation acquisition period;
+    'num_prescan' is the number of pre-scan frames.
     """
 
     def __init__(self):
+        """
+        Build the kinetic series settings form.
+        """
         super().__init__()
         layout = QVBoxLayout(self)
         label = QLabel("Kinetic Aquisition Mode Settings")
@@ -817,6 +1118,14 @@ class KineticWidget(QWidget):
         layout.addWidget(self.result_mode_input)
 
     def get_params(self):
+        """
+        Collect the kinetic series settings entered by the user.
+ 
+        Returns:
+            dict: Keys are 'mode' (always 'kinetic'), 'result_mode',
+            and optionally 'num_cycle', 'cycle_time', 'num_acc',
+            'cycle_time_acc', and 'num_prescan' if their fields are non-empty.
+        """
         params = {"mode": "kinetic"}
         num_cycle = self.num_cycle_input.text()
         cycle_time = self.cycle_time_input.text()
@@ -841,11 +1150,17 @@ class KineticWidget(QWidget):
     
 class FastKineticWidget(QWidget):
     """
-    num_acc is the number of accumulated frames, 
-    cycle_time_acc is the acquisition period (by default the minimal possible based on exposure and transfer time).
+    Acquisition-mode configuration widget for fast-kinetic mode.
+ 
+    'num_acc' is the number of frames in the burst;
+    'cycle_time_acc' is the acquisition period (defaults to the minimum
+    possible based on exposure and transfer time).
     """
 
     def __init__(self):
+        """
+        Build the fast-kinetic mode settings form.
+        """
         super().__init__()
         layout = QVBoxLayout(self)
         label = QLabel("Fast Kinetic Aquisition Mode Settings")
@@ -868,6 +1183,13 @@ class FastKineticWidget(QWidget):
         layout.addWidget(self.result_mode_input)
 
     def get_params(self):
+        """
+        Collect the fast-kinetic mode settings entered by the user.
+ 
+        Returns:
+            dict: Keys are 'mode' (always 'fast_kinetic'), 'result_mode',
+            and optionally 'num_acc' and 'cycle_time_acc' if non-empty.
+        """
         params = {"mode": "fast_kinetic"}
         num_acc = self.num_acc_input.text()
         cycle_time_acc = self.cycle_time_acc_input.text()
@@ -880,9 +1202,17 @@ class FastKineticWidget(QWidget):
         return params
 
 class ContinuousWidget(QWidget):
-    """cycle_time is the acquisition period (by default the minimal possible based on exposure and transfer time)."""
+    """
+    Acquisition-mode configuration widget for continuous (video) mode.
+ 
+    'cycle_time' is the acquisition period (defaults to the minimum possible
+    based on exposure and transfer time).
+    """
     
     def __init__(self):
+        """
+        Build the continuous mode settings form with a single cycle-time input.
+        """
         super().__init__()
         layout = QHBoxLayout(self)
         label = QLabel("Continuous Acquisition Mode Settings")
@@ -893,6 +1223,13 @@ class ContinuousWidget(QWidget):
 
 
     def get_params(self):
+        """
+        Collect the continuous mode settings entered by the user.
+ 
+        Returns:
+            dict: Keys are 'mode' (always 'cont'), and optionally
+            'cycle_time' if the field is non-empty.
+        """
         params = {"mode": "cont"}
         cycle_time = self.cycle_time.text()
         if cycle_time != "":
@@ -900,9 +1237,23 @@ class ContinuousWidget(QWidget):
         return params
 
 class SingleWidget(QWidget):
+    """
+    Acquisition-mode configuration widget for single-frame mode.
+ 
+    No parameters are required; one frame is captured per trigger event.
+    """
     def __init__(self):
+        """
+        Initialise the single-frame widget (no controls required).
+        """
         super().__init__()
 
     def get_params(self):
+        """
+        Return the single-frame mode identifier.
+ 
+        Returns:
+            dict: '{"mode": "single"}'.
+        """
         params = {"mode": "single"}
         return params
