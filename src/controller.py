@@ -1,4 +1,5 @@
 from camera import RamanCameraModel
+from camera_2 import RamanCameraModel2
 from spectrometer import SpectrometerModel
 from unittest.mock import MagicMock
 from test_cam import TestCameraModel
