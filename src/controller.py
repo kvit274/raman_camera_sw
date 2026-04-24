@@ -59,8 +59,8 @@ class RamanCameraController(QObject):
         """
         super().__init__()
 
-        # self.camera = RamanCameraModel()
-        self.camera = TestCameraModel()
+        self.camera = RamanCameraModel2()
+        # self.camera = TestCameraModel()
         self.acquisition_service = AcquisitionService()
         self.spec = TestSpectrometerModel() # delete
 
@@ -375,7 +375,9 @@ class RamanCameraController(QObject):
         if acq_mode in ["kinetic", "fast_kinetic","accum"]:
             num_frames = len(processed_frames)
 
-        if acq_mode in {"accum", "kinetic", "fast_kinetic"}:
+        if acq_mode in {"kinetic", "fast_kinetic"}:
+            # accum mode excluded: the SDK accumulates internally and returns
+            # one already-combined frame, so combining here would be a no-op.
             result_mode = acq_cfg.get("result_mode","sum")
             combined_frame = self.acquisition_service.combine_frames(processed_frames,acq_mode,num_frames,result_mode)
         else:
@@ -635,20 +637,18 @@ class RamanCameraController(QObject):
                 shift_vend=bit_shift_vend,
             )
         else:
-            processed_frames = frames[0]
+            processed_frames = frames
 
         num_frames = 1
         if acq_mode in ["kinetic","fast_kinetic"]:
             num_frames = len(processed_frames)
-        if acq_mode == "accum":
-            num_frames = int(user_config.get("acquisition_mode",{}).get("num_acc",1))
-        
 
-        if acq_mode in {"accum", "kinetic", "fast_kinetic"}:
+        if acq_mode in {"kinetic", "fast_kinetic"}:
+            # accum mode excluded: the SDK returns one hardware-accumulated frame,
+            # so there is nothing to combine in software.
             result_mode = user_config.get("acquisition_mode",{}).get("result_mode","sum")
             combined_frame = self.acquisition_service.combine_frames(processed_frames,acq_mode,num_frames,result_mode)
         else:
-            print(f"frame not combined")
             combined_frame = processed_frames[0]
 
         self.acquisition_service.save_image(combined_frame if isinstance(combined_frame, list) else [combined_frame],filename=filename)

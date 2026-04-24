@@ -1,9 +1,9 @@
 import os
 import sys
 import time
-import ctypes
 import numpy as np
 from pyAndorSDK2 import atmcd
+from pyAndorSDK2 import atmcd_codes
 from pathlib import Path
 from pprint import pformat
 from typing import Optional, List, Tuple
@@ -108,6 +108,7 @@ class RamanCameraModel2:
         Also initialises bit-shift correction parameters to their off state.
         """
         self.cam = None           # set to True once the SDK is initialised
+        self.sdk = None           # atmcd instance, created in connect_cam()
         self.cancel_cooling = False
         self.acquisition_settings = None
 
@@ -186,10 +187,10 @@ class RamanCameraModel2:
         return hstart + 1, hend, vstart + 1, vend
 
     def _image_pixels(self) -> int:
-        """Return the number of int32 pixels in one acquired frame."""
-        error, size_bytes = atmcd.GetImageSizeBytes()
-        _check(error, "GetImageSizeBytes")
-        return size_bytes // 4          # each pixel is a 32-bit (4-byte) int
+        """Return the number of pixels in one acquired frame, derived from
+        the current data dimensions (width x height)."""
+        w, h = self._get_data_dimensions()
+        return w * h
 
     def _get_data_dimensions(self) -> Tuple[int, int]:
         """
@@ -217,62 +218,86 @@ class RamanCameraModel2:
 
     def _acquire_single_frame(self, timeout: float) -> np.ndarray:
         """
-        Start a single-frame acquisition, wait for completion, and return a
-        2-D ndarray (height × width, numpy convention).
+        Start a single-frame acquisition, poll until complete, and return a
+        2-D ndarray (height x width, numpy convention).
 
         Args:
             timeout: Maximum wait time in seconds.
         """
-        timeout_ms = max(int(timeout * 1000), 5000)
-        _check(atmcd.StartAcquisition(), "StartAcquisition")
-        _check(atmcd.WaitForAcquisitionTimeOut(timeout_ms), "WaitForAcquisitionTimeOut")
+        _check(self.sdk.StartAcquisition(), "StartAcquisition")
+        print("Acquisition started, waiting...")
 
-        n   = self._image_pixels()
-        buf = (ctypes.c_int32 * n)()
-        _check(atmcd.GetAcquiredData(buf, n), "GetAcquiredData")
+        deadline = time.time() + max(timeout, 5.0)
+        while True:
+            error, status = self.sdk.GetStatus()
+            if status == DRV_IDLE:
+                break
+            if time.time() > deadline:
+                self.sdk.AbortAcquisition()
+                raise RuntimeError(f"Acquisition timed out after {timeout:.1f}s")
+            time.sleep(0.05)
 
-        data = np.frombuffer(buf, dtype=np.int32).copy()
+        print("Acquisition complete, retrieving data...")
+        n = self._image_pixels()
+        # GetImages16 returns (ret, arr, validfirst, validlast) — 4 values.
+        # GetAcquiredData is not a properly declared pyAndorSDK2 wrapper; calling
+        # it passes `n` as a raw C pointer, causing a segfault in the DLL.
+        error, arr, _, _ = self.sdk.GetImages16(1, 1, n)
+        _check(error, "GetImages16")
+
+        data = np.array(arr, dtype=np.int32)
         w, h = self._get_data_dimensions()
-        return data.reshape(h, w)       # (height, width) — numpy convention
+        return data.reshape(h, w)
 
     def _acquire_n_frames(self, nframes: int, timeout: float) -> List[np.ndarray]:
         """
-        Start a multi-frame (kinetic / fast-kinetic) acquisition, wait for
-        every frame, and return a list of 2-D ndarrays.
+        Start a multi-frame (kinetic / fast-kinetic) acquisition, poll until
+        complete, and return a list of 2-D ndarrays.
 
         Args:
             nframes: Number of frames expected.
-            timeout: Per-frame wait timeout in seconds.
+            timeout: Total wait timeout in seconds.
         """
-        timeout_ms = max(int(timeout * 1000), 5000)
-        _check(atmcd.StartAcquisition(), "StartAcquisition")
+        _check(self.sdk.StartAcquisition(), "StartAcquisition")
+        print(f"Acquisition started, waiting for {nframes} frame(s)...")
 
-        # WaitForAcquisitionTimeOut fires once per completed frame
-        for _ in range(nframes):
-            error = atmcd.WaitForAcquisitionTimeOut(timeout_ms)
-            if error != DRV_SUCCESS:
-                break   # skip missing frames rather than aborting entirely
+        # Scale deadline by nframes — calc_frame_timeout() returns the per-frame
+        # kinetic cycle time, so the full series takes nframes × that long.
+        total_timeout = max(timeout * nframes, 10.0)
+        deadline = time.time() + total_timeout
+        while True:
+            error, status = self.sdk.GetStatus()
+            if status == DRV_IDLE:
+                break
+            if time.time() > deadline:
+                self.sdk.AbortAcquisition()
+                raise RuntimeError(
+                    f"Acquisition timed out after {total_timeout:.1f}s "
+                    f"({nframes} frame(s) × {timeout:.1f}s per frame)"
+                )
+            time.sleep(0.05)
 
+        print("Acquisition complete, retrieving data...")
         n     = self._image_pixels()
         total = n * nframes
-        buf   = (ctypes.c_int32 * total)()
-        _check(atmcd.GetImages(1, nframes, buf, total), "GetImages")
+        # GetImages16 returns (ret, arr, validfirst, validlast) — 4 values.
+        error, arr, _, _ = self.sdk.GetImages16(1, nframes, total)
+        _check(error, "GetImages16")
 
         w, h = self._get_data_dimensions()
-        data = np.frombuffer(buf, dtype=np.int32).copy()
+        data = np.array(arr, dtype=np.int32)
         return [data[i * n:(i + 1) * n].reshape(h, w) for i in range(nframes)]
 
     def _stop_acq_safe(self) -> None:
         """
-        Abort any in-progress acquisition and free the internal buffer without
-        raising on error (e.g. when the camera is already idle).
+        Abort any in-progress acquisition without raising on error.
+
+        FreeInternalMemory is intentionally omitted — it is not a declared
+        pyAndorSDK2 wrapper and calling it through __getattr__ with no argtypes
+        causes the same segfault as GetAcquiredData did.
         """
         try:
-            atmcd.AbortAcquisition()
-        except Exception:
-            pass
-        try:
-            atmcd.FreeInternalMemory()
+            self.sdk.AbortAcquisition()
         except Exception:
             pass
 
@@ -295,7 +320,9 @@ class RamanCameraModel2:
             print("Camera already connected")
             return
 
-        error, num_cameras = atmcd.GetAvailableCameras()
+        self.sdk = atmcd()
+
+        error, num_cameras = self.sdk.GetAvailableCameras()
         _check(error, "GetAvailableCameras")
         print(f"Found {num_cameras} camera(s)")
 
@@ -303,16 +330,16 @@ class RamanCameraModel2:
             raise ConnectionError("No Andor cameras found")
 
         # Select the first camera
-        error, handle = atmcd.GetCameraHandle(0)
+        error, handle = self.sdk.GetCameraHandle(0)
         _check(error, "GetCameraHandle")
-        _check(atmcd.SetCurrentCamera(handle), "SetCurrentCamera")
+        _check(self.sdk.SetCurrentCamera(handle), "SetCurrentCamera")
 
         # Initialise the SDK (empty string → use INI in the driver directory)
-        _check(atmcd.Initialize(""), "Initialize")
+        _check(self.sdk.Initialize(""), "Initialize")
         self.cam = True     # mark as connected
 
         # Cache full detector size and default to full-frame ROI
-        error, xpix, ypix = atmcd.GetDetector()
+        error, xpix, ypix = self.sdk.GetDetector()
         _check(error, "GetDetector")
         self._detector_size = (xpix, ypix)
         self._roi = (0, xpix, 0, ypix, 1, 1)
@@ -332,11 +359,11 @@ class RamanCameraModel2:
         Return camera identity as a SimpleNamespace with fields:
         controller_model, head_model, serial_number.
         """
-        error, serial     = atmcd.GetCameraSerialNumber()
+        error, serial     = self.sdk.GetCameraSerialNumber()
         _check(error, "GetCameraSerialNumber")
-        error, head_model = atmcd.GetHeadModel()
+        error, head_model = self.sdk.GetHeadModel()
         _check(error, "GetHeadModel")
-        error, ctrl_model = atmcd.GetControllerCardModel()
+        error, ctrl_model = self.sdk.GetControllerCardModel()
         _check(error, "GetControllerCardModel")
         return SimpleNamespace(
             serial_number    = serial,
@@ -396,7 +423,7 @@ class RamanCameraModel2:
     # ── helpers used only by get_cam_params ───────────────────────────────────
 
     def _get_capabilities_dict(self) -> dict:
-        error, caps = atmcd.GetCapabilities()
+        error, caps = self.sdk.GetCapabilities()
         _check(error, "GetCapabilities")
         return {
             "AcqModes":          caps.ulAcqModes,
@@ -412,19 +439,18 @@ class RamanCameraModel2:
         }
 
     def _get_preamp_gain(self, index: int) -> float:
-        error, gain = atmcd.GetPreAmpGain(index)
+        error, gain = self.sdk.GetPreAmpGain(index)
         _check(error, "GetPreAmpGain")
         return gain
 
     def _get_hsspeed_freq(self) -> float:
-        error, speed = atmcd.GetHSSpeed(self._channel, self._oamp, self._hsspeed)
+        error, speed = self.sdk.GetHSSpeed(self._channel, self._oamp, self._hsspeed)
         _check(error, "GetHSSpeed")
         return speed
 
     def _get_image_size_bytes(self) -> int:
-        error, size = atmcd.GetImageSizeBytes()
-        _check(error, "GetImageSizeBytes")
-        return size
+        w, h = self._get_data_dimensions()
+        return w * h * 4  # 4 bytes per int32 pixel
 
 
     # ══════════════════════════════════════════════════════════════════════════
@@ -439,7 +465,7 @@ class RamanCameraModel2:
         Returns:
             'idle', 'acquiring', or the raw integer code as a string.
         """
-        error, status = atmcd.GetStatus()
+        error, status = self.sdk.GetStatus()
         _check(error, "GetStatus")
         return {DRV_IDLE: "idle", DRV_ACQUIRING: "acquiring"}.get(status, str(status))
 
@@ -451,7 +477,7 @@ class RamanCameraModel2:
         Returns:
             Tuple (x_um, y_um) in micrometres.
         """
-        error, xsize, ysize = atmcd.GetPixelSize()
+        error, xsize, ysize = self.sdk.GetPixelSize()
         _check(error, "GetPixelSize")
         return (xsize, ysize)
 
@@ -498,6 +524,9 @@ class RamanCameraModel2:
             "trigger_mode":          self._trigger_mode,
             "exposure":              self._exposure,
             "roi":                   self._roi,
+            "read_parameters/image": self._roi,
+            "shutter":               (self._shutter_mode, self._shutter_ttl,
+                                      self._shutter_open_ms, self._shutter_close_ms),
             "single_track":          self._single_track,
             "multi_track":           self._multi_track,
             "random_tracks":         self._random_tracks,
@@ -572,7 +601,7 @@ class RamanCameraModel2:
         frame_period is the kinetic cycle time, which is the upper bound for
         the time between successive frames.
         """
-        error, exposure, accumulate, kinetic = atmcd.GetAcquisitionTimings()
+        error, exposure, accumulate, kinetic = self.sdk.GetAcquisitionTimings()
         _check(error, "GetAcquisitionTimings")
         return exposure, kinetic
 
@@ -584,7 +613,7 @@ class RamanCameraModel2:
         Returns:
             Exposure time in seconds (float).
         """
-        error, exposure, _, _ = atmcd.GetAcquisitionTimings()
+        error, exposure, _, _ = self.sdk.GetAcquisitionTimings()
         _check(error, "GetAcquisitionTimings")
         return exposure
 
@@ -638,7 +667,7 @@ class RamanCameraModel2:
             hstart, hend, vstart, vend, hbin, vbin
         )
         sdk_hs, sdk_he, sdk_vs, sdk_ve = self._pll_to_sdk(hstart, hend, vstart, vend)
-        _check(atmcd.SetImage(hbin, vbin, sdk_hs, sdk_he, sdk_vs, sdk_ve), "SetImage")
+        _check(self.sdk.SetImage(hbin, vbin, sdk_hs, sdk_he, sdk_vs, sdk_ve), "SetImage")
         self._roi = (hstart, hend, vstart, vend, hbin, vbin)
 
 
@@ -656,7 +685,7 @@ class RamanCameraModel2:
                        'random_track'.
         """
         self.validate_read_mode(read_mode)
-        _check(atmcd.SetReadMode(_READ_MODE[read_mode]), "SetReadMode")
+        _check(self.sdk.SetReadMode(_READ_MODE[read_mode]), "SetReadMode")
         self._read_mode = read_mode
         print(f"Read mode set to: {read_mode}")
 
@@ -682,9 +711,9 @@ class RamanCameraModel2:
             mode:   Informational label, not sent to hardware.
         """
         self.validate_single_track_mode(center, width)
-        _check(atmcd.SetReadMode(_READ_MODE["single_track"]), "SetReadMode")
+        _check(self.sdk.SetReadMode(_READ_MODE["single_track"]), "SetReadMode")
         # SDK2 SetSingleTrack uses 1-based centre row
-        _check(atmcd.SetSingleTrack(center + 1, width), "SetSingleTrack")
+        _check(self.sdk.SetSingleTrack(center + 1, width), "SetSingleTrack")
         self._read_mode    = "single_track"
         self._single_track = (center, width)
 
@@ -712,9 +741,9 @@ class RamanCameraModel2:
             mode:   Informational label, not sent to hardware.
         """
         self.validate_multi_track_mode(number, height, offset)
-        _check(atmcd.SetReadMode(_READ_MODE["multi_track"]), "SetReadMode")
+        _check(self.sdk.SetReadMode(_READ_MODE["multi_track"]), "SetReadMode")
         # SetMultiTrack also returns (bottom, gap) — we discard those
-        error, _, _ = atmcd.SetMultiTrack(number, height, offset)
+        error, _, _ = self.sdk.SetMultiTrack(number, height, offset)
         _check(error, "SetMultiTrack")
         self._read_mode   = "multi_track"
         self._multi_track = (number, height, offset)
@@ -741,12 +770,12 @@ class RamanCameraModel2:
         """
         if tracks is None:
             tracks = []
-        _check(atmcd.SetReadMode(_READ_MODE["random_track"]), "SetReadMode")
+        _check(self.sdk.SetReadMode(_READ_MODE["random_track"]), "SetReadMode")
         # SDK2 expects 1-based (bottom, top) pairs in a flat array
         flat = []
         for (s, e) in tracks:
             flat.extend([s + 1, e])
-        error, _, _ = atmcd.SetRandomTracks(len(tracks), flat)
+        error, _, _ = self.sdk.SetRandomTracks(len(tracks), flat)
         _check(error, "SetRandomTracks")
         self._read_mode     = "random_track"
         self._random_tracks = list(tracks)
@@ -782,9 +811,9 @@ class RamanCameraModel2:
         hstart, hend, vstart, vend, hbin, vbin = self.validate_roi(
             hstart, hend, vstart, vend, hbin, vbin
         )
-        _check(atmcd.SetReadMode(_READ_MODE["image"]), "SetReadMode")
+        _check(self.sdk.SetReadMode(_READ_MODE["image"]), "SetReadMode")
         sdk_hs, sdk_he, sdk_vs, sdk_ve = self._pll_to_sdk(hstart, hend, vstart, vend)
-        _check(atmcd.SetImage(hbin, vbin, sdk_hs, sdk_he, sdk_vs, sdk_ve), "SetImage")
+        _check(self.sdk.SetImage(hbin, vbin, sdk_hs, sdk_he, sdk_vs, sdk_ve), "SetImage")
         self._read_mode = "image"
         self._roi       = (hstart, hend, vstart, vend, hbin, vbin)
         print(f"Setting up image mode... ROI: {self._roi}")
@@ -817,7 +846,7 @@ class RamanCameraModel2:
         return self.bit_shift_pixels, self.bit_shift_vstart, self.bit_shift_vend
 
     @requires_cam_connected
-    def get_image_mode_parameters(self) -> Tuple:
+    def get_image_mode_params(self) -> Tuple:
         """
         Return the current image-mode ROI and binning parameters.
 
@@ -865,7 +894,7 @@ class RamanCameraModel2:
         # SDK2: SetShutter(typ, mode, closingtime, openingtime)
         #   typ:  0 = low TTL opens, 1 = high TTL opens
         #   mode: 0 = auto, 1 = open, 2 = close
-        _check(atmcd.SetShutter(ttl_mode, _SHUTTER[mode], close_ms, open_ms), "SetShutter")
+        _check(self.sdk.SetShutter(ttl_mode, _SHUTTER[mode], close_ms, open_ms), "SetShutter")
         self._shutter_mode     = mode
         self._shutter_ttl      = ttl_mode
         self._shutter_open_ms  = float(open_ms)
@@ -881,7 +910,7 @@ class RamanCameraModel2:
             Falls back to (0.0, 0.0) if the SDK does not expose this query.
         """
         try:
-            error, min_close, min_open = atmcd.GetShutterMinTimes()
+            error, min_close, min_open = self.sdk.GetShutterMinTimes()
             if error == DRV_SUCCESS:
                 return (float(min_open), float(min_close))
         except AttributeError:
@@ -906,7 +935,7 @@ class RamanCameraModel2:
     @requires_cam_connected
     def setup_single_mode(self) -> None:
         """Set the camera to single-frame acquisition mode."""
-        _check(atmcd.SetAcquisitionMode(_ACQ_MODE["single"]), "SetAcquisitionMode")
+        _check(self.sdk.SetAcquisitionMode(_ACQ_MODE["single"]), "SetAcquisitionMode")
         self._acq_mode = "single"
         print(f"Acquisition mode set to single. Tracked: {self._acq_mode}")
 
@@ -923,9 +952,9 @@ class RamanCameraModel2:
             mode:           Informational label.
             result_mode:    Handled by AcquisitionService, not the camera layer.
         """
-        _check(atmcd.SetAcquisitionMode(_ACQ_MODE["accum"]),     "SetAcquisitionMode")
-        _check(atmcd.SetNumberAccumulations(num_acc),             "SetNumberAccumulations")
-        _check(atmcd.SetAccumulationCycleTime(float(cycle_time_acc)), "SetAccumulationCycleTime")
+        _check(self.sdk.SetAcquisitionMode(_ACQ_MODE["accum"]),     "SetAcquisitionMode")
+        _check(self.sdk.SetNumberAccumulations(num_acc),             "SetNumberAccumulations")
+        _check(self.sdk.SetAccumulationCycleTime(float(cycle_time_acc)), "SetAccumulationCycleTime")
         self._acq_mode     = "accum"
         self._accum_params = (num_acc, float(cycle_time_acc))
 
@@ -948,11 +977,11 @@ class RamanCameraModel2:
             mode:           Informational label.
             result_mode:    Handled by AcquisitionService, not the camera layer.
         """
-        _check(atmcd.SetAcquisitionMode(_ACQ_MODE["kinetic"]),    "SetAcquisitionMode")
-        _check(atmcd.SetNumberKinetics(num_cycle),                "SetNumberKinetics")
-        _check(atmcd.SetKineticCycleTime(float(cycle_time)),      "SetKineticCycleTime")
-        _check(atmcd.SetNumberAccumulations(num_acc),             "SetNumberAccumulations")
-        _check(atmcd.SetAccumulationCycleTime(float(cycle_time_acc)), "SetAccumulationCycleTime")
+        _check(self.sdk.SetAcquisitionMode(_ACQ_MODE["kinetic"]),    "SetAcquisitionMode")
+        _check(self.sdk.SetNumberKinetics(num_cycle),                "SetNumberKinetics")
+        _check(self.sdk.SetKineticCycleTime(float(cycle_time)),      "SetKineticCycleTime")
+        _check(self.sdk.SetNumberAccumulations(num_acc),             "SetNumberAccumulations")
+        _check(self.sdk.SetAccumulationCycleTime(float(cycle_time_acc)), "SetAccumulationCycleTime")
         self._acq_mode       = "kinetic"
         self._kinetic_params = (num_cycle, float(cycle_time), num_acc,
                                 float(cycle_time_acc), num_prescan)
@@ -971,11 +1000,11 @@ class RamanCameraModel2:
             mode:           Informational label.
             result_mode:    Handled by AcquisitionService, not the camera layer.
         """
-        _check(atmcd.SetAcquisitionMode(_ACQ_MODE["fast_kinetic"]), "SetAcquisitionMode")
+        _check(self.sdk.SetAcquisitionMode(_ACQ_MODE["fast_kinetic"]), "SetAcquisitionMode")
         # SetFastKineticsEx(exposedRows, seriesLength, time, mode, hbin, vbin, offset)
         hstart, hend, vstart, vend, hbin, vbin = self._roi
         exposed_rows = vend - vstart
-        error = atmcd.SetFastKineticsEx(
+        error = self.sdk.SetFastKineticsEx(
             exposed_rows,           # rows to expose per frame
             num_acc,                # number of frames in the series
             self._exposure,         # exposure time in seconds
@@ -997,8 +1026,8 @@ class RamanCameraModel2:
             cycle_time: Minimum cycle time in seconds (0 = fastest possible).
             mode:       Informational label.
         """
-        _check(atmcd.SetAcquisitionMode(_ACQ_MODE["cont"]),  "SetAcquisitionMode")
-        _check(atmcd.SetKineticCycleTime(float(cycle_time)), "SetKineticCycleTime")
+        _check(self.sdk.SetAcquisitionMode(_ACQ_MODE["cont"]),  "SetAcquisitionMode")
+        _check(self.sdk.SetKineticCycleTime(float(cycle_time)), "SetKineticCycleTime")
         self._acq_mode        = "cont"
         self._cont_cycle_time = float(cycle_time)
 
@@ -1050,7 +1079,7 @@ class RamanCameraModel2:
             ValueError: If mode is not one of the supported values.
         """
         self.validate_trigger_mode(mode)
-        _check(atmcd.SetTriggerMode(_TRIG_MODE[mode]), "SetTriggerMode")
+        _check(self.sdk.SetTriggerMode(_TRIG_MODE[mode]), "SetTriggerMode")
         self._trigger_mode = mode
 
 
@@ -1070,7 +1099,7 @@ class RamanCameraModel2:
             ValueError: If exposure is negative.
         """
         self.validate_exposure(exposure)
-        _check(atmcd.SetExposureTime(exposure), "SetExposureTime")
+        _check(self.sdk.SetExposureTime(exposure), "SetExposureTime")
         self._exposure = exposure
 
 
@@ -1085,32 +1114,32 @@ class RamanCameraModel2:
         the camera as a list of dicts that include the speed in MHz and the
         pre-amplifier gain factor.
         """
-        error, num_channels = atmcd.GetNumberADChannels()
+        error, num_channels = self.sdk.GetNumberADChannels()
         _check(error, "GetNumberADChannels")
-        error, num_preamp = atmcd.GetNumberPreAmpGains()
+        error, num_preamp = self.sdk.GetNumberPreAmpGains()
         _check(error, "GetNumberPreAmpGains")
 
         modes = []
         for ch in range(num_channels):
             for oamp in range(2):   # 0 = EMCCD, 1 = conventional
-                error, n_speeds = atmcd.GetNumberHSSpeeds(ch, oamp)
+                error, n_speeds = self.sdk.GetNumberHSSpeeds(ch, oamp)
                 if error != DRV_SUCCESS:
                     continue
                 for hs in range(n_speeds):
-                    error, speed_mhz = atmcd.GetHSSpeed(ch, oamp, hs)
+                    error, speed_mhz = self.sdk.GetHSSpeed(ch, oamp, hs)
                     if error != DRV_SUCCESS:
                         continue
                     for pa in range(num_preamp):
-                        error, gain = atmcd.GetPreAmpGain(pa)
+                        error, gain = self.sdk.GetPreAmpGain(pa)
                         gain = gain if error == DRV_SUCCESS else 0.0
-                        modes.append({
-                            "channel":    ch,
-                            "oamp":       oamp,
-                            "hsspeed":    hs,
-                            "preamp":     pa,
-                            "speed_mhz":  speed_mhz,
-                            "preamp_gain": gain,
-                        })
+                        modes.append(SimpleNamespace(
+                            channel     = ch,
+                            oamp        = oamp,
+                            hsspeed     = hs,
+                            preamp      = pa,
+                            hsspeed_MHz = speed_mhz,
+                            preamp_gain = gain,
+                        ))
         return modes
 
     @requires_cam_connected
@@ -1129,16 +1158,16 @@ class RamanCameraModel2:
         """
         self.validate_amp(channel, oamp, hsspeed, preamp)
         if channel  is not None:
-            _check(atmcd.SetADChannel(channel),           "SetADChannel")
+            _check(self.sdk.SetADChannel(channel),           "SetADChannel")
             self._channel = channel
         if oamp     is not None:
-            _check(atmcd.SetOutputAmplifier(oamp),        "SetOutputAmplifier")
+            _check(self.sdk.SetOutputAmplifier(oamp),        "SetOutputAmplifier")
             self._oamp = oamp
         if hsspeed  is not None:
-            _check(atmcd.SetHSSpeed(self._oamp, hsspeed), "SetHSSpeed")
+            _check(self.sdk.SetHSSpeed(self._oamp, hsspeed), "SetHSSpeed")
             self._hsspeed = hsspeed
         if preamp   is not None:
-            _check(atmcd.SetPreAmpGain(preamp),           "SetPreAmpGain")
+            _check(self.sdk.SetPreAmpGain(preamp),           "SetPreAmpGain")
             self._preamp = preamp
 
 
@@ -1154,11 +1183,11 @@ class RamanCameraModel2:
         Returns:
             List of float speed values.
         """
-        error, n = atmcd.GetNumberVSSpeeds()
+        error, n = self.sdk.GetNumberVSSpeeds()
         _check(error, "GetNumberVSSpeeds")
         speeds = []
         for i in range(n):
-            error, speed = atmcd.GetVSSpeed(i)
+            error, speed = self.sdk.GetVSSpeed(i)
             if error == DRV_SUCCESS:
                 speeds.append(speed)
         return speeds
@@ -1171,7 +1200,7 @@ class RamanCameraModel2:
         Returns:
             Tuple (index, speed_us_per_pixel).
         """
-        error, index, speed = atmcd.GetFastestRecommendedVSSpeed()
+        error, index, speed = self.sdk.GetFastestRecommendedVSSpeed()
         _check(error, "GetFastestRecommendedVSSpeed")
         return (index, speed)
 
@@ -1183,7 +1212,7 @@ class RamanCameraModel2:
         Args:
             vsspeed_idx: Index into the list returned by get_all_vsspeeds().
         """
-        _check(atmcd.SetVSSpeed(vsspeed_idx), "SetVSSpeed")
+        _check(self.sdk.SetVSSpeed(vsspeed_idx), "SetVSSpeed")
         self._vsspeed = vsspeed_idx
 
 
@@ -1207,8 +1236,8 @@ class RamanCameraModel2:
         """
         self.validate_EMCCD_gain(emccd_gain, emccd_advanced)
         if emccd_advanced:
-            _check(atmcd.SetEMAdvanced(1), "SetEMAdvanced")
-        _check(atmcd.SetEMCCDGain(int(emccd_gain)), "SetEMCCDGain")
+            _check(self.sdk.SetEMAdvanced(1), "SetEMAdvanced")
+        _check(self.sdk.SetEMCCDGain(int(emccd_gain)), "SetEMCCDGain")
         self._emccd_gain = emccd_gain
 
 
@@ -1224,7 +1253,7 @@ class RamanCameraModel2:
         Returns:
             Tuple (min_temp_C, max_temp_C).
         """
-        error, min_temp, max_temp = atmcd.GetTemperatureRange()
+        error, min_temp, max_temp = self.sdk.GetTemperatureRange()
         _check(error, "GetTemperatureRange")
         return (min_temp, max_temp)
 
@@ -1238,9 +1267,9 @@ class RamanCameraModel2:
             target_temp: Desired sensor temperature in °C (default –85 °C).
         """
         self.cancel_cooling = False
-        _check(atmcd.SetTemperature(int(target_temp)), "SetTemperature")
+        _check(self.sdk.SetTemperature(int(target_temp)), "SetTemperature")
         self._temperature_setpoint = target_temp
-        _check(atmcd.CoolerON(), "CoolerON")
+        _check(self.sdk.CoolerON(), "CoolerON")
         self.set_fan_mode("full")
         print(f"Fan mode set to: {self._fan_mode}")
 
@@ -1276,7 +1305,7 @@ class RamanCameraModel2:
         """
         self.set_fan_mode("off")
         self.cancel_cooling = True
-        _check(atmcd.CoolerOFF(), "CoolerOFF")
+        _check(self.sdk.CoolerOFF(), "CoolerOFF")
         print("Warming (cooler OFF)")
 
     def get_temp(self) -> Tuple:
@@ -1289,7 +1318,7 @@ class RamanCameraModel2:
         """
         if not self.cam:
             return "--", ""
-        error, temp = atmcd.GetTemperatureF()
+        error, temp = self.sdk.GetTemperatureF()
         status_str  = _TEMP_STATUS.get(error, str(error))
         return round(temp, 3), status_str
 
@@ -1301,7 +1330,7 @@ class RamanCameraModel2:
         Args:
             mode: 'full', 'low', or 'off'.
         """
-        _check(atmcd.SetFanMode(_FAN[mode]), "SetFanMode")
+        _check(self.sdk.SetFanMode(_FAN[mode]), "SetFanMode")
         self._fan_mode = mode
 
 
@@ -1331,11 +1360,11 @@ class RamanCameraModel2:
         """
         if self.cam:
             try:
-                _check(atmcd.SetFanMode(_FAN["off"]), "SetFanMode(off)")
+                _check(self.sdk.SetFanMode(_FAN["off"]), "SetFanMode(off)")
                 self._fan_mode = "off"
             except Exception:
                 pass
-            _check(atmcd.ShutDown(), "ShutDown")
+            _check(self.sdk.ShutDown(), "ShutDown")
             self.cam = None
             print("Camera disconnected safely")
 
@@ -1371,24 +1400,22 @@ class RamanCameraModel2:
 
         try:
             if acquisition_mode == "single":
-                _check(atmcd.SetAcquisitionMode(_ACQ_MODE["single"]), "SetAcquisitionMode")
+                _check(self.sdk.SetAcquisitionMode(_ACQ_MODE["single"]), "SetAcquisitionMode")
                 frames = [self._acquire_single_frame(timeout)]
 
             elif acquisition_mode == "accum":
-                num_frames = self._accum_params[0]
-                _check(atmcd.SetAcquisitionMode(_ACQ_MODE["single"]), "SetAcquisitionMode")
-                frames = []
-                for _ in range(num_frames):
-                    frames.append(self._acquire_single_frame(timeout))
-                    self._stop_acq_safe()
+                num_acc, cycle = self._accum_params
+                accum_timeout = max(self._exposure * num_acc + cycle * num_acc + 5.0, 10.0)
+                _check(self.sdk.SetAcquisitionMode(_ACQ_MODE["accum"]), "SetAcquisitionMode")
+                frames = [self._acquire_single_frame(accum_timeout)]
 
             elif acquisition_mode == "kinetic":
-                _check(atmcd.SetAcquisitionMode(_ACQ_MODE["kinetic"]), "SetAcquisitionMode")
+                _check(self.sdk.SetAcquisitionMode(_ACQ_MODE["kinetic"]), "SetAcquisitionMode")
                 num_frames = self._kinetic_params[0]
                 frames = self._acquire_n_frames(num_frames, timeout)
 
             elif acquisition_mode == "fast_kinetic":
-                _check(atmcd.SetAcquisitionMode(_ACQ_MODE["fast_kinetic"]), "SetAcquisitionMode")
+                _check(self.sdk.SetAcquisitionMode(_ACQ_MODE["fast_kinetic"]), "SetAcquisitionMode")
                 num_frames = self._fast_kinetic_params[0]
                 frames = self._acquire_n_frames(num_frames, timeout)
 
@@ -1434,7 +1461,7 @@ class RamanCameraModel2:
         Returns:
             True if an acquisition is active, False otherwise.
         """
-        error, status = atmcd.GetStatus()
+        error, status = self.sdk.GetStatus()
         return status == DRV_ACQUIRING
 
     @requires_cam_connected
@@ -1445,7 +1472,7 @@ class RamanCameraModel2:
         Returns:
             Tuple (accumulations_done, series_done).
         """
-        error, acc, series = atmcd.GetAcquisitionProgress()
+        error, acc, series = self.sdk.GetAcquisitionProgress()
         _check(error, "GetAcquisitionProgress")
         return (acc, series)
 
@@ -1495,24 +1522,22 @@ class RamanCameraModel2:
 
         try:
             if acquisition_mode == "single":
-                _check(atmcd.SetAcquisitionMode(_ACQ_MODE["single"]), "SetAcquisitionMode")
+                _check(self.sdk.SetAcquisitionMode(_ACQ_MODE["single"]), "SetAcquisitionMode")
                 frames = [self._acquire_single_frame(timeout)]
 
             elif acquisition_mode == "accum":
-                num_frames = self._accum_params[0]
-                _check(atmcd.SetAcquisitionMode(_ACQ_MODE["single"]), "SetAcquisitionMode")
-                frames = []
-                for _ in range(num_frames):
-                    frames.append(self._acquire_single_frame(timeout))
-                    self._stop_acq_safe()
+                num_acc, cycle = self._accum_params
+                accum_timeout = max(self._exposure * num_acc + cycle * num_acc + 5.0, 10.0)
+                _check(self.sdk.SetAcquisitionMode(_ACQ_MODE["accum"]), "SetAcquisitionMode")
+                frames = [self._acquire_single_frame(accum_timeout)]
 
             elif acquisition_mode == "kinetic":
-                _check(atmcd.SetAcquisitionMode(_ACQ_MODE["kinetic"]), "SetAcquisitionMode")
+                _check(self.sdk.SetAcquisitionMode(_ACQ_MODE["kinetic"]), "SetAcquisitionMode")
                 num_frames = self._kinetic_params[0]
                 frames = self._acquire_n_frames(num_frames, timeout)
 
             elif acquisition_mode == "fast_kinetic":
-                _check(atmcd.SetAcquisitionMode(_ACQ_MODE["fast_kinetic"]), "SetAcquisitionMode")
+                _check(self.sdk.SetAcquisitionMode(_ACQ_MODE["fast_kinetic"]), "SetAcquisitionMode")
                 num_frames = self._fast_kinetic_params[0]
                 frames = self._acquire_n_frames(num_frames, timeout)
 
