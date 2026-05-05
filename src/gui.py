@@ -915,7 +915,7 @@ class MainWindow(QMainWindow):
             return
 
         frame8, h, w = self.controller.adjust_frame(frame)
-        roi = self.controller.get_roi()
+        roi = self.controller.get_display_roi()
         self.preview.set_frame((frame8,h,w),roi)
 
     def create_spectrum_plot(self, title="Spectrum"):

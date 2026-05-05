@@ -196,8 +196,9 @@ class RamanCameraController(QObject):
 
             self.fsm.set_state(CameraState.CONNECTED)
             self.cool_cam(target_temp=-85)
-        except:
-            self.display_msg("No camera found")
+        except Exception as e:
+            traceback.print_exc()
+            self.display_msg(f"No camera found {e}")
         return
 
     def is_camera_alive(self):
@@ -354,7 +355,7 @@ class RamanCameraController(QObject):
             raise RuntimeError("No live frames captured")
 
         read_mode = self.camera.get_read_mode()
-        roi = self.camera.get_roi()
+        roi = self.camera.get_spectrum_roi()
 
         if self.should_apply_bit_shift():
 
@@ -372,14 +373,20 @@ class RamanCameraController(QObject):
 
         num_frames = 1
             
-        if acq_mode in ["kinetic", "fast_kinetic","accum"]:
-            num_frames = len(processed_frames)
+        if acq_mode in {"accum", "kinetic", "fast_kinetic"}:
+            result_mode = user_config.get("acquisition_mode", {}).get("result_mode", "sum")
 
-        if acq_mode in {"kinetic", "fast_kinetic"}:
-            # accum mode excluded: the SDK accumulates internally and returns
-            # one already-combined frame, so combining here would be a no-op.
-            result_mode = acq_cfg.get("result_mode","sum")
-            combined_frame = self.acquisition_service.combine_frames(processed_frames,acq_mode,num_frames,result_mode)
+            if acq_mode == "accum":
+                num_frames = int(user_config.get("acquisition_mode", {}).get("num_acc", 1))
+            else:
+                num_frames = len(processed_frames)
+
+            combined_frame = self.acquisition_service.combine_frames(
+                processed_frames,
+                acq_mode,
+                num_frames,
+                result_mode
+            )
         else:
             combined_frame = processed_frames[0]
 
@@ -573,7 +580,7 @@ class RamanCameraController(QObject):
 
         self.restore_user_config()
         frame = self.camera.single_preview()
-        roi = self.camera.get_roi()
+        roi = self.camera.get_spectrum_roi()
         
         user_config = self.get_user_config()
         read_cfg = user_config.get("read_mode", {})
@@ -621,7 +628,7 @@ class RamanCameraController(QObject):
         if not frames:
             raise RuntimeError("No frames acquired during acquisition")
         
-        roi = self.camera.get_roi()
+        roi = self.camera.get_spectrum_roi()
         if self.should_apply_bit_shift():
 
             before_shift_filename = f'{filename.strip(".npz")}_before_shifting.npz'
@@ -640,14 +647,20 @@ class RamanCameraController(QObject):
             processed_frames = frames
 
         num_frames = 1
-        if acq_mode in ["kinetic","fast_kinetic"]:
-            num_frames = len(processed_frames)
+        if acq_mode in {"accum", "kinetic", "fast_kinetic"}:
+            result_mode = user_config.get("acquisition_mode", {}).get("result_mode", "sum")
 
-        if acq_mode in {"kinetic", "fast_kinetic"}:
-            # accum mode excluded: the SDK returns one hardware-accumulated frame,
-            # so there is nothing to combine in software.
-            result_mode = user_config.get("acquisition_mode",{}).get("result_mode","sum")
-            combined_frame = self.acquisition_service.combine_frames(processed_frames,acq_mode,num_frames,result_mode)
+            if acq_mode == "accum":
+                num_frames = int(user_config.get("acquisition_mode", {}).get("num_acc", 1))
+            else:
+                num_frames = len(processed_frames)
+
+            combined_frame = self.acquisition_service.combine_frames(
+                processed_frames,
+                acq_mode,
+                num_frames,
+                result_mode
+            )
         else:
             combined_frame = processed_frames[0]
 
@@ -1157,6 +1170,18 @@ class RamanCameraController(QObject):
         return
 
     # ==== ROI methods =====
+
+    def get_display_roi(self):
+        """
+        Return the current display ROI from the hardware.
+ 
+        Returns:
+            Tuple (hstart, hend, vstart, vend) for the display ROI.
+        """
+        read_mode = self.camera.get_read_mode()
+        if read_mode == "fvb":
+            return None
+        return self.camera.get_roi()
 
     @handle_errors
     def get_roi(self):

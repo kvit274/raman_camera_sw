@@ -41,36 +41,46 @@ class AcquisitionService:
         self.save_path_image = path
         self.save_path_csv = path
 
-    def combine_frames(self,frames,acq_mode="single",num_frames=1,result_mode="sum"):
+    def combine_frames(self, frames, acq_mode="single", num_frames=1, result_mode="sum"):
         """
-        Combine a list of frames into a single frame according to the acquisition mode.
- 
-        For kinetic / fast_kinetic / accum modes the frames are summed (or averaged
-        when result_mode == 'avg').  For single mode the list is expected to contain
-        exactly one frame and it is returned unchanged.
- 
-        Args:
-            frames:      A single ndarray or a list of ndarrays representing raw frames.
-            acq_mode:    Acquisition mode string ('single', 'accum', 'kinetic', 'fast_kinetic').
-            num_frames:  Number of frames used for averaging (only relevant when result_mode == 'avg').
-            result_mode: How to combine frames – 'sum' (default) or 'avg'.
- 
-        Returns:
-            Combined ndarray.
+        Combine frames according to acquisition mode.
+
+        For kinetic / fast_kinetic:
+            frames contains multiple real frames, so sum/avg across frames.
+
+        For accum:
+            hardware accumulation returns one already-summed frame.
+            sum = that frame
+            avg = that frame / num_frames
         """
         if isinstance(frames, np.ndarray):
             frames = [frames]
 
-        if acq_mode in ["kinetic", "fast_kinetic", "accum"]:
-            combined = np.sum(frames, axis=0)
+        if not frames:
+            raise RuntimeError("No frames to combine")
 
-            print(f"summed kinetic mode frame by {num_frames}")
+        frames = [np.asarray(f) for f in frames]
+
+        if acq_mode == "accum":
+            combined = frames[0]
 
             if result_mode == "avg":
-                print(f"averaged kinetic mode frame by {num_frames}")
+                combined = combined.astype(np.float64) / num_frames
+
+            return combined
+
+        if acq_mode in ["kinetic", "fast_kinetic"]:
+            combined = np.sum(
+                [f.astype(np.float64) for f in frames],
+                axis=0
+            )
+
+            if result_mode == "avg":
                 combined = combined / num_frames
 
-        return combined
+            return combined
+
+        return frames[0]
     
     def convert_to_spectrum(self,frame, roi):
         """

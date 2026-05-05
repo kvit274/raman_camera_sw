@@ -1,5 +1,6 @@
 import os
 import sys
+import ctypes
 import time
 import numpy as np
 from pyAndorSDK2 import atmcd
@@ -176,6 +177,67 @@ class RamanCameraModel2:
     #  INTERNAL HELPERS
     # ══════════════════════════════════════════════════════════════════════════
 
+    
+    def _get_acquired_data_32(self, n: int) -> np.ndarray:
+        """
+        Read acquired data as signed 32-bit values using the raw Andor DLL call.
+
+        This is needed for hardware accumulation, because GetImages16 can wrap
+        accumulated counts into negative values.
+        """
+        dll = ctypes.WinDLL("atmcd64d.dll")
+
+        buffer_type = ctypes.c_long * n
+        buffer = buffer_type()
+
+        dll.GetAcquiredData.argtypes = [
+            ctypes.POINTER(ctypes.c_long),
+            ctypes.c_ulong
+        ]
+        dll.GetAcquiredData.restype = ctypes.c_uint
+
+        error = dll.GetAcquiredData(buffer, ctypes.c_ulong(n))
+        _check(error, "GetAcquiredData")
+
+        return np.ctypeslib.as_array(buffer).astype(np.int32).copy()
+
+
+    def _acquire_accum_frame_32(self, timeout: float) -> np.ndarray:
+        """
+        Start hardware accumulation, wait until finished, then read the summed
+        result as 32-bit data.
+        """
+        _check(self.sdk.StartAcquisition(), "StartAcquisition")
+        print("Hardware accumulation started, waiting...")
+
+        deadline = time.time() + max(timeout * max(1, self._accum_params[0]), 10.0)
+
+        while True:
+            error, status = self.sdk.GetStatus()
+
+            if status == DRV_IDLE:
+                break
+
+            if time.time() > deadline:
+                self.sdk.AbortAcquisition()
+                raise RuntimeError(f"Accum acquisition timed out after {timeout:.1f}s")
+
+            time.sleep(0.05)
+
+        n = self._image_pixels()
+
+        data = self._get_acquired_data_32(n)
+
+        w, h = self._get_data_dimensions()
+        frame = data.reshape(h, w)
+
+        print("ACCUM 32-bit dtype:", frame.dtype)
+        print("ACCUM 32-bit min:", frame.min())
+        print("ACCUM 32-bit max:", frame.max())
+
+        return frame
+
+
     def _pll_to_sdk(self, hstart: int, hend: int,
                     vstart: int, vend: int) -> Tuple[int, int, int, int]:
         """
@@ -197,13 +259,16 @@ class RamanCameraModel2:
         Compute output frame dimensions (width, height) for the current read
         mode, ROI, and binning.
         """
-        w, _ = self._detector_size
+        w, h = self._detector_size
         hstart, hend, vstart, vend, hbin, vbin = self._roi
         mode = self._read_mode
 
-        col_width = (hend - hstart) // hbin if (hend > hstart and hbin > 0) else w
+        if mode == "fvb":
+            return (w,1)
 
-        if mode in ("fvb", "single_track"):
+        col_width = (hend - hstart) // hbin if (hend > hstart and hbin > 0) else w
+        
+        if mode == "single_track":
             return (col_width, 1)
         elif mode == "multi_track":
             number = self._multi_track[0]
@@ -647,6 +712,13 @@ class RamanCameraModel2:
             Tuple (hstart, hend, vstart, vend, hbin, vbin).
             Coordinates are 0-based, hend/vend are exclusive (pylablib convention).
         """
+        return self._roi
+
+    def get_spectrum_roi(self):
+        det_W, det_h = self._detector_size
+        if self._read_mode == "fvb":
+            return (0,det_W, 0, det_h,1,1)
+
         return self._roi
 
     @requires_cam_connected
@@ -1407,7 +1479,7 @@ class RamanCameraModel2:
                 num_acc, cycle = self._accum_params
                 accum_timeout = max(self._exposure * num_acc + cycle * num_acc + 5.0, 10.0)
                 _check(self.sdk.SetAcquisitionMode(_ACQ_MODE["accum"]), "SetAcquisitionMode")
-                frames = [self._acquire_single_frame(accum_timeout)]
+                frames = [self._acquire_accum_frame_32(accum_timeout)]
 
             elif acquisition_mode == "kinetic":
                 _check(self.sdk.SetAcquisitionMode(_ACQ_MODE["kinetic"]), "SetAcquisitionMode")
@@ -1490,7 +1562,7 @@ class RamanCameraModel2:
         timeout = self.calc_frame_timeout()
         self._stop_acq_safe()
         try:
-            frame = self._acquire_single_frame(timeout)
+            frame = self._acquire_accum_frame_32(timeout)
         finally:
             self._stop_acq_safe()
 
@@ -1529,7 +1601,7 @@ class RamanCameraModel2:
                 num_acc, cycle = self._accum_params
                 accum_timeout = max(self._exposure * num_acc + cycle * num_acc + 5.0, 10.0)
                 _check(self.sdk.SetAcquisitionMode(_ACQ_MODE["accum"]), "SetAcquisitionMode")
-                frames = [self._acquire_single_frame(accum_timeout)]
+                frames = [self._acquire_accum_frame_32(accum_timeout)]
 
             elif acquisition_mode == "kinetic":
                 _check(self.sdk.SetAcquisitionMode(_ACQ_MODE["kinetic"]), "SetAcquisitionMode")
