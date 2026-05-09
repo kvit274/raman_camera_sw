@@ -1562,7 +1562,7 @@ class RamanCameraModel2:
         timeout = self.calc_frame_timeout()
         self._stop_acq_safe()
         try:
-            frame = self._acquire_accum_frame_32(timeout)
+            frame = self._acquire_single_frame(timeout)
         finally:
             self._stop_acq_safe()
 

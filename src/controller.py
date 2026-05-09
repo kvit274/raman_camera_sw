@@ -1002,6 +1002,15 @@ class RamanCameraController(QObject):
 
     # ==== Read mode methods =====
 
+    def get_read_mode(self):
+        """
+        Query the current read mode from the hardware.
+ 
+        Returns:
+            Read mode string (e.g. 'single_track', 'image').
+        """
+        return self.camera.get_read_mode()
+
     def get_read_mode_params(self, read_mode):
         """
         Query the current parameters for the specified read mode from the hardware.
@@ -1179,9 +1188,9 @@ class RamanCameraController(QObject):
             Tuple (hstart, hend, vstart, vend) for the display ROI.
         """
         read_mode = self.camera.get_read_mode()
-        if read_mode == "fvb":
-            return None
-        return self.camera.get_roi()
+        if read_mode == "image":
+            return self.camera.get_roi()
+        return None
 
     @handle_errors
     def get_roi(self):
